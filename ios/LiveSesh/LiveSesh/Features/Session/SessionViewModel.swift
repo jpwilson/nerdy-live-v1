@@ -11,10 +11,13 @@ final class SessionViewModel: ObservableObject {
     @Published var activeNudges: [CoachingNudge] = []
     @Published var sessionDuration = "00:00"
 
+    @Published var currentPhase = "" // Shows current simulation phase
+
     private var session: LiveSession?
     private var cancellables = Set<AnyCancellable>()
     private var sessionTimer: Timer?
     private var sessionStartTime: Date?
+    private var simulatorProvider: SimulatorDataProvider?
 
     private let metricsEngine: MetricsEngineProtocol
     private let coachingEngine: CoachingEngineProtocol
@@ -64,12 +67,24 @@ final class SessionViewModel: ObservableObject {
         case .high: coachingEngine.config = .high
         }
 
+        #if targetEnvironment(simulator)
+        // Tighten thresholds for demo so nudges fire within the simulation timeline
+        coachingEngine.config.nudgeCooldownSeconds = 15
+        coachingEngine.config.silenceThresholdSeconds = 20
+        coachingEngine.config.eyeContactThreshold = 0.35
+        coachingEngine.config.talkTimeImbalanceThreshold = 0.75
+        coachingEngine.config.energyDropThreshold = 0.15
+        #endif
+
         metricsEngine.start(sessionId: newSession.id)
         coachingEngine.start(sessionId: newSession.id)
         startTimer()
+        startSimulatorDataIfNeeded()
     }
 
     func endSession() {
+        simulatorProvider?.stop()
+        simulatorProvider = nil
         metricsEngine.stop()
         coachingEngine.stop()
         stopTimer()
@@ -140,6 +155,17 @@ final class SessionViewModel: ObservableObject {
             recommendations: generateRecommendations(from: m),
             createdAt: Date()
         )
+    }
+
+    private func startSimulatorDataIfNeeded() {
+        #if targetEnvironment(simulator)
+        let provider = SimulatorDataProvider(
+            metricsEngine: metricsEngine,
+            scenario: .realistic
+        )
+        simulatorProvider = provider
+        provider.start()
+        #endif
     }
 
     private func generateRecommendations(from metrics: EngagementMetrics) -> [String] {
