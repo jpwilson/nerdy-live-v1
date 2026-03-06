@@ -1,0 +1,28 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXGroup section */
+		00000000000000000000001 /* LiveSesh */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = LiveSesh;
+			sourceTree = "<group>";
+		};
+		00000000000000000000002 /* LiveSeshTests */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = LiveSeshTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+	};
+	rootObject = 00000000000000000000000 /* Project object */;
+}
