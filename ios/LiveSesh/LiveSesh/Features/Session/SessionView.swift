@@ -23,7 +23,9 @@ struct SessionView: View {
                     NerdyLogo()
                 }
             }
+            #if os(iOS)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            #endif
         }
         .overlay(alignment: .topTrailing) {
             nudgeOverlay

@@ -19,7 +19,9 @@ struct AnalyticsDashboardView: View {
                 }
             }
             .navigationTitle("Analytics")
+            #if os(iOS)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            #endif
         }
     }
 
@@ -292,7 +294,9 @@ struct SessionDetailView: View {
             }
         }
         .navigationTitle("Session Detail")
+        #if os(iOS)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        #endif
     }
 }
 

@@ -77,7 +77,9 @@ struct ProfileView: View {
                 .padding()
             }
             .navigationTitle("Profile")
+            #if os(iOS)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            #endif
         }
     }
 }

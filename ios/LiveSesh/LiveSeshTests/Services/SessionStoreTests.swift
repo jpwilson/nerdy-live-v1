@@ -4,18 +4,21 @@ import XCTest
 final class SessionStoreTests: XCTestCase {
     var store: SessionStore!
     var testDefaults: UserDefaults!
+    var suiteName: String!
 
     override func setUp() {
         super.setUp()
-        testDefaults = UserDefaults(suiteName: "com.livesesh.tests.\(UUID().uuidString)")!
+        suiteName = "com.livesesh.tests.\(UUID().uuidString)"
+        testDefaults = UserDefaults(suiteName: suiteName)!
         store = SessionStore(defaults: testDefaults)
     }
 
     override func tearDown() {
         store.clearAll()
-        testDefaults.removePersistentDomain(forName: testDefaults.suiteName ?? "")
+        testDefaults.removePersistentDomain(forName: suiteName)
         store = nil
         testDefaults = nil
+        suiteName = nil
         super.tearDown()
     }
 
