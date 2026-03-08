@@ -96,6 +96,8 @@ final class MockCoachingEngine: CoachingEngineProtocol {
 // MARK: - Mock Supabase Service
 
 final class MockSupabaseService: SupabaseServiceProtocol {
+    var isConfigured = true
+    var hasAuthenticatedAccess = true
     var savedSessions: [LiveSession] = []
     var savedSummaries: [SessionSummary] = []
     var savedSnapshots: [MetricsSnapshot] = []

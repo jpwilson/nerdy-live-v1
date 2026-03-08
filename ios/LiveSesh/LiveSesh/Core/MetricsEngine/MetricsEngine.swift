@@ -30,7 +30,7 @@ final class MetricsEngine: MetricsEngineProtocol {
 
     // Sliding window data
     private let windowSize: TimeInterval
-    private var gazeHistory: RollingWindow<GazeEstimation>
+    private var gazeHistory: [SpeakerRole: RollingWindow<GazeEstimation>]
     private var speakingHistory: RollingWindow<SpeakingState>
     private var expressionHistory: [SpeakerRole: RollingWindow<FacialExpression>]
     private var audioLevelHistory: RollingWindow<AudioLevel>
@@ -42,7 +42,10 @@ final class MetricsEngine: MetricsEngineProtocol {
 
     init(windowSize: TimeInterval = 30) {
         self.windowSize = windowSize
-        self.gazeHistory = RollingWindow(windowSize: windowSize)
+        self.gazeHistory = [
+            .tutor: RollingWindow(windowSize: windowSize),
+            .student: RollingWindow(windowSize: windowSize)
+        ]
         self.speakingHistory = RollingWindow(windowSize: windowSize)
         self.expressionHistory = [
             .tutor: RollingWindow(windowSize: windowSize),
@@ -69,7 +72,7 @@ final class MetricsEngine: MetricsEngineProtocol {
 
     func processGaze(_ gaze: GazeEstimation, for role: SpeakerRole) {
         guard isRunning else { return }
-        gazeHistory.add(gaze)
+        gazeHistory[role]?.add(gaze)
     }
 
     func processSpeaking(_ state: SpeakingState) {
@@ -137,7 +140,7 @@ final class MetricsEngine: MetricsEngineProtocol {
     }
 
     private func computeEyeContactScore(for role: SpeakerRole) -> Double {
-        let gazes = gazeHistory.items
+        let gazes = gazeHistory[role]?.items ?? []
         guard !gazes.isEmpty else { return 0 }
 
         let lookingCount = gazes.filter { $0.isLookingAtCamera }.count
@@ -171,7 +174,10 @@ final class MetricsEngine: MetricsEngineProtocol {
     }
 
     private func reset() {
-        gazeHistory = RollingWindow(windowSize: windowSize)
+        gazeHistory = [
+            .tutor: RollingWindow(windowSize: windowSize),
+            .student: RollingWindow(windowSize: windowSize)
+        ]
         speakingHistory = RollingWindow(windowSize: windowSize)
         expressionHistory = [
             .tutor: RollingWindow(windowSize: windowSize),

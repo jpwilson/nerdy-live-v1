@@ -1,6 +1,9 @@
 import Foundation
 
-protocol SupabaseServiceProtocol {
+protocol SupabaseServiceProtocol: AnyObject {
+    var isConfigured: Bool { get }
+    var hasAuthenticatedAccess: Bool { get }
+
     func saveSession(_ session: LiveSession) async throws
     func saveSummary(_ summary: SessionSummary) async throws
     func saveMetricsSnapshot(_ snapshot: MetricsSnapshot) async throws
@@ -29,27 +32,68 @@ struct DateEngagement: Codable, Equatable {
 final class SupabaseService: SupabaseServiceProtocol {
     private let baseURL: URL
     private let apiKey: String
+    private let accessToken: String
     private let session: URLSession
 
-    init(baseURL: URL? = nil, apiKey: String? = nil, session: URLSession = .shared) {
-        self.baseURL = baseURL ?? URL(string: "https://your-project.supabase.co")!
-        self.apiKey = apiKey ?? ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"] ?? ""
+    var isConfigured: Bool {
+        !apiKey.isEmpty && baseURL.host() != "your-project.supabase.co"
+    }
+
+    var hasAuthenticatedAccess: Bool {
+        isConfigured && !accessToken.isEmpty
+    }
+
+    init(baseURL: URL? = nil,
+         apiKey: String? = nil,
+         accessToken: String? = nil,
+         session: URLSession = .shared) {
+        let infoDictionary = Bundle.main.infoDictionary ?? [:]
+        let configuredURL = Self.normalizedConfigurationValue(baseURL?.absoluteString)
+            ?? Self.normalizedConfigurationValue(infoDictionary["SUPABASE_URL"] as? String)
+            ?? Self.normalizedConfigurationValue(ProcessInfo.processInfo.environment["SUPABASE_URL"])
+            ?? "https://your-project.supabase.co"
+
+        let configuredAPIKey = Self.normalizedConfigurationValue(apiKey)
+            ?? Self.normalizedConfigurationValue(infoDictionary["SUPABASE_ANON_KEY"] as? String)
+            ?? Self.normalizedConfigurationValue(ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"])
+            ?? ""
+
+        let configuredAccessToken = Self.normalizedConfigurationValue(accessToken)
+            ?? Self.normalizedConfigurationValue(infoDictionary["SUPABASE_ACCESS_TOKEN"] as? String)
+            ?? Self.normalizedConfigurationValue(ProcessInfo.processInfo.environment["SUPABASE_ACCESS_TOKEN"])
+            ?? ""
+
+        self.baseURL = URL(string: configuredURL) ?? URL(string: "https://your-project.supabase.co")!
+        self.apiKey = configuredAPIKey
+        self.accessToken = configuredAccessToken
         self.session = session
     }
 
     // MARK: - Save Operations
 
     func saveSession(_ liveSession: LiveSession) async throws {
-        let url = baseURL.appendingPathComponent("/rest/v1/sessions")
-        var request = makeRequest(url: url, method: "POST")
+        var components = URLComponents(url: baseURL.appendingPathComponent("/rest/v1/sessions"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "on_conflict", value: "id")]
+
+        var request = makeRequest(
+            url: components.url!,
+            method: "POST",
+            prefer: "resolution=merge-duplicates,return=representation"
+        )
         request.httpBody = try JSONEncoder.supabase.encode(liveSession)
         let (_, response) = try await session.data(for: request)
         try validateResponse(response)
     }
 
     func saveSummary(_ summary: SessionSummary) async throws {
-        let url = baseURL.appendingPathComponent("/rest/v1/session_summaries")
-        var request = makeRequest(url: url, method: "POST")
+        var components = URLComponents(url: baseURL.appendingPathComponent("/rest/v1/session_summaries"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "on_conflict", value: "session_id")]
+
+        var request = makeRequest(
+            url: components.url!,
+            method: "POST",
+            prefer: "resolution=merge-duplicates,return=representation"
+        )
         request.httpBody = try JSONEncoder.supabase.encode(summary)
         let (_, response) = try await session.data(for: request)
         try validateResponse(response)
@@ -121,13 +165,13 @@ final class SupabaseService: SupabaseServiceProtocol {
 
     // MARK: - Helpers
 
-    private func makeRequest(url: URL, method: String) -> URLRequest {
+    private func makeRequest(url: URL, method: String, prefer: String = "return=representation") -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken.isEmpty ? apiKey : accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(apiKey, forHTTPHeaderField: "apikey")
-        request.setValue("return=representation", forHTTPHeaderField: "Prefer")
+        request.setValue(prefer, forHTTPHeaderField: "Prefer")
         return request
     }
 
@@ -138,6 +182,16 @@ final class SupabaseService: SupabaseServiceProtocol {
         guard (200...299).contains(httpResponse.statusCode) else {
             throw SupabaseError.httpError(statusCode: httpResponse.statusCode)
         }
+    }
+
+    private static func normalizedConfigurationValue(_ rawValue: String?) -> String? {
+        guard let trimmed = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty,
+              !trimmed.hasPrefix("$(") else {
+            return nil
+        }
+
+        return trimmed
     }
 }
 

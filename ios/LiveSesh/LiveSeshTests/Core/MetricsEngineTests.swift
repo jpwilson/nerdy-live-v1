@@ -127,7 +127,49 @@ final class MetricsEngineTests: XCTestCase {
         waitForExpectations(timeout: 2)
 
         // Should be approximately 0.7 for student
-        // (engine computes for all gazes regardless of role currently)
+        XCTAssertEqual(engine.latestMetrics.student.eyeContactScore, 0.7, accuracy: 0.15)
+    }
+
+    func testEyeContactTrackedPerParticipantRole() {
+        engine.start(sessionId: UUID())
+
+        for _ in 0..<10 {
+            engine.processGaze(
+                GazeEstimation(
+                    isLookingAtCamera: true,
+                    gazeDirection: .atCamera,
+                    confidence: 0.9,
+                    yaw: 0,
+                    pitch: 0,
+                    timestamp: Date()
+                ),
+                for: .tutor
+            )
+        }
+
+        for _ in 0..<10 {
+            engine.processGaze(
+                GazeEstimation(
+                    isLookingAtCamera: false,
+                    gazeDirection: .away,
+                    confidence: 0.9,
+                    yaw: 0.4,
+                    pitch: 0.2,
+                    timestamp: Date()
+                ),
+                for: .student
+            )
+        }
+
+        let expectation = expectation(description: "Metrics computed")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            expectation.fulfill()
+        }
+        waitForExpectations(timeout: 2)
+
+        let metrics = engine.latestMetrics
+        XCTAssertGreaterThan(metrics.tutor.eyeContactScore, 0.8)
+        XCTAssertLessThan(metrics.student.eyeContactScore, 0.2)
     }
 
     // MARK: - Talk Time Balance

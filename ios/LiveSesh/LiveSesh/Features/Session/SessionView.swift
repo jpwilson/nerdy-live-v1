@@ -1,5 +1,8 @@
 import SwiftUI
 import AVFoundation
+#if os(iOS)
+import UIKit
+#endif
 
 struct SessionView: View {
     @EnvironmentObject var appState: AppState
@@ -98,6 +101,15 @@ struct SessionView: View {
                 viewModel.startSession()
             }
 
+            if let syncStatusMessage {
+                SessionStatusBanner(
+                    message: syncStatusMessage,
+                    symbol: "icloud.fill",
+                    accentColor: syncStatusAccentColor
+                )
+                .padding(.horizontal)
+            }
+
             Spacer()
         }
     }
@@ -106,47 +118,25 @@ struct SessionView: View {
 
     private var activeSessionView: some View {
         VStack(spacing: 16) {
-            // Camera preview placeholder
-            ZStack {
-                RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium)
-                    .fill(NerdyTheme.backgroundCard)
-                    .frame(height: 240)
-
-                VStack(spacing: 8) {
-                    Image(systemName: "video.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(NerdyTheme.cyan)
-                    Text("Camera Preview")
-                        .foregroundColor(NerdyTheme.textSecondary)
-
-                    // Session timer
-                    Text(viewModel.sessionDuration)
-                        .font(.system(size: 24, weight: .bold, design: .monospaced))
-                        .foregroundStyle(NerdyTheme.gradientAccent)
-                }
-
-                // Analysis active indicator
-                HStack {
-                    Spacer()
-                    VStack {
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 8, height: 8)
-                            Text("ANALYZING")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color.red.opacity(0.3)))
-                        Spacer()
-                    }
-                }
-                .padding(12)
-            }
+            LiveCaptureSurfaceView(
+                controller: viewModel.liveCaptureController,
+                sessionDuration: viewModel.sessionDuration
+            )
             .padding(.horizontal)
+
+            if let captureStatusMessage {
+                SessionStatusBanner(message: captureStatusMessage)
+                    .padding(.horizontal)
+            }
+
+            if let syncStatusMessage {
+                SessionStatusBanner(
+                    message: syncStatusMessage,
+                    symbol: "icloud.fill",
+                    accentColor: syncStatusAccentColor
+                )
+                .padding(.horizontal)
+            }
 
             // Live Metrics Dashboard (inline)
             LiveMetricsDashboardView(metrics: viewModel.currentMetrics)
@@ -194,6 +184,26 @@ struct SessionView: View {
         .padding(.top, 100)
         .padding(.trailing, 16)
     }
+
+    private var captureStatusMessage: String? {
+        if viewModel.currentPhase == "Simulator Demo Mode" {
+            return "Simulator fallback is active. Run on an iPhone for real camera and microphone capture."
+        }
+
+        if viewModel.liveCaptureController.isRunning {
+            return "On-device tutor capture is active. Student-side metrics still require the tutoring call or remote media streams to be integrated into this app."
+        }
+
+        return viewModel.liveCaptureController.status.message ?? (viewModel.currentPhase.isEmpty ? nil : viewModel.currentPhase)
+    }
+
+    private var syncStatusMessage: String? {
+        viewModel.syncStatus.isEmpty ? nil : viewModel.syncStatus
+    }
+
+    private var syncStatusAccentColor: Color {
+        viewModel.syncStatus.localizedCaseInsensitiveContains("failed") ? Color.red : NerdyTheme.cyan
+    }
 }
 
 // MARK: - Supporting Views
@@ -235,17 +245,17 @@ struct LiveMetricsDashboardView: View {
                 HStack(spacing: 20) {
                     MetricGauge(
                         label: "Eye Contact",
-                        value: (metrics.tutor.eyeContactScore + metrics.student.eyeContactScore) / 2,
+                        value: effectiveEyeContact,
                         icon: "eye.fill"
                     )
                     MetricGauge(
                         label: "Energy",
-                        value: (metrics.tutor.energyScore + metrics.student.energyScore) / 2,
+                        value: effectiveEnergy,
                         icon: "bolt.fill"
                     )
                     MetricGauge(
-                        label: "Balance",
-                        value: 1.0 - abs(metrics.tutor.talkTimePercent - 0.5) * 2,
+                        label: hasStudentSignal ? "Balance" : "Tutor Talk",
+                        value: hasStudentSignal ? talkBalance : metrics.tutor.talkTimePercent,
                         icon: "scale.3d"
                     )
                 }
@@ -267,7 +277,140 @@ struct LiveMetricsDashboardView: View {
             }
         }
     }
+
+    private var effectiveEyeContact: Double {
+        averagedMetric(tutor: metrics.tutor.eyeContactScore, student: metrics.student.eyeContactScore)
+    }
+
+    private var effectiveEnergy: Double {
+        averagedMetric(tutor: metrics.tutor.energyScore, student: metrics.student.energyScore)
+    }
+
+    private var talkBalance: Double {
+        1.0 - abs(metrics.tutor.talkTimePercent - 0.5) * 2
+    }
+
+    private var hasStudentSignal: Bool {
+        metrics.student.eyeContactScore > 0 ||
+        metrics.student.talkTimePercent > 0 ||
+        metrics.student.isSpeaking
+    }
+
+    private func averagedMetric(tutor: Double, student: Double) -> Double {
+        hasStudentSignal ? (tutor + student) / 2 : tutor
+    }
 }
+
+struct LiveCaptureSurfaceView: View {
+    @ObservedObject var controller: LiveCaptureController
+    let sessionDuration: String
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium)
+                .fill(NerdyTheme.backgroundCard)
+
+            #if os(iOS)
+            CameraPreviewView(controller: controller)
+                .clipShape(RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium))
+            #endif
+
+            LinearGradient(
+                colors: [Color.black.opacity(0.18), Color.black.opacity(0.58)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .clipShape(RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium))
+
+            VStack {
+                HStack {
+                    analysisPill
+                    Spacer()
+                }
+                Spacer()
+                VStack(spacing: 8) {
+                    if !controller.isRunning {
+                        Image(systemName: "video.fill")
+                            .font(.system(size: 36))
+                            .foregroundColor(NerdyTheme.cyan)
+                    }
+
+                    Text(sessionDuration)
+                        .font(.system(size: 28, weight: .bold, design: .monospaced))
+                        .foregroundStyle(NerdyTheme.gradientAccent)
+                }
+            }
+            .padding(14)
+        }
+        .frame(height: 260)
+        .overlay(
+            RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium)
+                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+        )
+    }
+
+    private var analysisPill: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(controller.isRunning ? NerdyTheme.cyan : Color.red)
+                .frame(width: 8, height: 8)
+            Text(controller.isRunning ? "LIVE CAPTURE" : "WAITING")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(Color.black.opacity(0.35)))
+    }
+}
+
+struct SessionStatusBanner: View {
+    let message: String
+    var symbol: String = "info.circle.fill"
+    var accentColor: Color = NerdyTheme.cyan
+
+    var body: some View {
+        NerdyCard {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: symbol)
+                    .foregroundColor(accentColor)
+                Text(message)
+                    .font(.caption)
+                    .foregroundColor(NerdyTheme.textSecondary)
+            }
+        }
+    }
+}
+
+#if os(iOS)
+struct CameraPreviewView: UIViewRepresentable {
+    @ObservedObject var controller: LiveCaptureController
+
+    func makeUIView(context: Context) -> PreviewContainerView {
+        let view = PreviewContainerView()
+        view.previewLayer.videoGravity = .resizeAspectFill
+        view.previewLayer.session = controller.captureSession
+        return view
+    }
+
+    func updateUIView(_ uiView: PreviewContainerView, context: Context) {
+        if uiView.previewLayer.session !== controller.captureSession {
+            uiView.previewLayer.session = controller.captureSession
+        }
+    }
+}
+
+final class PreviewContainerView: UIView {
+    override class var layerClass: AnyClass {
+        AVCaptureVideoPreviewLayer.self
+    }
+
+    var previewLayer: AVCaptureVideoPreviewLayer {
+        layer as! AVCaptureVideoPreviewLayer
+    }
+}
+#endif
 
 struct TrendBadge: View {
     let trend: EngagementTrend
@@ -401,7 +544,9 @@ extension Animation {
 
 // MARK: - Preview
 
-#Preview {
-    SessionView()
-        .environmentObject(AppState())
+struct SessionView_Previews: PreviewProvider {
+    static var previews: some View {
+        SessionView()
+            .environmentObject(AppState())
+    }
 }

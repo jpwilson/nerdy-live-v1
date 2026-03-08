@@ -224,6 +224,8 @@ struct PresetButton: View {
     }
 }
 
-#Preview {
-    CoachingSettingsView(config: .constant(.default))
+struct CoachingSettingsView_Previews: PreviewProvider {
+    static var previews: some View {
+        CoachingSettingsView(config: .constant(.default))
+    }
 }

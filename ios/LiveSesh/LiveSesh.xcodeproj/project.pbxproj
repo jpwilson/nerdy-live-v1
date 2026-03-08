@@ -18,6 +18,7 @@
 		4E720C8F2B2C81D34DCDE40C /* AudioProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F04EAC97F399D0D28108A3 /* AudioProcessorTests.swift */; };
 		661EFD8B47B231F6EB46C1CC /* VideoProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5E0902061B646F2B772CB9 /* VideoProcessorTests.swift */; };
 		6EA0B97C780DA93BA003B8CE /* SimulatorDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B01E968768B233103ACC903 /* SimulatorDataProvider.swift */; };
+		749393B0526008ECEE3B5372 /* LiveCaptureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5127886E4AAAB62AF3F1C56 /* LiveCaptureController.swift */; };
 		75B3D4DA0FE39751E2750A0F /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB785C89268E182A6A7D7B6 /* SessionStore.swift */; };
 		8F60E9B80D8B352FD2EB53BB /* MockProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACB4512C190148CA669BE6C8 /* MockProtocols.swift */; };
 		8FCE333EEBF4B2AF2AA6A08C /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8FE90A09472152BEA90E8DC /* SupabaseService.swift */; };
@@ -63,6 +64,7 @@
 		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C998CF5454E755914B06B07A /* SessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionView.swift; sourceTree = "<group>"; };
 		D2814F7C75F4849E84693915 /* LiveSeshApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSeshApp.swift; sourceTree = "<group>"; };
+		D5127886E4AAAB62AF3F1C56 /* LiveCaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCaptureController.swift; sourceTree = "<group>"; };
 		D83B73B4559A0C710477EBBA /* MetricsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsEngine.swift; sourceTree = "<group>"; };
 		DBF2457AFC0D061C7C58AE78 /* SupabaseServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseServiceTests.swift; sourceTree = "<group>"; };
 		DD66E86E35C014A2372001AE /* VideoProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoProcessor.swift; sourceTree = "<group>"; };
@@ -82,6 +84,14 @@
 				5F3E31AD1F1691031AC965E0 /* Services */,
 			);
 			path = LiveSeshTests;
+			sourceTree = "<group>";
+		};
+		17636B848AAA16562DCDE200 /* LiveCapture */ = {
+			isa = PBXGroup;
+			children = (
+				D5127886E4AAAB62AF3F1C56 /* LiveCaptureController.swift */,
+			);
+			path = LiveCapture;
 			sourceTree = "<group>";
 		};
 		1E35EEDA6FEF9E7DD3102CC0 /* Session */ = {
@@ -164,6 +174,7 @@
 			children = (
 				1B01E968768B233103ACC903 /* SimulatorDataProvider.swift */,
 				DDD162849A2963F75B1BA7DC /* AudioProcessor */,
+				17636B848AAA16562DCDE200 /* LiveCapture */,
 				F66563E92A5B5FDD10ECB077 /* MetricsEngine */,
 				3CC0E4E3850A88DC71B2BBE6 /* VideoProcessor */,
 			);
@@ -390,6 +401,7 @@
 				F622C5B5BA8DDE720D928199 /* CoachingEngine.swift in Sources */,
 				B624E4FB7B01B140573230A0 /* CoachingSettingsView.swift in Sources */,
 				F0C75C2B7E63BE00E5DEF991 /* ContentView.swift in Sources */,
+				749393B0526008ECEE3B5372 /* LiveCaptureController.swift in Sources */,
 				FF21A8C7A509C90A3C784437 /* LiveSeshApp.swift in Sources */,
 				178443C0E71AD38290592C8F /* MetricsEngine.swift in Sources */,
 				386661CA799987606ADA41B8 /* Models.swift in Sources */,
@@ -424,6 +436,9 @@
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LiveSesh needs microphone access to analyze speaking patterns during sessions";
+				INFOPLIST_KEY_SUPABASE_ACCESS_TOKEN = "$(SUPABASE_ACCESS_TOKEN)";
+				INFOPLIST_KEY_SUPABASE_ANON_KEY = "$(SUPABASE_ANON_KEY)";
+				INFOPLIST_KEY_SUPABASE_URL = "$(SUPABASE_URL)";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -491,6 +506,9 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				SUPABASE_ACCESS_TOKEN = "";
+				SUPABASE_ANON_KEY = "";
+				SUPABASE_URL = "";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.9;
@@ -525,6 +543,9 @@
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LiveSesh needs microphone access to analyze speaking patterns during sessions";
+				INFOPLIST_KEY_SUPABASE_ACCESS_TOKEN = "$(SUPABASE_ACCESS_TOKEN)";
+				INFOPLIST_KEY_SUPABASE_ANON_KEY = "$(SUPABASE_ANON_KEY)";
+				INFOPLIST_KEY_SUPABASE_URL = "$(SUPABASE_URL)";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -599,6 +620,9 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				SUPABASE_ACCESS_TOKEN = "";
+				SUPABASE_ANON_KEY = "";
+				SUPABASE_URL = "";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.9;

@@ -12,23 +12,39 @@ final class SessionViewModel: ObservableObject {
     @Published var sessionDuration = "00:00"
 
     @Published var currentPhase = "" // Shows current simulation phase
+    @Published var syncStatus = ""
 
     private var session: LiveSession?
     private var cancellables = Set<AnyCancellable>()
     private var sessionTimer: Timer?
     private var sessionStartTime: Date?
     private var simulatorProvider: SimulatorDataProvider?
+    private var lastSnapshotSavedAt: Date?
+    private var syncTask: Task<Void, Never>?
 
     private let metricsEngine: MetricsEngineProtocol
     private let coachingEngine: CoachingEngineProtocol
     private let sessionStore: SessionStore
+    private let supabaseService: SupabaseServiceProtocol
+    private let tutorId: UUID
+    let liveCaptureController: LiveCaptureController
 
     init(metricsEngine: MetricsEngineProtocol? = nil,
          coachingEngine: CoachingEngineProtocol? = nil,
-         sessionStore: SessionStore? = nil) {
-        self.metricsEngine = metricsEngine ?? MetricsEngine()
-        self.coachingEngine = coachingEngine ?? CoachingEngine()
-        self.sessionStore = sessionStore ?? SessionStore()
+         sessionStore: SessionStore? = nil,
+         supabaseService: SupabaseServiceProtocol? = nil) {
+        let resolvedMetricsEngine = metricsEngine ?? MetricsEngine()
+        let resolvedCoachingEngine = coachingEngine ?? CoachingEngine()
+        let resolvedSessionStore = sessionStore ?? SessionStore()
+        let resolvedSupabaseService = supabaseService ?? SupabaseService()
+
+        self.metricsEngine = resolvedMetricsEngine
+        self.coachingEngine = resolvedCoachingEngine
+        self.sessionStore = resolvedSessionStore
+        self.supabaseService = resolvedSupabaseService
+        self.tutorId = Self.resolveLocalTutorId()
+        self.liveCaptureController = LiveCaptureController(metricsEngine: resolvedMetricsEngine)
+        self.syncStatus = Self.makeSyncStatus(for: resolvedSupabaseService)
         setupSubscriptions()
     }
 
@@ -38,6 +54,7 @@ final class SessionViewModel: ObservableObject {
             .sink { [weak self] metrics in
                 self?.currentMetrics = metrics
                 self?.coachingEngine.evaluateMetrics(metrics)
+                self?.persistSnapshotIfNeeded(metrics)
             }
             .store(in: &cancellables)
 
@@ -45,20 +62,30 @@ final class SessionViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] nudge in
                 self?.activeNudges.append(nudge)
+                self?.persistNudge(nudge)
             }
             .store(in: &cancellables)
     }
 
     func startSession() {
         let newSession = LiveSession.new(
-            tutorId: UUID(), // Would come from auth
+            tutorId: tutorId,
             subject: subject.isEmpty ? "General" : subject,
             level: studentLevel
         )
 
         session = newSession
+        sessionStore.saveSession(newSession)
+        enqueueSync("session start") { [newSession] in
+            try await self.supabaseService.saveSession(newSession)
+        }
         isSessionActive = true
         sessionStartTime = Date()
+        sessionDuration = "00:00"
+        activeNudges = []
+        currentMetrics = .empty
+        lastSnapshotSavedAt = nil
+        currentPhase = ""
 
         // Configure coaching
         switch coachingSensitivity {
@@ -67,24 +94,19 @@ final class SessionViewModel: ObservableObject {
         case .high: coachingEngine.config = .high
         }
 
-        #if targetEnvironment(simulator)
-        // Tighten thresholds for demo so nudges fire within the simulation timeline
-        coachingEngine.config.nudgeCooldownSeconds = 15
-        coachingEngine.config.silenceThresholdSeconds = 20
-        coachingEngine.config.eyeContactThreshold = 0.35
-        coachingEngine.config.talkTimeImbalanceThreshold = 0.75
-        coachingEngine.config.energyDropThreshold = 0.15
-        #endif
-
         metricsEngine.start(sessionId: newSession.id)
         coachingEngine.start(sessionId: newSession.id)
         startTimer()
-        startSimulatorDataIfNeeded()
+
+        Task { [weak self] in
+            await self?.startLiveCapture()
+        }
     }
 
     func endSession() {
         simulatorProvider?.stop()
         simulatorProvider = nil
+        liveCaptureController.stop()
         metricsEngine.stop()
         coachingEngine.stop()
         stopTimer()
@@ -93,16 +115,23 @@ final class SessionViewModel: ObservableObject {
             session.endedAt = Date()
             session.engagementScore = computeOverallScore()
             sessionStore.saveSession(session)
+            enqueueSync("session update") { [session] in
+                try await self.supabaseService.saveSession(session)
+            }
 
             // Generate summary
             let summary = generateSummary(for: session)
             sessionStore.saveSummary(summary)
+            enqueueSync("session summary") { [summary] in
+                try await self.supabaseService.saveSummary(summary)
+            }
         }
 
         isSessionActive = false
         session = nil
         activeNudges = []
         currentMetrics = .empty
+        lastSnapshotSavedAt = nil
     }
 
     func dismissNudge(_ nudge: CoachingNudge) {
@@ -165,7 +194,65 @@ final class SessionViewModel: ObservableObject {
         )
         simulatorProvider = provider
         provider.start()
+        currentPhase = "Simulator Demo Mode"
         #endif
+    }
+
+    private func startLiveCapture() async {
+        let didStart = await liveCaptureController.start()
+        if didStart {
+            currentPhase = "Live Device Capture"
+            return
+        }
+
+        #if targetEnvironment(simulator)
+        // Fall back to simulated signals when the simulator cannot access real capture hardware.
+        coachingEngine.config.nudgeCooldownSeconds = 15
+        coachingEngine.config.silenceThresholdSeconds = 20
+        coachingEngine.config.eyeContactThreshold = 0.35
+        coachingEngine.config.talkTimeImbalanceThreshold = 0.75
+        coachingEngine.config.energyDropThreshold = 0.15
+        startSimulatorDataIfNeeded()
+        #else
+        currentPhase = liveCaptureController.status.message ?? "Live capture unavailable"
+        #endif
+    }
+
+    private func persistSnapshotIfNeeded(_ metrics: EngagementMetrics) {
+        guard isSessionActive, let session else { return }
+
+        if let lastSnapshotSavedAt,
+           metrics.timestamp.timeIntervalSince(lastSnapshotSavedAt) < 1.0 {
+            return
+        }
+
+        guard hasMeaningfulSignal(metrics) else { return }
+
+        let snapshot = MetricsSnapshot(from: metrics, sessionId: session.id)
+        sessionStore.saveSnapshot(snapshot)
+        enqueueSync("metrics snapshot") { [snapshot] in
+            try await self.supabaseService.saveMetricsSnapshot(snapshot)
+        }
+        lastSnapshotSavedAt = metrics.timestamp
+    }
+
+    private func persistNudge(_ nudge: CoachingNudge) {
+        guard isSessionActive, session != nil else { return }
+        sessionStore.saveNudge(nudge)
+        enqueueSync("coaching nudge") { [nudge] in
+            try await self.supabaseService.saveNudge(nudge)
+        }
+    }
+
+    private func hasMeaningfulSignal(_ metrics: EngagementMetrics) -> Bool {
+        metrics.tutor.eyeContactScore > 0 ||
+        metrics.student.eyeContactScore > 0 ||
+        metrics.tutor.isSpeaking ||
+        metrics.student.isSpeaking ||
+        metrics.session.interruptionCount > 0 ||
+        metrics.session.silenceDurationCurrent > 0 ||
+        metrics.tutor.energyScore != 0.5 ||
+        metrics.student.energyScore != 0.5
     }
 
     private func generateRecommendations(from metrics: EngagementMetrics) -> [String] {
@@ -189,4 +276,51 @@ final class SessionViewModel: ObservableObject {
 
         return recs
     }
+
+    private func enqueueSync(_ label: String, operation: @escaping () async throws -> Void) {
+        guard supabaseService.hasAuthenticatedAccess else { return }
+
+        let previousTask = syncTask
+        syncTask = Task { @MainActor [weak self, previousTask] in
+            if let previousTask {
+                await previousTask.value
+            }
+
+            do {
+                try await operation()
+                self?.syncStatus = Self.cloudSyncReadyMessage
+            } catch {
+                self?.syncStatus = "Cloud sync failed while uploading \(label). Local data is still saved on this device."
+            }
+        }
+    }
+
+    private static func resolveLocalTutorId(defaults: UserDefaults = .standard) -> UUID {
+        let key = "livesesh_local_tutor_id"
+
+        if let existing = defaults.string(forKey: key),
+           let tutorId = UUID(uuidString: existing) {
+            return tutorId
+        }
+
+        let tutorId = UUID()
+        defaults.set(tutorId.uuidString, forKey: key)
+        return tutorId
+    }
+
+    private static func makeSyncStatus(for supabaseService: SupabaseServiceProtocol) -> String {
+        if supabaseService.hasAuthenticatedAccess {
+            return cloudSyncReadyMessage
+        }
+
+        if supabaseService.isConfigured {
+            return cloudSyncNeedsAuthMessage
+        }
+
+        return cloudSyncDisabledMessage
+    }
+
+    private static let cloudSyncReadyMessage = "Cloud sync is active. Session data uploads to Supabase in the background."
+    private static let cloudSyncNeedsAuthMessage = "Supabase is configured, but uploads are blocked by RLS until the app sends an authenticated tutor token. Add SUPABASE_ACCESS_TOKEN for now or wire real app auth."
+    private static let cloudSyncDisabledMessage = "Cloud sync is off. Add SUPABASE_URL and SUPABASE_ANON_KEY in the app build settings or scheme environment to enable Supabase configuration."
 }

@@ -19,6 +19,9 @@ struct AnalyticsDashboardView: View {
                 }
             }
             .navigationTitle("Analytics")
+            .onAppear {
+                viewModel.loadData()
+            }
             #if os(iOS)
             .toolbarColorScheme(.dark, for: .navigationBar)
             #endif
@@ -345,15 +348,21 @@ final class AnalyticsViewModel: ObservableObject {
             talkBalanceLabel = "\(Int(avgTutorTalk * 100))/\(Int((1 - avgTutorTalk) * 100))"
 
             if summaries.count >= 2 {
-                let recent = summaries.prefix(3).map(\.engagementScore).reduce(0, +) / 3
-                let older = summaries.suffix(3).map(\.engagementScore).reduce(0, +) / 3
+                let recentWindow = Array(summaries.prefix(min(3, summaries.count)))
+                let olderWindow = Array(summaries.suffix(min(3, summaries.count)))
+                let recent = recentWindow.map(\.engagementScore).reduce(0, +) / Double(recentWindow.count)
+                let older = olderWindow.map(\.engagementScore).reduce(0, +) / Double(olderWindow.count)
                 overallTrend = recent > older ? "Improving" : recent < older ? "Declining" : "Stable"
+            } else {
+                overallTrend = "Stable"
             }
         }
     }
 }
 
-#Preview {
-    AnalyticsDashboardView()
-        .environmentObject(AppState())
+struct AnalyticsDashboardView_Previews: PreviewProvider {
+    static var previews: some View {
+        AnalyticsDashboardView()
+            .environmentObject(AppState())
+    }
 }

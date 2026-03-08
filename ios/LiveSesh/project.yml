@@ -11,6 +11,9 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     DEVELOPMENT_TEAM: ""
+    SUPABASE_URL: ""
+    SUPABASE_ANON_KEY: ""
+    SUPABASE_ACCESS_TOKEN: ""
 
 targets:
   LiveSesh:
@@ -34,6 +37,9 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_NSCameraUsageDescription: "LiveSesh needs camera access to analyze engagement during tutoring sessions"
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "LiveSesh needs microphone access to analyze speaking patterns during sessions"
+        INFOPLIST_KEY_SUPABASE_URL: "$(SUPABASE_URL)"
+        INFOPLIST_KEY_SUPABASE_ANON_KEY: "$(SUPABASE_ANON_KEY)"
+        INFOPLIST_KEY_SUPABASE_ACCESS_TOKEN: "$(SUPABASE_ACCESS_TOKEN)"
 
   LiveSeshTests:
     type: bundle.unit-test
