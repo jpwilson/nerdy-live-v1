@@ -51,8 +51,8 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
     private let supabaseAnonKey: String
 
     init(supabaseURL: String? = nil, supabaseAnonKey: String? = nil) {
-        self.supabaseURL = supabaseURL ?? AuthService.defaultSupabaseURL
-        self.supabaseAnonKey = supabaseAnonKey ?? AuthService.defaultSupabaseAnonKey
+        self.supabaseURL = supabaseURL ?? SupabaseConfig.url
+        self.supabaseAnonKey = supabaseAnonKey ?? SupabaseConfig.anonKey
     }
 
     // MARK: - Public API

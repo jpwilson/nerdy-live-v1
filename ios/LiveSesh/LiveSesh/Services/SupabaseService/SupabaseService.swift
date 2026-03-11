@@ -59,19 +59,19 @@ final class SupabaseService: SupabaseServiceProtocol {
         let configuredURL = Self.normalizedConfigurationValue(baseURL?.absoluteString)
             ?? Self.normalizedConfigurationValue(infoDictionary["SUPABASE_URL"] as? String)
             ?? Self.normalizedConfigurationValue(ProcessInfo.processInfo.environment["SUPABASE_URL"])
-            ?? AuthService.defaultSupabaseURL
+            ?? SupabaseConfig.url
 
         let configuredAPIKey = Self.normalizedConfigurationValue(apiKey)
             ?? Self.normalizedConfigurationValue(infoDictionary["SUPABASE_ANON_KEY"] as? String)
             ?? Self.normalizedConfigurationValue(ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"])
-            ?? AuthService.defaultSupabaseAnonKey
+            ?? SupabaseConfig.anonKey
 
         let configuredAccessToken = Self.normalizedConfigurationValue(accessToken)
             ?? Self.normalizedConfigurationValue(infoDictionary["SUPABASE_ACCESS_TOKEN"] as? String)
             ?? Self.normalizedConfigurationValue(ProcessInfo.processInfo.environment["SUPABASE_ACCESS_TOKEN"])
             ?? ""
 
-        self.baseURL = URL(string: configuredURL) ?? URL(string: AuthService.defaultSupabaseURL)!
+        self.baseURL = URL(string: configuredURL) ?? URL(string: SupabaseConfig.url)!
         self.apiKey = configuredAPIKey
         self.staticAccessToken = configuredAccessToken
         self.session = session

@@ -44,8 +44,8 @@ final class AuthService: ObservableObject {
     private static let userIdKey = "livesesh_auth_user_id"
     private static let userEmailKey = "livesesh_auth_user_email"
 
-    nonisolated static let defaultSupabaseURL = "https://ibikuhcxgnxkacpsxpaw.supabase.co"
-    nonisolated static let defaultSupabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaWt1aGN4Z254a2FjcHN4cGF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTUzNTksImV4cCI6MjA4ODU3MTM1OX0.Sjj1KCJ6fQ8rl-c_XaT_ATcSFH9OaXiMlz2YY0Y0N6c"
+    nonisolated static let defaultSupabaseURL = SupabaseConfig.url
+    nonisolated static let defaultSupabaseAnonKey = SupabaseConfig.anonKey
 
     init(baseURL: URL? = nil, apiKey: String? = nil, session: URLSession = .shared) {
         let infoDictionary = Bundle.main.infoDictionary ?? [:]
