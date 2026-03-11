@@ -192,6 +192,14 @@ struct SessionSummary: Identifiable, Codable, Equatable {
     let keyMoments: [KeyMoment]
     let recommendations: [String]
     let createdAt: Date
+    var batteryUsage: BatteryUsage?
+}
+
+struct BatteryUsage: Codable, Equatable {
+    let startLevel: Double   // 0.0–1.0
+    let endLevel: Double     // 0.0–1.0
+    var percentUsed: Double { max(0, (startLevel - endLevel) * 100) }
+    var wasCharging: Bool
 }
 
 struct TalkTimeRatio: Codable, Equatable {

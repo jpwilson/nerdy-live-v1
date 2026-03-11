@@ -40,6 +40,7 @@ final class LiveCaptureController: ObservableObject {
     private let audioProcessor: AudioProcessorProtocol
     private let captureQueue = DispatchQueue(label: "com.livesesh.capture", qos: .userInitiated)
     private var videoOutputDelegate: CameraVideoOutputDelegate?
+    private var audioOutputDelegate: CaptureAudioOutputDelegate?
     private var cancellables = Set<AnyCancellable>()
     private var isConfigured = false
 
@@ -70,7 +71,8 @@ final class LiveCaptureController: ObservableObject {
         }
 
         videoProcessor.startProcessing()
-        audioProcessor.startProcessing()
+        // Audio is routed through AVCaptureSession (not AVAudioEngine) to avoid
+        // hardware conflicts. Buffers arrive via CaptureAudioOutputDelegate.
 
         captureQueue.async { [captureSession] in
             if !captureSession.isRunning {
@@ -85,7 +87,6 @@ final class LiveCaptureController: ObservableObject {
 
     func stop() {
         videoProcessor.stopProcessing()
-        audioProcessor.stopProcessing()
 
         captureQueue.async { [captureSession] in
             if captureSession.isRunning {
@@ -196,6 +197,25 @@ final class LiveCaptureController: ObservableObject {
             }
         }
 
+        // Audio input – routed through AVCaptureSession so it shares the hardware
+        // session with video and avoids the AVAudioEngine mic conflict.
+        if let audioDevice = AVCaptureDevice.default(for: .audio),
+           let audioInput = try? AVCaptureDeviceInput(device: audioDevice),
+           captureSession.canAddInput(audioInput) {
+            captureSession.addInput(audioInput)
+
+            let audioOutput = AVCaptureAudioDataOutput()
+            let audioDelegate = CaptureAudioOutputDelegate { [weak self] sampleBuffer in
+                self?.audioProcessor.processAudioSampleBuffer(sampleBuffer)
+            }
+            audioOutputDelegate = audioDelegate
+            audioOutput.setSampleBufferDelegate(audioDelegate, queue: captureQueue)
+
+            if captureSession.canAddOutput(audioOutput) {
+                captureSession.addOutput(audioOutput)
+            }
+        }
+
         isConfigured = true
         status = .ready
     }
@@ -269,6 +289,20 @@ private final class CameraVideoOutputDelegate: NSObject, AVCaptureVideoDataOutpu
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         onFrame(sampleBuffer)
+    }
+}
+
+private final class CaptureAudioOutputDelegate: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
+    private let onBuffer: (CMSampleBuffer) -> Void
+
+    init(onBuffer: @escaping (CMSampleBuffer) -> Void) {
+        self.onBuffer = onBuffer
+    }
+
+    func captureOutput(_ output: AVCaptureOutput,
+                       didOutput sampleBuffer: CMSampleBuffer,
+                       from connection: AVCaptureConnection) {
+        onBuffer(sampleBuffer)
     }
 }
 

@@ -32,15 +32,23 @@ struct DateEngagement: Codable, Equatable {
 final class SupabaseService: SupabaseServiceProtocol {
     private let baseURL: URL
     private let apiKey: String
-    private let accessToken: String
+    private let staticAccessToken: String
     private let session: URLSession
+
+    /// When set, this closure provides the live auth token from AuthService.
+    /// It takes priority over any static access token.
+    var dynamicAccessTokenProvider: (() -> String?)?
+
+    private var effectiveAccessToken: String {
+        dynamicAccessTokenProvider?() ?? staticAccessToken
+    }
 
     var isConfigured: Bool {
         !apiKey.isEmpty && baseURL.host() != "your-project.supabase.co"
     }
 
     var hasAuthenticatedAccess: Bool {
-        isConfigured && !accessToken.isEmpty
+        isConfigured && !effectiveAccessToken.isEmpty
     }
 
     init(baseURL: URL? = nil,
@@ -51,21 +59,21 @@ final class SupabaseService: SupabaseServiceProtocol {
         let configuredURL = Self.normalizedConfigurationValue(baseURL?.absoluteString)
             ?? Self.normalizedConfigurationValue(infoDictionary["SUPABASE_URL"] as? String)
             ?? Self.normalizedConfigurationValue(ProcessInfo.processInfo.environment["SUPABASE_URL"])
-            ?? "https://your-project.supabase.co"
+            ?? AuthService.defaultSupabaseURL
 
         let configuredAPIKey = Self.normalizedConfigurationValue(apiKey)
             ?? Self.normalizedConfigurationValue(infoDictionary["SUPABASE_ANON_KEY"] as? String)
             ?? Self.normalizedConfigurationValue(ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"])
-            ?? ""
+            ?? AuthService.defaultSupabaseAnonKey
 
         let configuredAccessToken = Self.normalizedConfigurationValue(accessToken)
             ?? Self.normalizedConfigurationValue(infoDictionary["SUPABASE_ACCESS_TOKEN"] as? String)
             ?? Self.normalizedConfigurationValue(ProcessInfo.processInfo.environment["SUPABASE_ACCESS_TOKEN"])
             ?? ""
 
-        self.baseURL = URL(string: configuredURL) ?? URL(string: "https://your-project.supabase.co")!
+        self.baseURL = URL(string: configuredURL) ?? URL(string: AuthService.defaultSupabaseURL)!
         self.apiKey = configuredAPIKey
-        self.accessToken = configuredAccessToken
+        self.staticAccessToken = configuredAccessToken
         self.session = session
     }
 
@@ -169,7 +177,8 @@ final class SupabaseService: SupabaseServiceProtocol {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(accessToken.isEmpty ? apiKey : accessToken)", forHTTPHeaderField: "Authorization")
+        let token = effectiveAccessToken
+        request.setValue("Bearer \(token.isEmpty ? apiKey : token)", forHTTPHeaderField: "Authorization")
         request.setValue(apiKey, forHTTPHeaderField: "apikey")
         request.setValue(prefer, forHTTPHeaderField: "Prefer")
         return request

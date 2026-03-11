@@ -273,6 +273,11 @@ struct SessionDetailView: View {
                         }
                     }
 
+                    // Battery & Device
+                    if let battery = summary.batteryUsage {
+                        BatteryUsageCard(battery: battery)
+                    }
+
                     // Recommendations
                     NerdyCard {
                         VStack(alignment: .leading, spacing: 12) {
@@ -300,6 +305,81 @@ struct SessionDetailView: View {
         #if os(iOS)
         .toolbarColorScheme(.dark, for: .navigationBar)
         #endif
+    }
+}
+
+struct BatteryUsageCard: View {
+    let battery: BatteryUsage
+    @State private var isExpanded = false
+
+    var body: some View {
+        NerdyCard {
+            VStack(alignment: .leading, spacing: 0) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "battery.50")
+                            .foregroundColor(batteryColor)
+                        Text("Device & Battery")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(NerdyTheme.textMuted)
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    }
+                }
+
+                if isExpanded {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Divider()
+                            .background(NerdyTheme.textMuted.opacity(0.3))
+                            .padding(.vertical, 8)
+
+                        MetricRow(
+                            label: "Battery Used",
+                            value: String(format: "%.1f%%", battery.percentUsed)
+                        )
+                        MetricRow(
+                            label: "Start Level",
+                            value: "\(Int(battery.startLevel * 100))%"
+                        )
+                        MetricRow(
+                            label: "End Level",
+                            value: "\(Int(battery.endLevel * 100))%"
+                        )
+                        MetricRow(
+                            label: "Charging",
+                            value: battery.wasCharging ? "Yes" : "No"
+                        )
+
+                        if battery.percentUsed > 0 {
+                            HStack(spacing: 6) {
+                                Image(systemName: "info.circle")
+                                    .font(.caption2)
+                                    .foregroundColor(NerdyTheme.textMuted)
+                                Text("Includes all device activity during the session, not just this app.")
+                                    .font(.caption2)
+                                    .foregroundColor(NerdyTheme.textMuted)
+                            }
+                            .padding(.top, 4)
+                        }
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+        }
+    }
+
+    private var batteryColor: Color {
+        if battery.wasCharging { return NerdyTheme.cyan }
+        if battery.percentUsed > 10 { return NerdyTheme.orange }
+        if battery.percentUsed > 5 { return NerdyTheme.yellow }
+        return NerdyTheme.cyan
     }
 }
 

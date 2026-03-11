@@ -6,7 +6,14 @@ import UIKit
 
 struct SessionView: View {
     @EnvironmentObject var appState: AppState
-    @StateObject private var viewModel = SessionViewModel()
+    @StateObject private var viewModel: SessionViewModel
+
+    init(authenticatedTutorId: UUID? = nil, supabaseService: SupabaseServiceProtocol? = nil) {
+        _viewModel = StateObject(wrappedValue: SessionViewModel(
+            supabaseService: supabaseService,
+            authenticatedTutorId: authenticatedTutorId
+        ))
+    }
 
     var body: some View {
         NavigationStack {
@@ -117,26 +124,16 @@ struct SessionView: View {
     // MARK: - Active Session View
 
     private var activeSessionView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
+            // Camera preview with glass status overlays
             LiveCaptureSurfaceView(
                 controller: viewModel.liveCaptureController,
-                sessionDuration: viewModel.sessionDuration
+                sessionDuration: viewModel.sessionDuration,
+                captureStatusMessage: captureStatusMessage,
+                syncStatusMessage: syncStatusMessage,
+                syncStatusAccentColor: syncStatusAccentColor
             )
             .padding(.horizontal)
-
-            if let captureStatusMessage {
-                SessionStatusBanner(message: captureStatusMessage)
-                    .padding(.horizontal)
-            }
-
-            if let syncStatusMessage {
-                SessionStatusBanner(
-                    message: syncStatusMessage,
-                    symbol: "icloud.fill",
-                    accentColor: syncStatusAccentColor
-                )
-                .padding(.horizontal)
-            }
 
             // Live Metrics Dashboard (inline)
             LiveMetricsDashboardView(metrics: viewModel.currentMetrics)
@@ -304,6 +301,9 @@ struct LiveMetricsDashboardView: View {
 struct LiveCaptureSurfaceView: View {
     @ObservedObject var controller: LiveCaptureController
     let sessionDuration: String
+    var captureStatusMessage: String?
+    var syncStatusMessage: String?
+    var syncStatusAccentColor: Color = NerdyTheme.cyan
 
     var body: some View {
         ZStack {
@@ -316,7 +316,7 @@ struct LiveCaptureSurfaceView: View {
             #endif
 
             LinearGradient(
-                colors: [Color.black.opacity(0.18), Color.black.opacity(0.58)],
+                colors: [Color.black.opacity(0.12), Color.black.opacity(0.55)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -328,6 +328,7 @@ struct LiveCaptureSurfaceView: View {
                     Spacer()
                 }
                 Spacer()
+
                 VStack(spacing: 8) {
                     if !controller.isRunning {
                         Image(systemName: "video.fill")
@@ -339,10 +340,23 @@ struct LiveCaptureSurfaceView: View {
                         .font(.system(size: 28, weight: .bold, design: .monospaced))
                         .foregroundStyle(NerdyTheme.gradientAccent)
                 }
+
+                // Glass status banners overlaid at bottom of video
+                if captureStatusMessage != nil || syncStatusMessage != nil {
+                    VStack(spacing: 6) {
+                        if let captureStatusMessage {
+                            GlassStatusPill(message: captureStatusMessage, symbol: "info.circle.fill", accentColor: NerdyTheme.cyan)
+                        }
+                        if let syncStatusMessage {
+                            GlassStatusPill(message: syncStatusMessage, symbol: "icloud.fill", accentColor: syncStatusAccentColor)
+                        }
+                    }
+                    .padding(.top, 4)
+                }
             }
             .padding(14)
         }
-        .frame(height: 260)
+        .frame(minHeight: 340)
         .overlay(
             RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium)
                 .stroke(Color.white.opacity(0.06), lineWidth: 1)
@@ -362,6 +376,32 @@ struct LiveCaptureSurfaceView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(Capsule().fill(Color.black.opacity(0.35)))
+    }
+}
+
+struct GlassStatusPill: View {
+    let message: String
+    var symbol: String = "info.circle.fill"
+    var accentColor: Color = NerdyTheme.cyan
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: symbol)
+                .font(.caption2)
+                .foregroundColor(accentColor)
+            Text(message)
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.85))
+                .lineLimit(2)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.ultraThinMaterial)
+                .opacity(0.85)
+        )
     }
 }
 

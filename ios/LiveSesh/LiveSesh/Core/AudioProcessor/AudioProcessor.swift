@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import CoreMedia
 import Combine
 
 protocol AudioProcessorProtocol: AnyObject {
@@ -9,6 +10,11 @@ protocol AudioProcessorProtocol: AnyObject {
 
     func startProcessing()
     func stopProcessing()
+    func processAudioSampleBuffer(_ sampleBuffer: CMSampleBuffer)
+}
+
+extension AudioProcessorProtocol {
+    func processAudioSampleBuffer(_ sampleBuffer: CMSampleBuffer) {}
 }
 
 // MARK: - Output Models
@@ -187,16 +193,62 @@ final class AudioProcessor: AudioProcessorProtocol {
 
         guard let data = channelData, frameLength > 0 else { return }
 
-        // Calculate RMS power
+        processRawSamples(data: data, sampleCount: frameLength)
+    }
+
+    func processAudioSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
+        guard let blockBuffer = CMSampleBufferGetDataBuffer(sampleBuffer) else { return }
+
+        var length: Int = 0
+        var dataPointer: UnsafeMutablePointer<Int8>?
+
+        guard CMBlockBufferGetDataPointer(
+            blockBuffer,
+            atOffset: 0,
+            lengthAtOffsetOut: nil,
+            totalLengthOut: &length,
+            dataPointerOut: &dataPointer
+        ) == kCMBlockBufferNoErr,
+              let data = dataPointer, length > 0 else { return }
+
+        guard let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer),
+              let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc) else { return }
+
+        let isFloat = asbd.pointee.mFormatFlags & kAudioFormatFlagIsFloat != 0
+        let bytesPerSample = Int(asbd.pointee.mBitsPerChannel / 8)
+        let channelCount = max(Int(asbd.pointee.mChannelsPerFrame), 1)
+        let sampleCount = length / max(bytesPerSample * channelCount, 1)
+
+        guard sampleCount > 0 else { return }
+
+        if isFloat {
+            data.withMemoryRebound(to: Float.self, capacity: sampleCount) { samples in
+                processRawSamples(data: samples, sampleCount: sampleCount)
+            }
+        } else {
+            // Convert Int16 PCM to float
+            let floatBuffer = UnsafeMutablePointer<Float>.allocate(capacity: sampleCount)
+            defer { floatBuffer.deallocate() }
+
+            data.withMemoryRebound(to: Int16.self, capacity: sampleCount) { int16Samples in
+                for i in 0..<sampleCount {
+                    floatBuffer[i] = Float(int16Samples[i]) / 32768.0
+                }
+            }
+            processRawSamples(data: floatBuffer, sampleCount: sampleCount)
+        }
+    }
+
+    private func processRawSamples(data: UnsafePointer<Float>, sampleCount: Int) {
         var sum: Float = 0
         var peak: Float = 0
-        for i in 0..<frameLength {
+        for i in 0..<sampleCount {
             let sample = abs(data[i])
             sum += sample * sample
             peak = max(peak, sample)
         }
 
-        let rms = sqrt(sum / Float(frameLength))
+        let rms = sqrt(sum / Float(sampleCount))
         let avgPower = 20 * log10(max(rms, 1e-10))
         let peakPower = 20 * log10(max(peak, 1e-10))
 

@@ -3,11 +3,13 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0082D5E8BBE2D1F401BDB42C /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D3A777EA3975BCFE21D7D4 /* AuthService.swift */; };
 		021B3892B8C5CA2A8EB7DD3A /* SupabaseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF2457AFC0D061C7C58AE78 /* SupabaseServiceTests.swift */; };
+		028BD0266603B311155ECED1 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027C88EEBB6968486C8BA1C1 /* LoginView.swift */; };
 		178443C0E71AD38290592C8F /* MetricsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83B73B4559A0C710477EBBA /* MetricsEngine.swift */; };
 		2F325726889424092364A3A7 /* SessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F0260E06953CE1FF6FF882 /* SessionViewModel.swift */; };
 		32632CA6EA6BE71DAC505459 /* AudioProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD9A10ED498269ECB04C62A /* AudioProcessor.swift */; };
@@ -28,6 +30,7 @@
 		B624E4FB7B01B140573230A0 /* CoachingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B1F270F6AA1E93A211BFAC /* CoachingSettingsView.swift */; };
 		CAA052D0B7474011E23607CC /* MetricsEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C099B849506CEA255F84AA4 /* MetricsEngineTests.swift */; };
 		D0EC18470D65ED3F614746DF /* SessionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E0BE0E1C9E11B1404864AD1 /* SessionStoreTests.swift */; };
+		E62630AD9DA177B25907C3BB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9C1C7C8CC9072B7936DACA6B /* Assets.xcassets */; };
 		F053D9479FAF9A1C08EFC0D7 /* CoachingEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A385886AE5AD5DD99560B1 /* CoachingEngineTests.swift */; };
 		F0C75C2B7E63BE00E5DEF991 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91545FC4A571521CCAFBC474 /* ContentView.swift */; };
 		F622C5B5BA8DDE720D928199 /* CoachingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D864220C2D9B35751B4B9DD /* CoachingEngine.swift */; };
@@ -45,10 +48,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		027C88EEBB6968486C8BA1C1 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		03B1F270F6AA1E93A211BFAC /* CoachingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingSettingsView.swift; sourceTree = "<group>"; };
 		10CC2759C468E86E4FBD3B9E /* ModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsTests.swift; sourceTree = "<group>"; };
 		11F04EAC97F399D0D28108A3 /* AudioProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioProcessorTests.swift; sourceTree = "<group>"; };
 		1B01E968768B233103ACC903 /* SimulatorDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorDataProvider.swift; sourceTree = "<group>"; };
+		25D3A777EA3975BCFE21D7D4 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		4E0BE0E1C9E11B1404864AD1 /* SessionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStoreTests.swift; sourceTree = "<group>"; };
 		4EB785C89268E182A6A7D7B6 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		50F0260E06953CE1FF6FF882 /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
@@ -58,10 +63,11 @@
 		6D864220C2D9B35751B4B9DD /* CoachingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingEngine.swift; sourceTree = "<group>"; };
 		91545FC4A571521CCAFBC474 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		9C099B849506CEA255F84AA4 /* MetricsEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsEngineTests.swift; sourceTree = "<group>"; };
+		9C1C7C8CC9072B7936DACA6B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9DD9A10ED498269ECB04C62A /* AudioProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioProcessor.swift; sourceTree = "<group>"; };
 		ACB4512C190148CA669BE6C8 /* MockProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProtocols.swift; sourceTree = "<group>"; };
 		B8FE90A09472152BEA90E8DC /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
-		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C998CF5454E755914B06B07A /* SessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionView.swift; sourceTree = "<group>"; };
 		D2814F7C75F4849E84693915 /* LiveSeshApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSeshApp.swift; sourceTree = "<group>"; };
 		D5127886E4AAAB62AF3F1C56 /* LiveCaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCaptureController.swift; sourceTree = "<group>"; };
@@ -121,6 +127,7 @@
 		2ED1149534824ED61A0C70FD /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				9C1C7C8CC9072B7936DACA6B /* Assets.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -153,6 +160,7 @@
 			isa = PBXGroup;
 			children = (
 				94FEB08929541C5B09899D70 /* Analytics */,
+				811EE9CD9FC08CC5A4F03E9E /* Auth */,
 				F387D36ABF67FB82B669C827 /* Coaching */,
 				246DBE376AC2B73963688F55 /* Dashboard */,
 				1E35EEDA6FEF9E7DD3102CC0 /* Session */,
@@ -188,6 +196,14 @@
 				67A294FEC98C603C15D91AEF /* LiveSeshTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		811EE9CD9FC08CC5A4F03E9E /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				027C88EEBB6968486C8BA1C1 /* LoginView.swift */,
+			);
+			path = Auth;
 			sourceTree = "<group>";
 		};
 		893AD149B713CCB78FB3A949 /* LiveSesh */ = {
@@ -242,6 +258,7 @@
 		C2E12FD2A4414BDC77318623 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				CD658A8C147D0269D66ECBBD /* AuthService */,
 				B3499014CF23879E2E3D83BD /* SessionStore */,
 				3B1F8FF3340810F11EE63B0A /* SupabaseService */,
 			);
@@ -256,6 +273,14 @@
 				D2814F7C75F4849E84693915 /* LiveSeshApp.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		CD658A8C147D0269D66ECBBD /* AuthService */ = {
+			isa = PBXGroup;
+			children = (
+				25D3A777EA3975BCFE21D7D4 /* AuthService.swift */,
+			);
+			path = AuthService;
 			sourceTree = "<group>";
 		};
 		DDD162849A2963F75B1BA7DC /* AudioProcessor */ = {
@@ -326,6 +351,7 @@
 			buildConfigurationList = 1F739DB8D6469E60298F939A /* Build configuration list for PBXNativeTarget "LiveSesh" */;
 			buildPhases = (
 				BEDACA87FC8C9F5561FA2D37 /* Sources */,
+				4F88DB6E5BB0FADCB1136BD1 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -350,9 +376,6 @@
 					EB5D9765FF59E0A509D44322 = {
 						DevelopmentTeam = "";
 					};
-					FB5827068CD98FF0ED5E2C1B = {
-						DevelopmentTeam = "";
-					};
 				};
 			};
 			buildConfigurationList = 6B10BF240954AEC85F74FEA9 /* Build configuration list for PBXProject "LiveSesh" */;
@@ -365,7 +388,6 @@
 			);
 			mainGroup = EEAEAE492D8B437D9177B937;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -374,6 +396,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4F88DB6E5BB0FADCB1136BD1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E62630AD9DA177B25907C3BB /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A7427802AB3B11B1C1357790 /* Sources */ = {
@@ -398,11 +431,13 @@
 				B4694BE43E3C7D7D76184714 /* AnalyticsDashboardView.swift in Sources */,
 				930F659C135E284B155069D7 /* AppState.swift in Sources */,
 				32632CA6EA6BE71DAC505459 /* AudioProcessor.swift in Sources */,
+				0082D5E8BBE2D1F401BDB42C /* AuthService.swift in Sources */,
 				F622C5B5BA8DDE720D928199 /* CoachingEngine.swift in Sources */,
 				B624E4FB7B01B140573230A0 /* CoachingSettingsView.swift in Sources */,
 				F0C75C2B7E63BE00E5DEF991 /* ContentView.swift in Sources */,
 				749393B0526008ECEE3B5372 /* LiveCaptureController.swift in Sources */,
 				FF21A8C7A509C90A3C784437 /* LiveSeshApp.swift in Sources */,
+				028BD0266603B311155ECED1 /* LoginView.swift in Sources */,
 				178443C0E71AD38290592C8F /* MetricsEngine.swift in Sources */,
 				386661CA799987606ADA41B8 /* Models.swift in Sources */,
 				38687A7CB70E0467D0664600 /* NerdyTheme.swift in Sources */,
@@ -432,6 +467,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7RUN765V47;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";
@@ -507,8 +543,8 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPABASE_ACCESS_TOKEN = "";
-				SUPABASE_ANON_KEY = "";
-				SUPABASE_URL = "";
+				SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaWt1aGN4Z254a2FjcHN4cGF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTUzNTksImV4cCI6MjA4ODU3MTM1OX0.Sjj1KCJ6fQ8rl-c_XaT_ATcSFH9OaXiMlz2YY0Y0N6c";
+				SUPABASE_URL = "https://ibikuhcxgnxkacpsxpaw.supabase.co";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.9;
@@ -539,6 +575,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7RUN765V47;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";
@@ -621,8 +658,8 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPABASE_ACCESS_TOKEN = "";
-				SUPABASE_ANON_KEY = "";
-				SUPABASE_URL = "";
+				SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaWt1aGN4Z254a2FjcHN4cGF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTUzNTksImV4cCI6MjA4ODU3MTM1OX0.Sjj1KCJ6fQ8rl-c_XaT_ATcSFH9OaXiMlz2YY0Y0N6c";
+				SUPABASE_URL = "https://ibikuhcxgnxkacpsxpaw.supabase.co";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.9;

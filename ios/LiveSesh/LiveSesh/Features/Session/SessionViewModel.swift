@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+#if os(iOS)
+import UIKit
+#endif
 
 @MainActor
 final class SessionViewModel: ObservableObject {
@@ -21,6 +24,8 @@ final class SessionViewModel: ObservableObject {
     private var simulatorProvider: SimulatorDataProvider?
     private var lastSnapshotSavedAt: Date?
     private var syncTask: Task<Void, Never>?
+    private var batteryLevelAtStart: Double = 0
+    private var wasChargingAtStart: Bool = false
 
     private let metricsEngine: MetricsEngineProtocol
     private let coachingEngine: CoachingEngineProtocol
@@ -32,7 +37,8 @@ final class SessionViewModel: ObservableObject {
     init(metricsEngine: MetricsEngineProtocol? = nil,
          coachingEngine: CoachingEngineProtocol? = nil,
          sessionStore: SessionStore? = nil,
-         supabaseService: SupabaseServiceProtocol? = nil) {
+         supabaseService: SupabaseServiceProtocol? = nil,
+         authenticatedTutorId: UUID? = nil) {
         let resolvedMetricsEngine = metricsEngine ?? MetricsEngine()
         let resolvedCoachingEngine = coachingEngine ?? CoachingEngine()
         let resolvedSessionStore = sessionStore ?? SessionStore()
@@ -42,7 +48,7 @@ final class SessionViewModel: ObservableObject {
         self.coachingEngine = resolvedCoachingEngine
         self.sessionStore = resolvedSessionStore
         self.supabaseService = resolvedSupabaseService
-        self.tutorId = Self.resolveLocalTutorId()
+        self.tutorId = authenticatedTutorId ?? Self.resolveLocalTutorId()
         self.liveCaptureController = LiveCaptureController(metricsEngine: resolvedMetricsEngine)
         self.syncStatus = Self.makeSyncStatus(for: resolvedSupabaseService)
         setupSubscriptions()
@@ -97,6 +103,7 @@ final class SessionViewModel: ObservableObject {
         metricsEngine.start(sessionId: newSession.id)
         coachingEngine.start(sessionId: newSession.id)
         startTimer()
+        startBatteryMonitoring()
 
         Task { [weak self] in
             await self?.startLiveCapture()
@@ -182,7 +189,8 @@ final class SessionViewModel: ObservableObject {
             engagementScore: computeOverallScore(),
             keyMoments: [],
             recommendations: generateRecommendations(from: m),
-            createdAt: Date()
+            createdAt: Date(),
+            batteryUsage: captureBatteryUsage()
         )
     }
 
@@ -318,6 +326,28 @@ final class SessionViewModel: ObservableObject {
         }
 
         return cloudSyncDisabledMessage
+    }
+
+    private func startBatteryMonitoring() {
+        #if os(iOS)
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        batteryLevelAtStart = Double(UIDevice.current.batteryLevel)
+        wasChargingAtStart = UIDevice.current.batteryState == .charging || UIDevice.current.batteryState == .full
+        #endif
+    }
+
+    private func captureBatteryUsage() -> BatteryUsage? {
+        #if os(iOS)
+        let currentLevel = Double(UIDevice.current.batteryLevel)
+        guard batteryLevelAtStart >= 0, currentLevel >= 0 else { return nil }
+        return BatteryUsage(
+            startLevel: batteryLevelAtStart,
+            endLevel: currentLevel,
+            wasCharging: wasChargingAtStart
+        )
+        #else
+        return nil
+        #endif
     }
 
     private static let cloudSyncReadyMessage = "Cloud sync is active. Session data uploads to Supabase in the background."

@@ -19,24 +19,36 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            ForEach(Tab.allCases, id: \.self) { tab in
-                tabContent(for: tab)
-                    .tabItem {
-                        Image(systemName: tab.icon)
-                        Text(tab.rawValue)
+        Group {
+            if appState.isAuthenticated {
+                TabView(selection: $selectedTab) {
+                    ForEach(Tab.allCases, id: \.self) { tab in
+                        tabContent(for: tab)
+                            .tabItem {
+                                Image(systemName: tab.icon)
+                                Text(tab.rawValue)
+                            }
+                            .tag(tab)
                     }
-                    .tag(tab)
+                }
+                .tint(NerdyTheme.cyan)
+            } else {
+                LoginView()
             }
         }
-        .tint(NerdyTheme.cyan)
+        .task {
+            await appState.restoreSession()
+        }
     }
 
     @ViewBuilder
     private func tabContent(for tab: Tab) -> some View {
         switch tab {
         case .session:
-            SessionView()
+            SessionView(
+                authenticatedTutorId: appState.authenticatedTutorId,
+                supabaseService: appState.supabaseService
+            )
         case .analytics:
             AnalyticsDashboardView()
         case .profile:
@@ -62,10 +74,16 @@ struct ProfileView: View {
                         .font(.system(size: 80))
                         .foregroundStyle(NerdyTheme.gradientAccent)
 
-                    Text("Tutor Profile")
+                    Text(appState.tutorProfile?.name ?? "Tutor")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
+
+                    if let email = appState.authService.currentUser?.email {
+                        Text(email)
+                            .font(.caption)
+                            .foregroundColor(NerdyTheme.textSecondary)
+                    }
 
                     NerdyCard {
                         VStack(alignment: .leading, spacing: 16) {
@@ -76,6 +94,22 @@ struct ProfileView: View {
                     }
 
                     Spacer()
+
+                    Button {
+                        appState.authService.signOut()
+                    } label: {
+                        HStack {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                            Text("Sign Out")
+                        }
+                        .foregroundColor(NerdyTheme.textSecondary)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium)
+                                .stroke(NerdyTheme.textMuted, lineWidth: 1)
+                        )
+                    }
                 }
                 .padding()
             }
