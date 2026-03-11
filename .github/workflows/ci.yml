@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift-tests:
+    name: Swift Tests & Coverage
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ios/LiveSesh
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      - name: Resolve dependencies
+        run: swift package resolve
+
+      - name: Run tests with coverage
+        run: swift test --enable-code-coverage
+
+      - name: Export coverage report
+        run: |
+          BIN=$(swift build --show-bin-path)
+          PROFDATA=$(find .build -name 'default.profdata' -print -quit)
+          BINARY="$BIN/LiveSeshPackageTests.xctest/Contents/MacOS/LiveSeshPackageTests"
+          xcrun llvm-cov report "$BINARY" -instr-profile "$PROFDATA" \
+            -ignore-filename-regex='\.build|Tests|Mocks' | tee coverage-report.txt
+
+      - name: Coverage summary
+        run: |
+          TOTAL=$(tail -1 coverage-report.txt | awk '{print $NF}')
+          echo "## Test Coverage: $TOTAL" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat coverage-report.txt >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ios/LiveSesh/coverage-report.txt
+
+  web-typecheck:
+    name: Web App Typecheck & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web/student-call
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/student-call/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
