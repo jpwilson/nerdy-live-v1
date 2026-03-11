@@ -153,12 +153,16 @@ struct SessionView: View {
                 }
 
                 // Camera preview with glass status overlays
+                // Only show the camera preview in test mode (self-analysis).
+                // In normal mode the front camera runs for analysis only;
+                // the tutor doesn't need to see themselves on screen.
                 LiveCaptureSurfaceView(
                     controller: viewModel.liveCaptureController,
                     sessionDuration: viewModel.sessionDuration,
                     captureStatusMessage: captureStatusMessage,
                     syncStatusMessage: syncStatusMessage,
-                    syncStatusAccentColor: syncStatusAccentColor
+                    syncStatusAccentColor: syncStatusAccentColor,
+                    showCameraPreview: isTestMode
                 )
                 .padding(.horizontal)
 
@@ -428,6 +432,7 @@ struct LiveCaptureSurfaceView: View {
     var captureStatusMessage: String?
     var syncStatusMessage: String?
     var syncStatusAccentColor: Color = NerdyTheme.cyan
+    var showCameraPreview: Bool = true
 
     var body: some View {
         ZStack {
@@ -435,8 +440,10 @@ struct LiveCaptureSurfaceView: View {
                 .fill(NerdyTheme.backgroundCard)
 
             #if os(iOS)
-            CameraPreviewView(controller: controller)
-                .clipShape(RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium))
+            if showCameraPreview {
+                CameraPreviewView(controller: controller)
+                    .clipShape(RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium))
+            }
             #endif
 
             LinearGradient(
