@@ -89,9 +89,9 @@ Important note:
 
 ### Linked Project
 
-- Supabase project ref: `ibikuhcxgnxkacpsxpaw`
+- Supabase project ref: `gmpqbrvqyhvrjprynvse`
 - Supabase URL:
-  - `https://ibikuhcxgnxkacpsxpaw.supabase.co`
+  - `https://gmpqbrvqyhvrjprynvse.supabase.co`
 
 ### What Is Deployed
 
