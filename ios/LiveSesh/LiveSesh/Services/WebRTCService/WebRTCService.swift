@@ -3,6 +3,7 @@ import Combine
 
 // MARK: - WebRTC Service Protocol
 
+@MainActor
 protocol WebRTCServiceProtocol: AnyObject {
     var connectionState: WebRTCConnectionState { get }
     var connectionStatePublisher: AnyPublisher<WebRTCConnectionState, Never> { get }
