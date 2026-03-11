@@ -5,27 +5,26 @@ export default function HomePage() {
     <main className="shell">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">LiveSesh Student Surface</p>
-          <h1>Join the tutoring room from a browser.</h1>
+          <p className="eyebrow">LiveSesh</p>
+          <h1>Join your tutoring session.</h1>
           <p className="lede">
-            This app is the student-side video client. The call stays simple for
-            the student while the tutor-facing iPhone app can analyze the
-            incoming stream and surface coaching.
+            Sign in and join the room to connect with your tutor. Your video
+            and audio are shared over a peer-to-peer WebRTC connection while
+            the tutor&apos;s app analyzes engagement in real time.
           </p>
           <div className="hero-grid">
             <article className="info-card">
-              <h2>What this handles</h2>
+              <h2>For students</h2>
               <p>
-                Camera, microphone, room join, remote tutor video, and WebRTC
-                signaling over Supabase Realtime.
+                Camera and microphone are shared with the tutor. Engagement
+                analysis runs on the tutor side — you just have a normal call.
               </p>
             </article>
             <article className="info-card">
-              <h2>Why there is a browser fallback</h2>
+              <h2>For evaluators</h2>
               <p>
-                Until the iOS app is wired to the same signaling protocol, a
-                second browser can join in <strong>Tutor preview</strong> mode
-                to rehearse the full call loop.
+                Use the <strong>Demo Student</strong> or <strong>Demo Tutor</strong> buttons
+                to instantly join the demo room and test the full call flow.
               </p>
             </article>
           </div>

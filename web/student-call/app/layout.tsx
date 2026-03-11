@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LiveSesh Student Call",
-  description: "Student-side WebRTC client for LiveSesh tutoring sessions.",
+  title: "LiveSesh — Join Session",
+  description: "Student-side video client for LiveSesh real-time tutoring analysis.",
 };
 
 export default function RootLayout({

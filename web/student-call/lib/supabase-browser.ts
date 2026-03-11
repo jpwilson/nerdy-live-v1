@@ -22,8 +22,8 @@ export function getSupabaseBrowserClient() {
     requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     {
       auth: {
-        autoRefreshToken: false,
-        persistSession: false,
+        autoRefreshToken: true,
+        persistSession: true,
       },
       realtime: {
         params: {
