@@ -29,3 +29,4 @@ export function getSupabaseBrowserClient() {
 
   return browserClient;
 }
+// deployed Wed Mar 11 18:13:11 CDT 2026
