@@ -92,18 +92,26 @@ Live tutoring sessions are Nerdy's core value proposition, but tutors lack real-
 - Web-based (bonus points but higher latency for video processing)
 
 #### Decision 2: On-Device ML Processing
-**Choice:** Apple Vision + Core ML + AVAudioEngine (all on-device)
+**Choice:** Apple Vision + AVCaptureSession (all on-device)
 **Rationale:**
 - Latency target <500ms requires on-device processing
 - Privacy-first: video never leaves the device
 - Apple Vision provides face detection, face landmarks, gaze tracking natively
-- Core ML can run custom models for engagement scoring
 - No network dependency during sessions
 
 **Trade-offs:**
 - Limited to Apple hardware capabilities
 - Less flexibility than cloud-based models
 - Battery/thermal considerations on older devices
+
+#### Decision 2b: Audio Routing through AVCaptureSession
+**Choice:** Route microphone audio through AVCaptureSession (same pipeline as video) instead of a separate AVAudioEngine
+**Rationale:**
+- AVCaptureSession and AVAudioEngine both claim the microphone hardware on iOS. Running both simultaneously causes the audio engine to receive silence instead of real mic input.
+- By adding `AVCaptureAudioDataOutput` to the existing capture session, audio and video share the same hardware session and both receive real data.
+- The `AudioProcessor` accepts `CMSampleBuffer` from the capture session delegate, extracts PCM samples, and feeds them through the same RMS/VAD/diarization pipeline.
+
+**Trade-off:** Slightly tighter coupling between capture and processing, but audio actually works.
 
 #### Decision 3: Supabase for Backend
 **Choice:** Supabase (PostgreSQL + Edge Functions + Realtime)
@@ -145,7 +153,21 @@ Live tutoring sessions are Nerdy's core value proposition, but tutors lack real-
 | Energy drop | 20% decline | "Consider a short break" |
 | Interruption spike | 3+ in 2 min | "Give more wait time" |
 
-#### Decision 6: Post-Session Analytics Storage
+#### Decision 6: Authentication via Email OTP
+**Choice:** Supabase Auth with email one-time-password (OTP) codes
+**Rationale:**
+- Fastest path to real authenticated sessions without building password UX
+- Supabase Auth REST API (`/auth/v1/otp`, `/auth/v1/verify`) provides email OTP natively
+- The authenticated user's UUID becomes `tutor_id`, making RLS policies work (`auth.uid() = tutor_id`)
+- Tokens are stored locally and auto-refreshed before expiry
+- Session restore on app relaunch provides seamless re-authentication
+
+**Why not Apple Sign In first:**
+- Email OTP has zero external dependencies (no Apple Developer provisioning changes)
+- Simpler to test and iterate
+- Apple Sign In can be added later as an additional auth method
+
+#### Decision 7: Post-Session Analytics Storage
 **Choice:** Time-series metrics stored in Supabase with aggregation views
 **Schema:**
 - `sessions` - Session metadata (tutor, student, subject, duration)
@@ -215,10 +237,11 @@ livesesh/v1/
 │       │   └── MetricsEngine/    # Engagement metric calculations
 │       ├── Features/
 │       │   ├── Session/          # Live session view & controls
-│       │   ├── Dashboard/        # Real-time metrics dashboard
+│       │   ├── Auth/             # Login and OTP verification
 │       │   ├── Coaching/         # Nudge system & notifications
 │       │   └── Analytics/        # Post-session analytics
 │       ├── Services/
+│       │   ├── AuthService/      # Supabase Auth (OTP, tokens)
 │       │   ├── SupabaseService/  # Backend communication
 │       │   └── SessionStore/     # Local data persistence
 │       ├── Models/               # Data models & DTOs
