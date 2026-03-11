@@ -601,6 +601,16 @@ h3 {
   border-color: rgba(239, 68, 68, 0.25);
 }
 
+.control-button.leave {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.control-button.leave:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
 .message {
   padding: 14px 16px;
   border-radius: 18px;

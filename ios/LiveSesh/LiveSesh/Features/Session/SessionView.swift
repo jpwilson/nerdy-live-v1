@@ -122,7 +122,7 @@ struct SessionView: View {
             }
 
             NerdyButton("Start Session", icon: "video.fill") {
-                viewModel.startSession()
+                viewModel.startSession(testModeEnabled: isTestMode)
             }
 
             if let syncStatusMessage {
@@ -141,55 +141,56 @@ struct SessionView: View {
     // MARK: - Active Session View
 
     private var activeSessionView: some View {
-        VStack(spacing: 12) {
-            // Test mode / connection status bar
-            if isTestMode {
-                activeTestModePill
-                    .padding(.horizontal)
-            } else if !roomCode.isEmpty {
-                activeConnectionPill
-                    .padding(.horizontal)
-            }
+        ScrollView {
+            VStack(spacing: 12) {
+                // Test mode / connection status bar
+                if isTestMode {
+                    activeTestModePill
+                        .padding(.horizontal)
+                } else if !roomCode.isEmpty {
+                    activeConnectionPill
+                        .padding(.horizontal)
+                }
 
-            // Camera preview with glass status overlays
-            LiveCaptureSurfaceView(
-                controller: viewModel.liveCaptureController,
-                sessionDuration: viewModel.sessionDuration,
-                captureStatusMessage: captureStatusMessage,
-                syncStatusMessage: syncStatusMessage,
-                syncStatusAccentColor: syncStatusAccentColor
-            )
-            .padding(.horizontal)
-
-            // Live Metrics Dashboard (inline)
-            LiveMetricsDashboardView(metrics: viewModel.currentMetrics)
+                // Camera preview with glass status overlays
+                LiveCaptureSurfaceView(
+                    controller: viewModel.liveCaptureController,
+                    sessionDuration: viewModel.sessionDuration,
+                    captureStatusMessage: captureStatusMessage,
+                    syncStatusMessage: syncStatusMessage,
+                    syncStatusAccentColor: syncStatusAccentColor
+                )
                 .padding(.horizontal)
 
-            // Speaking Indicator
-            SpeakingIndicatorView(
-                tutorSpeaking: viewModel.currentMetrics.tutor.isSpeaking,
-                studentSpeaking: viewModel.currentMetrics.student.isSpeaking
-            )
-            .padding(.horizontal)
+                // Live Metrics Dashboard (inline)
+                LiveMetricsDashboardView(metrics: viewModel.currentMetrics)
+                    .padding(.horizontal)
 
-            Spacer()
-
-            // End Session Button
-            Button(action: { viewModel.endSession() }) {
-                HStack {
-                    Image(systemName: "stop.circle.fill")
-                    Text("End Session")
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 14)
-                .background(
-                    RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusLarge)
-                        .fill(Color.red.opacity(0.8))
+                // Speaking Indicator
+                SpeakingIndicatorView(
+                    tutorSpeaking: viewModel.currentMetrics.tutor.isSpeaking,
+                    studentSpeaking: viewModel.currentMetrics.student.isSpeaking
                 )
+                .padding(.horizontal)
+
+                // End Session Button
+                Button(action: { viewModel.endSession() }) {
+                    HStack {
+                        Image(systemName: "stop.circle.fill")
+                        Text("End Session")
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusLarge)
+                            .fill(Color.red.opacity(0.8))
+                    )
+                }
+                .padding(.vertical, 8)
             }
-            .padding(.bottom, 8)
         }
+        .scrollIndicators(.hidden)
     }
 
     // MARK: - Nudge Overlay
@@ -309,9 +310,9 @@ struct SessionView: View {
 
         if viewModel.liveCaptureController.isRunning {
             if isTestMode {
-                return "Test mode: analyzing local camera as both tutor and student."
+                return "Test mode: your camera is analyzed as both tutor and student."
             }
-            return "On-device tutor capture is active. Student-side metrics still require the tutoring call or remote media streams to be integrated into this app."
+            return "Camera is live. Tutor metrics are active. Student metrics require a student to join via the web app."
         }
 
         return viewModel.liveCaptureController.status.message ?? (viewModel.currentPhase.isEmpty ? nil : viewModel.currentPhase)

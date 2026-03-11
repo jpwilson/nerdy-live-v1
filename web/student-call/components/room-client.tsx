@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { RoomRole } from "@/lib/call-types";
 import {
   buildStudentShareUrl,
@@ -78,6 +78,7 @@ function RoomClient({
   role: RoomRole;
   displayName: string;
 }) {
+  const router = useRouter();
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const {
     connectionState,
@@ -214,8 +215,14 @@ function RoomClient({
               >
                 {isCameraEnabled ? "Camera on" : "Camera off"}
               </button>
-              <button className="control-button" type="button" onClick={() => void hangUp()}>
-                Reset peer
+              <button
+                className="control-button leave"
+                type="button"
+                onClick={() => {
+                  void hangUp().then(() => router.push("/"));
+                }}
+              >
+                Leave call
               </button>
             </div>
           </section>

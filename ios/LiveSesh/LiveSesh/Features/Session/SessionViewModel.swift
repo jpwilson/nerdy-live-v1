@@ -80,7 +80,7 @@ final class SessionViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    func startSession() {
+    func startSession(testModeEnabled: Bool = false) {
         let newSession = LiveSession.new(
             tutorId: tutorId,
             subject: subject.isEmpty ? "General" : subject,
@@ -102,6 +102,9 @@ final class SessionViewModel: ObservableObject {
         currentPhase = ""
         previousEngagementTrend = .stable
         lastKeyMomentTime = [:]
+
+        // Set test mode on the capture controller so it routes data to both roles
+        liveCaptureController.testModeEnabled = testModeEnabled
 
         // Configure coaching
         switch coachingSensitivity {

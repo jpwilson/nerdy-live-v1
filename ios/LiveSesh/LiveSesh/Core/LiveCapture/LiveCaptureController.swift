@@ -32,6 +32,11 @@ final class LiveCaptureController: ObservableObject {
     @Published private(set) var status: LiveCaptureStatus = .idle
     @Published private(set) var isRunning = false
 
+    /// When true, the front camera feed is analyzed as both tutor AND student
+    /// (self-analysis mode for solo testing). When false, the front camera is
+    /// analyzed as tutor only; student metrics come from the WebRTC stream.
+    var testModeEnabled = false
+
     #if os(iOS)
     let captureSession = AVCaptureSession()
 
@@ -102,14 +107,23 @@ final class LiveCaptureController: ObservableObject {
         videoProcessor.gazeEstimationPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] gaze in
-                self?.metricsEngine.processGaze(gaze, for: .tutor)
+                guard let self else { return }
+                self.metricsEngine.processGaze(gaze, for: .tutor)
+                if self.testModeEnabled {
+                    // In test mode, the front camera doubles as the student feed
+                    self.metricsEngine.processGaze(gaze, for: .student)
+                }
             }
             .store(in: &cancellables)
 
         videoProcessor.expressionPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] expression in
-                self?.metricsEngine.processExpression(expression, for: .tutor)
+                guard let self else { return }
+                self.metricsEngine.processExpression(expression, for: .tutor)
+                if self.testModeEnabled {
+                    self.metricsEngine.processExpression(expression, for: .student)
+                }
             }
             .store(in: &cancellables)
 
@@ -138,6 +152,17 @@ final class LiveCaptureController: ObservableObject {
                 }
 
                 self.metricsEngine.processSpeaking(normalizedState)
+
+                // In test mode, mirror speaking state as student too
+                if self.testModeEnabled {
+                    let studentState = SpeakingState(
+                        isSpeaking: normalizedState.isSpeaking,
+                        speakerId: .student,
+                        volume: normalizedState.volume,
+                        timestamp: normalizedState.timestamp
+                    )
+                    self.metricsEngine.processSpeaking(studentState)
+                }
             }
             .store(in: &cancellables)
     }
