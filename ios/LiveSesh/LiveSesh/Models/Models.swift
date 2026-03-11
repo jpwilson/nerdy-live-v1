@@ -60,12 +60,32 @@ struct ParticipantMetrics: Codable, Equatable {
     var talkTimePercent: Double
     var energyScore: Double
     var isSpeaking: Bool
+    var attentionDrift: Double
+
+    init(eyeContactScore: Double, talkTimePercent: Double, energyScore: Double,
+         isSpeaking: Bool, attentionDrift: Double = 0.0) {
+        self.eyeContactScore = eyeContactScore
+        self.talkTimePercent = talkTimePercent
+        self.energyScore = energyScore
+        self.isSpeaking = isSpeaking
+        self.attentionDrift = attentionDrift
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        eyeContactScore = try container.decode(Double.self, forKey: .eyeContactScore)
+        talkTimePercent = try container.decode(Double.self, forKey: .talkTimePercent)
+        energyScore = try container.decode(Double.self, forKey: .energyScore)
+        isSpeaking = try container.decode(Bool.self, forKey: .isSpeaking)
+        attentionDrift = try container.decodeIfPresent(Double.self, forKey: .attentionDrift) ?? 0.0
+    }
 
     static let empty = ParticipantMetrics(
         eyeContactScore: 0,
         talkTimePercent: 0,
         energyScore: 0,
-        isSpeaking: false
+        isSpeaking: false,
+        attentionDrift: 0.0
     )
 }
 
@@ -219,6 +239,13 @@ struct KeyMoment: Codable, Equatable, Identifiable {
     let description: String
 }
 
+enum KeyMomentType: String {
+    case attentionDrift = "attention_drift"
+    case prolongedSilence = "prolonged_silence"
+    case engagementDecline = "engagement_decline"
+    case interruptionSpike = "interruption_spike"
+}
+
 // MARK: - Tutor Profile
 
 struct TutorProfile: Codable, Equatable {
@@ -228,6 +255,33 @@ struct TutorProfile: Codable, Equatable {
     var totalSessions: Int
     var averageEngagement: Double
     var coachingScore: Double
+}
+
+// MARK: - WebRTC Connection State
+
+enum WebRTCConnectionState: String, Equatable {
+    case idle
+    case connecting
+    case waitingForStudent
+    case studentConnected
+    case disconnected
+
+    var displayLabel: String {
+        switch self {
+        case .idle: return "Not Connected"
+        case .connecting: return "Connecting..."
+        case .waitingForStudent: return "Waiting for Student"
+        case .studentConnected: return "Student Connected"
+        case .disconnected: return "Disconnected"
+        }
+    }
+
+    var isActive: Bool {
+        switch self {
+        case .waitingForStudent, .studentConnected: return true
+        default: return false
+        }
+    }
 }
 
 // MARK: - Coaching Configuration

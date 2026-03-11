@@ -39,6 +39,7 @@ final class MetricsEngine: MetricsEngineProtocol {
     private var interruptionDetector: InterruptionDetector
     private var silenceTracker: SilenceTracker
     private var trendAnalyzer: TrendAnalyzer
+    private var attentionDriftTracker: AttentionDriftTracker
 
     init(windowSize: TimeInterval = 30) {
         self.windowSize = windowSize
@@ -55,6 +56,7 @@ final class MetricsEngine: MetricsEngineProtocol {
         self.interruptionDetector = InterruptionDetector()
         self.silenceTracker = SilenceTracker()
         self.trendAnalyzer = TrendAnalyzer()
+        self.attentionDriftTracker = AttentionDriftTracker()
     }
 
     func start(sessionId: UUID) {
@@ -115,18 +117,40 @@ final class MetricsEngine: MetricsEngineProtocol {
                                  tutorEnergy + studentEnergy) / 4.0
         trendAnalyzer.addDataPoint(overallEngagement)
 
+        // Compute attention drift for each participant
+        let tutorDrift = attentionDriftTracker.computeDrift(
+            eyeContact: tutorEyeContact,
+            energy: tutorEnergy,
+            isSpeaking: tutorSpeaking,
+            silenceDuration: silenceTracker.currentSilenceDuration,
+            gazeHistory: gazeHistory[.tutor]?.items ?? [],
+            expressionHistory: expressionHistory[.tutor]?.items ?? [],
+            for: .tutor
+        )
+        let studentDrift = attentionDriftTracker.computeDrift(
+            eyeContact: studentEyeContact,
+            energy: studentEnergy,
+            isSpeaking: studentSpeaking,
+            silenceDuration: silenceTracker.currentSilenceDuration,
+            gazeHistory: gazeHistory[.student]?.items ?? [],
+            expressionHistory: expressionHistory[.student]?.items ?? [],
+            for: .student
+        )
+
         let metrics = EngagementMetrics(
             tutor: ParticipantMetrics(
                 eyeContactScore: tutorEyeContact,
                 talkTimePercent: tutorTalkPct,
                 energyScore: tutorEnergy,
-                isSpeaking: tutorSpeaking
+                isSpeaking: tutorSpeaking,
+                attentionDrift: tutorDrift
             ),
             student: ParticipantMetrics(
                 eyeContactScore: studentEyeContact,
                 talkTimePercent: studentTalkPct,
                 energyScore: studentEnergy,
-                isSpeaking: studentSpeaking
+                isSpeaking: studentSpeaking,
+                attentionDrift: studentDrift
             ),
             session: SessionMetrics(
                 interruptionCount: interruptionDetector.count,
@@ -187,6 +211,7 @@ final class MetricsEngine: MetricsEngineProtocol {
         interruptionDetector = InterruptionDetector()
         silenceTracker = SilenceTracker()
         trendAnalyzer = TrendAnalyzer()
+        attentionDriftTracker = AttentionDriftTracker()
     }
 }
 
@@ -327,5 +352,104 @@ final class TrendAnalyzer {
     func reset() {
         dataPoints = []
         currentTrend = .stable
+    }
+}
+
+// MARK: - Attention Drift Tracking
+
+final class AttentionDriftTracker {
+    /// Rolling history of eye-contact scores per role, used to detect sudden drops.
+    private var eyeContactHistory: [SpeakerRole: [Double]] = [.tutor: [], .student: []]
+    /// Rolling history of gaze stability (variance in gaze direction).
+    private var gazeStabilityHistory: [SpeakerRole: [Double]] = [.tutor: [], .student: []]
+    private let historyLimit = 20
+
+    /// Compute attention drift score for a participant.
+    /// Returns a value from 0.0 (fully attentive) to 1.0 (completely drifted).
+    func computeDrift(
+        eyeContact: Double,
+        energy: Double,
+        isSpeaking: Bool,
+        silenceDuration: TimeInterval,
+        gazeHistory: [GazeEstimation],
+        expressionHistory: [FacialExpression],
+        for role: SpeakerRole
+    ) -> Double {
+        // Factor 1: Low eye contact (weight 0.30)
+        let eyeContactFactor = 1.0 - eyeContact
+
+        // Factor 2: Gaze instability — rapid direction changes = fidgeting (weight 0.25)
+        let gazeInstability = computeGazeInstability(gazeHistory)
+
+        // Factor 3: Silence + low eye contact combined signal (weight 0.20)
+        // Normalized silence: 0 at 0s, 1.0 at 180s+
+        let normalizedSilence = min(1.0, silenceDuration / 180.0)
+        let silenceFactor = isSpeaking ? 0.0 : normalizedSilence
+
+        // Factor 4: Expression valence drop (weight 0.15)
+        let valenceDrop = computeValenceDrop(expressionHistory)
+
+        // Factor 5: Eye contact trend — sudden drops (weight 0.10)
+        let eyeContactDrop = computeEyeContactDrop(eyeContact, for: role)
+
+        let drift = eyeContactFactor * 0.30
+            + gazeInstability * 0.25
+            + silenceFactor * 0.20
+            + valenceDrop * 0.15
+            + eyeContactDrop * 0.10
+
+        return min(1.0, max(0.0, drift))
+    }
+
+    private func computeGazeInstability(_ gazes: [GazeEstimation]) -> Double {
+        guard gazes.count >= 3 else { return 0 }
+        let recent = gazes.suffix(10)
+        var directionChanges = 0
+        var previousLooking: Bool?
+        for gaze in recent {
+            if let prev = previousLooking, prev != gaze.isLookingAtCamera {
+                directionChanges += 1
+            }
+            previousLooking = gaze.isLookingAtCamera
+        }
+        // Normalize: 0-1 changes = stable, 5+ changes = very unstable
+        return min(1.0, Double(directionChanges) / 5.0)
+    }
+
+    private func computeValenceDrop(_ expressions: [FacialExpression]) -> Double {
+        guard expressions.count >= 4 else { return 0 }
+        let recentHalf = expressions.suffix(expressions.count / 2)
+        let olderHalf = expressions.prefix(expressions.count / 2)
+
+        guard !olderHalf.isEmpty, !recentHalf.isEmpty else { return 0 }
+
+        let recentValence = recentHalf.map(\.valence).reduce(0, +) / Double(recentHalf.count)
+        let olderValence = olderHalf.map(\.valence).reduce(0, +) / Double(olderHalf.count)
+
+        // A drop in valence from positive to less positive / negative indicates drift
+        let drop = olderValence - recentValence
+        return min(1.0, max(0.0, drop))
+    }
+
+    private func computeEyeContactDrop(_ current: Double, for role: SpeakerRole) -> Double {
+        var history = eyeContactHistory[role] ?? []
+        history.append(current)
+        if history.count > historyLimit {
+            history.removeFirst(history.count - historyLimit)
+        }
+        eyeContactHistory[role] = history
+
+        guard history.count >= 4 else { return 0 }
+
+        let olderAvg = history.prefix(history.count / 2).reduce(0, +) / Double(history.count / 2)
+        let recentAvg = history.suffix(history.count / 2).reduce(0, +) / Double(history.count / 2)
+
+        let drop = olderAvg - recentAvg
+        return min(1.0, max(0.0, drop * 2.0)) // Amplify: a 0.5 drop = 1.0 signal
+    }
+
+    func reset() {
+        eyeContactHistory = [.tutor: [], .student: []]
+        gazeStabilityHistory = [.tutor: [], .student: []]
     }
 }

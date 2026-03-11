@@ -3,13 +3,14 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		0082D5E8BBE2D1F401BDB42C /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D3A777EA3975BCFE21D7D4 /* AuthService.swift */; };
 		021B3892B8C5CA2A8EB7DD3A /* SupabaseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF2457AFC0D061C7C58AE78 /* SupabaseServiceTests.swift */; };
 		028BD0266603B311155ECED1 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027C88EEBB6968486C8BA1C1 /* LoginView.swift */; };
+		16FBC3496AC57060FDCFAAA7 /* WebRTCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04C9B285943C2D2C587FE579 /* WebRTCService.swift */; };
 		178443C0E71AD38290592C8F /* MetricsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83B73B4559A0C710477EBBA /* MetricsEngine.swift */; };
 		2F325726889424092364A3A7 /* SessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F0260E06953CE1FF6FF882 /* SessionViewModel.swift */; };
 		32632CA6EA6BE71DAC505459 /* AudioProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD9A10ED498269ECB04C62A /* AudioProcessor.swift */; };
@@ -29,6 +30,7 @@
 		B4694BE43E3C7D7D76184714 /* AnalyticsDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0F955DB08AE03C662A22EB /* AnalyticsDashboardView.swift */; };
 		B624E4FB7B01B140573230A0 /* CoachingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B1F270F6AA1E93A211BFAC /* CoachingSettingsView.swift */; };
 		CAA052D0B7474011E23607CC /* MetricsEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C099B849506CEA255F84AA4 /* MetricsEngineTests.swift */; };
+		D0887BB9FC840BEFFFC07928 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E36CB50CE62D92DC368CA477 /* SettingsView.swift */; };
 		D0EC18470D65ED3F614746DF /* SessionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E0BE0E1C9E11B1404864AD1 /* SessionStoreTests.swift */; };
 		E62630AD9DA177B25907C3BB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9C1C7C8CC9072B7936DACA6B /* Assets.xcassets */; };
 		F053D9479FAF9A1C08EFC0D7 /* CoachingEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A385886AE5AD5DD99560B1 /* CoachingEngineTests.swift */; };
@@ -50,6 +52,7 @@
 /* Begin PBXFileReference section */
 		027C88EEBB6968486C8BA1C1 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		03B1F270F6AA1E93A211BFAC /* CoachingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingSettingsView.swift; sourceTree = "<group>"; };
+		04C9B285943C2D2C587FE579 /* WebRTCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCService.swift; sourceTree = "<group>"; };
 		10CC2759C468E86E4FBD3B9E /* ModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsTests.swift; sourceTree = "<group>"; };
 		11F04EAC97F399D0D28108A3 /* AudioProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioProcessorTests.swift; sourceTree = "<group>"; };
 		1B01E968768B233103ACC903 /* SimulatorDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorDataProvider.swift; sourceTree = "<group>"; };
@@ -67,13 +70,14 @@
 		9DD9A10ED498269ECB04C62A /* AudioProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioProcessor.swift; sourceTree = "<group>"; };
 		ACB4512C190148CA669BE6C8 /* MockProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProtocols.swift; sourceTree = "<group>"; };
 		B8FE90A09472152BEA90E8DC /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
-		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C998CF5454E755914B06B07A /* SessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionView.swift; sourceTree = "<group>"; };
 		D2814F7C75F4849E84693915 /* LiveSeshApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSeshApp.swift; sourceTree = "<group>"; };
 		D5127886E4AAAB62AF3F1C56 /* LiveCaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCaptureController.swift; sourceTree = "<group>"; };
 		D83B73B4559A0C710477EBBA /* MetricsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsEngine.swift; sourceTree = "<group>"; };
 		DBF2457AFC0D061C7C58AE78 /* SupabaseServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseServiceTests.swift; sourceTree = "<group>"; };
 		DD66E86E35C014A2372001AE /* VideoProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoProcessor.swift; sourceTree = "<group>"; };
+		E36CB50CE62D92DC368CA477 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		E3E0C65238951004CD39F029 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		E6A385886AE5AD5DD99560B1 /* CoachingEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingEngineTests.swift; sourceTree = "<group>"; };
 		FB5E0902061B646F2B772CB9 /* VideoProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoProcessorTests.swift; sourceTree = "<group>"; };
@@ -164,6 +168,7 @@
 				F387D36ABF67FB82B669C827 /* Coaching */,
 				246DBE376AC2B73963688F55 /* Dashboard */,
 				1E35EEDA6FEF9E7DD3102CC0 /* Session */,
+				A7B4759A3CC8FDD4B00DA0E3 /* Settings */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -220,6 +225,14 @@
 			path = LiveSesh;
 			sourceTree = "<group>";
 		};
+		89C4D99B46B32E79CD3B502B /* WebRTCService */ = {
+			isa = PBXGroup;
+			children = (
+				04C9B285943C2D2C587FE579 /* WebRTCService.swift */,
+			);
+			path = WebRTCService;
+			sourceTree = "<group>";
+		};
 		8F299B917A6F206864EDA91A /* Core */ = {
 			isa = PBXGroup;
 			children = (
@@ -237,6 +250,14 @@
 				FD0F955DB08AE03C662A22EB /* AnalyticsDashboardView.swift */,
 			);
 			path = Analytics;
+			sourceTree = "<group>";
+		};
+		A7B4759A3CC8FDD4B00DA0E3 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				E36CB50CE62D92DC368CA477 /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		A80C7B376F25B2F6D42DA644 /* Features */ = {
@@ -261,6 +282,7 @@
 				CD658A8C147D0269D66ECBBD /* AuthService */,
 				B3499014CF23879E2E3D83BD /* SessionStore */,
 				3B1F8FF3340810F11EE63B0A /* SupabaseService */,
+				89C4D99B46B32E79CD3B502B /* WebRTCService */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -376,6 +398,9 @@
 					EB5D9765FF59E0A509D44322 = {
 						DevelopmentTeam = "";
 					};
+					FB5827068CD98FF0ED5E2C1B = {
+						DevelopmentTeam = "";
+					};
 				};
 			};
 			buildConfigurationList = 6B10BF240954AEC85F74FEA9 /* Build configuration list for PBXProject "LiveSesh" */;
@@ -388,6 +413,7 @@
 			);
 			mainGroup = EEAEAE492D8B437D9177B937;
 			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -444,9 +470,11 @@
 				75B3D4DA0FE39751E2750A0F /* SessionStore.swift in Sources */,
 				48BE531FC5F52DCFD6BA2A63 /* SessionView.swift in Sources */,
 				2F325726889424092364A3A7 /* SessionViewModel.swift in Sources */,
+				D0887BB9FC840BEFFFC07928 /* SettingsView.swift in Sources */,
 				6EA0B97C780DA93BA003B8CE /* SimulatorDataProvider.swift in Sources */,
 				8FCE333EEBF4B2AF2AA6A08C /* SupabaseService.swift in Sources */,
 				A3733C30B7AAFF4381F0FEFB /* VideoProcessor.swift in Sources */,
+				16FBC3496AC57060FDCFAAA7 /* WebRTCService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -467,7 +495,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7RUN765V47;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";
@@ -575,7 +602,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7RUN765V47;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";

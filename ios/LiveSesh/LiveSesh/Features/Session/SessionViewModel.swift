@@ -16,6 +16,9 @@ final class SessionViewModel: ObservableObject {
 
     @Published var currentPhase = "" // Shows current simulation phase
     @Published var syncStatus = ""
+    @Published var keyMoments: [KeyMoment] = []
+    @Published var webRTCConnectionState: WebRTCConnectionState = .idle
+    @Published var studentDisplayName: String?
 
     private var session: LiveSession?
     private var cancellables = Set<AnyCancellable>()
@@ -26,6 +29,9 @@ final class SessionViewModel: ObservableObject {
     private var syncTask: Task<Void, Never>?
     private var batteryLevelAtStart: Double = 0
     private var wasChargingAtStart: Bool = false
+    private var previousEngagementTrend: EngagementTrend = .stable
+    private var lastKeyMomentTime: [String: Date] = [:]
+    private let keyMomentCooldown: TimeInterval = 30 // Min seconds between same-type moments
 
     private let metricsEngine: MetricsEngineProtocol
     private let coachingEngine: CoachingEngineProtocol
@@ -61,6 +67,7 @@ final class SessionViewModel: ObservableObject {
                 self?.currentMetrics = metrics
                 self?.coachingEngine.evaluateMetrics(metrics)
                 self?.persistSnapshotIfNeeded(metrics)
+                self?.detectKeyMoments(metrics)
             }
             .store(in: &cancellables)
 
@@ -89,9 +96,12 @@ final class SessionViewModel: ObservableObject {
         sessionStartTime = Date()
         sessionDuration = "00:00"
         activeNudges = []
+        keyMoments = []
         currentMetrics = .empty
         lastSnapshotSavedAt = nil
         currentPhase = ""
+        previousEngagementTrend = .stable
+        lastKeyMomentTime = [:]
 
         // Configure coaching
         switch coachingSensitivity {
@@ -187,7 +197,7 @@ final class SessionViewModel: ObservableObject {
             avgEyeContact: EyeContactSummary(tutor: m.tutor.eyeContactScore, student: m.student.eyeContactScore),
             totalInterruptions: m.session.interruptionCount,
             engagementScore: computeOverallScore(),
-            keyMoments: [],
+            keyMoments: keyMoments,
             recommendations: generateRecommendations(from: m),
             createdAt: Date(),
             batteryUsage: captureBatteryUsage()
@@ -261,6 +271,74 @@ final class SessionViewModel: ObservableObject {
         metrics.session.silenceDurationCurrent > 0 ||
         metrics.tutor.energyScore != 0.5 ||
         metrics.student.energyScore != 0.5
+    }
+
+    // MARK: - Key Moments Detection
+
+    private func detectKeyMoments(_ metrics: EngagementMetrics) {
+        guard isSessionActive, let start = sessionStartTime else { return }
+        let elapsed = Date().timeIntervalSince(start)
+        let timestamp = formatTimestamp(elapsed)
+
+        // 1. Attention drift exceeds threshold (0.6)
+        let maxDrift = max(metrics.tutor.attentionDrift, metrics.student.attentionDrift)
+        if maxDrift >= 0.6 {
+            addKeyMoment(
+                type: .attentionDrift,
+                timestamp: timestamp,
+                description: "Attention drift detected (score: \(String(format: "%.0f%%", maxDrift * 100))). Eye contact and engagement indicators suggest the participant may be losing focus."
+            )
+        }
+
+        // 2. Silence exceeds 3 minutes (180 seconds)
+        if metrics.session.silenceDurationCurrent >= 180 {
+            addKeyMoment(
+                type: .prolongedSilence,
+                timestamp: timestamp,
+                description: "Prolonged silence of \(Int(metrics.session.silenceDurationCurrent))s detected. Consider re-engaging with a question or activity change."
+            )
+        }
+
+        // 3. Engagement trend changes from rising to declining
+        if previousEngagementTrend == .rising && metrics.session.engagementTrend == .declining {
+            addKeyMoment(
+                type: .engagementDecline,
+                timestamp: timestamp,
+                description: "Engagement trend shifted from rising to declining. This inflection point may indicate the session content or pace needs adjustment."
+            )
+        }
+        previousEngagementTrend = metrics.session.engagementTrend
+
+        // 4. Interruption spike
+        if metrics.session.interruptionCount > 0 && metrics.session.interruptionCount % 3 == 0 {
+            addKeyMoment(
+                type: .interruptionSpike,
+                timestamp: timestamp,
+                description: "Interruption count reached \(metrics.session.interruptionCount). Frequent interruptions may indicate excitement or confusion."
+            )
+        }
+    }
+
+    private func addKeyMoment(type: KeyMomentType, timestamp: String, description: String) {
+        let now = Date()
+        if let lastTime = lastKeyMomentTime[type.rawValue],
+           now.timeIntervalSince(lastTime) < keyMomentCooldown {
+            return // Cooldown not elapsed
+        }
+
+        let moment = KeyMoment(
+            timestamp: timestamp,
+            type: type.rawValue,
+            description: description
+        )
+        keyMoments.append(moment)
+        lastKeyMomentTime[type.rawValue] = now
+    }
+
+    private func formatTimestamp(_ elapsed: TimeInterval) -> String {
+        let minutes = Int(elapsed) / 60
+        let seconds = Int(elapsed) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     private func generateRecommendations(from metrics: EngagementMetrics) -> [String] {

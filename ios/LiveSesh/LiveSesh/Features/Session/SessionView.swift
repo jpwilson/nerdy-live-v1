@@ -15,6 +15,14 @@ struct SessionView: View {
         ))
     }
 
+    private var isTestMode: Bool {
+        appState.testModeEnabled
+    }
+
+    private var roomCode: String {
+        appState.roomCode
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -104,6 +112,15 @@ struct SessionView: View {
             }
             .padding(.horizontal)
 
+            // Mode indicator
+            if isTestMode {
+                testModeBanner
+                    .padding(.horizontal)
+            } else if !roomCode.isEmpty {
+                roomCodeBanner
+                    .padding(.horizontal)
+            }
+
             NerdyButton("Start Session", icon: "video.fill") {
                 viewModel.startSession()
             }
@@ -125,6 +142,15 @@ struct SessionView: View {
 
     private var activeSessionView: some View {
         VStack(spacing: 12) {
+            // Test mode / connection status bar
+            if isTestMode {
+                activeTestModePill
+                    .padding(.horizontal)
+            } else if !roomCode.isEmpty {
+                activeConnectionPill
+                    .padding(.horizontal)
+            }
+
             // Camera preview with glass status overlays
             LiveCaptureSurfaceView(
                 controller: viewModel.liveCaptureController,
@@ -182,12 +208,109 @@ struct SessionView: View {
         .padding(.trailing, 16)
     }
 
+    // MARK: - Mode & Connection Banners
+
+    private var testModeBanner: some View {
+        NerdyCard {
+            HStack(spacing: 10) {
+                Image(systemName: "testtube.2")
+                    .foregroundColor(NerdyTheme.nudgeSuggestion)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Test Mode")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(NerdyTheme.nudgeSuggestion)
+                    Text("Self-analysis mode. Camera feed is analyzed as if it were the student.")
+                        .font(.caption2)
+                        .foregroundColor(NerdyTheme.textSecondary)
+                }
+                Spacer()
+            }
+        }
+    }
+
+    private var roomCodeBanner: some View {
+        NerdyCard {
+            HStack(spacing: 10) {
+                Image(systemName: "link")
+                    .foregroundColor(NerdyTheme.cyan)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Room: \(roomCode)")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    Text("Student can join from the web app with this room code.")
+                        .font(.caption2)
+                        .foregroundColor(NerdyTheme.textSecondary)
+                }
+                Spacer()
+            }
+        }
+    }
+
+    private var activeTestModePill: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "testtube.2")
+                .font(.caption2)
+                .foregroundColor(NerdyTheme.nudgeSuggestion)
+            Text("TEST MODE - Self Analysis")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundColor(NerdyTheme.nudgeSuggestion)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(NerdyTheme.nudgeSuggestion.opacity(0.15))
+                .overlay(
+                    Capsule()
+                        .stroke(NerdyTheme.nudgeSuggestion.opacity(0.3), lineWidth: 1)
+                )
+        )
+    }
+
+    private var activeConnectionPill: some View {
+        let state = viewModel.webRTCConnectionState
+        let color: Color = state == .studentConnected ? NerdyTheme.cyan : NerdyTheme.textSecondary
+        let icon: String = state == .studentConnected ? "person.fill.checkmark" : "person.fill.questionmark"
+        let label: String
+        if let name = viewModel.studentDisplayName, state == .studentConnected {
+            label = "\(name) connected"
+        } else {
+            label = state.displayLabel
+        }
+
+        return HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption2)
+                .foregroundColor(color)
+            Text(label)
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundColor(color)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(color.opacity(0.15))
+                .overlay(
+                    Capsule()
+                        .stroke(color.opacity(0.3), lineWidth: 1)
+                )
+        )
+    }
+
     private var captureStatusMessage: String? {
         if viewModel.currentPhase == "Simulator Demo Mode" {
             return "Simulator fallback is active. Run on an iPhone for real camera and microphone capture."
         }
 
         if viewModel.liveCaptureController.isRunning {
+            if isTestMode {
+                return "Test mode: analyzing local camera as both tutor and student."
+            }
             return "On-device tutor capture is active. Student-side metrics still require the tutoring call or remote media streams to be integrated into this app."
         }
 

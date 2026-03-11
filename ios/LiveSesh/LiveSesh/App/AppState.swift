@@ -6,6 +6,12 @@ final class AppState: ObservableObject {
     @Published var isAuthenticated = false
     @Published var currentSession: LiveSession?
     @Published var tutorProfile: TutorProfile?
+    @Published var testModeEnabled: Bool {
+        didSet { UserDefaults.standard.set(testModeEnabled, forKey: "testModeEnabled") }
+    }
+    @Published var roomCode: String {
+        didSet { UserDefaults.standard.set(roomCode, forKey: "roomCode") }
+    }
 
     let authService = AuthService()
     let supabaseService: SupabaseService
@@ -14,6 +20,8 @@ final class AppState: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     init() {
+        self.testModeEnabled = UserDefaults.standard.bool(forKey: "testModeEnabled")
+        self.roomCode = UserDefaults.standard.string(forKey: "roomCode") ?? ""
         let service = SupabaseService()
         self.supabaseService = service
         // Wire live auth token into Supabase REST calls

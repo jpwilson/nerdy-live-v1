@@ -7,13 +7,13 @@ struct ContentView: View {
     enum Tab: String, CaseIterable {
         case session = "Session"
         case analytics = "Analytics"
-        case profile = "Profile"
+        case settings = "Settings"
 
         var icon: String {
             switch self {
             case .session: return "video.fill"
             case .analytics: return "chart.bar.fill"
-            case .profile: return "person.fill"
+            case .settings: return "gearshape.fill"
             }
         }
     }
@@ -51,8 +51,8 @@ struct ContentView: View {
             )
         case .analytics:
             AnalyticsDashboardView()
-        case .profile:
-            ProfileView()
+        case .settings:
+            SettingsView()
         }
     }
 }
