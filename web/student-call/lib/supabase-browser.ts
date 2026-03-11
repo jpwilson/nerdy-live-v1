@@ -2,36 +2,30 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let browserClient: SupabaseClient | null = null;
 
-function requireEnv(name: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY") {
-  const value = process.env[name];
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+  "https://ibikuhcxgnxkacpsxpaw.supabase.co";
 
-  if (!value) {
-    throw new Error(`${name} is missing. Copy .env.example to .env.local and fill it in.`);
-  }
-
-  return value;
-}
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaWt1aGN4Z254a2FjcHN4cGF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTUzNTksImV4cCI6MjA4ODU3MTM1OX0.Sjj1KCJ6fQ8rl-c_XaT_ATcSFH9OaXiMlz2YY0Y0N6c";
 
 export function getSupabaseBrowserClient() {
   if (browserClient) {
     return browserClient;
   }
 
-  browserClient = createClient(
-    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
+  browserClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 12,
       },
-      realtime: {
-        params: {
-          eventsPerSecond: 12,
-        },
-      },
-    }
-  );
+    },
+  });
 
   return browserClient;
 }
