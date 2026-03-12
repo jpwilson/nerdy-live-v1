@@ -22,7 +22,9 @@ export function parseRole(input: string | null | undefined): RoomRole {
 }
 
 export function roleLabel(role: RoomRole): string {
-  return role === "student" ? "Student" : "Tutor preview";
+  if (role === "tutor") return "Tutor (iOS)";
+  if (role === "tutor_preview") return "Tutor preview";
+  return "Student";
 }
 
 export function connectionLabel(state: CallConnectionState): string {

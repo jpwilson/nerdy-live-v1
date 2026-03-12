@@ -39,6 +39,7 @@ final class SessionViewModel: ObservableObject {
     private let supabaseService: SupabaseServiceProtocol
     private let tutorId: UUID
     let liveCaptureController: LiveCaptureController
+    private let webRTCService = WebRTCService()
 
     init(metricsEngine: MetricsEngineProtocol? = nil,
          coachingEngine: CoachingEngineProtocol? = nil,
@@ -78,9 +79,17 @@ final class SessionViewModel: ObservableObject {
                 self?.persistNudge(nudge)
             }
             .store(in: &cancellables)
+
+        webRTCService.connectionStatePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                self?.webRTCConnectionState = state
+                self?.studentDisplayName = self?.webRTCService.studentDisplayName
+            }
+            .store(in: &cancellables)
     }
 
-    func startSession(testModeEnabled: Bool = false) {
+    func startSession(testModeEnabled: Bool = false, roomCode: String = "", accessToken: String? = nil) {
         let newSession = LiveSession.new(
             tutorId: tutorId,
             subject: subject.isEmpty ? "General" : subject,
@@ -121,9 +130,21 @@ final class SessionViewModel: ObservableObject {
         Task { [weak self] in
             await self?.startLiveCapture()
         }
+
+        // Connect to WebRTC signaling channel when not in test mode and a room code is set
+        if !testModeEnabled && !roomCode.isEmpty {
+            Task { [weak self] in
+                await self?.webRTCService.connect(
+                    roomId: roomCode,
+                    displayName: "Tutor",
+                    accessToken: accessToken
+                )
+            }
+        }
     }
 
     func endSession() {
+        webRTCService.disconnect()
         simulatorProvider?.stop()
         simulatorProvider = nil
         liveCaptureController.stop()

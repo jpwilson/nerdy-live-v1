@@ -122,7 +122,11 @@ struct SessionView: View {
             }
 
             NerdyButton("Start Session", icon: "video.fill") {
-                viewModel.startSession(testModeEnabled: isTestMode)
+                viewModel.startSession(
+                    testModeEnabled: isTestMode,
+                    roomCode: roomCode,
+                    accessToken: appState.currentAccessToken
+                )
             }
 
             if let syncStatusMessage {

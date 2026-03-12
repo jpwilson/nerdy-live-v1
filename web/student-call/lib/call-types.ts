@@ -1,4 +1,4 @@
-export type RoomRole = "student" | "tutor_preview";
+export type RoomRole = "student" | "tutor_preview" | "tutor";
 
 export type CallConnectionState =
   | "idle"

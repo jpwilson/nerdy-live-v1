@@ -21,7 +21,7 @@ final class AppState: ObservableObject {
 
     init() {
         self.testModeEnabled = UserDefaults.standard.bool(forKey: "testModeEnabled")
-        self.roomCode = UserDefaults.standard.string(forKey: "roomCode") ?? ""
+        self.roomCode = UserDefaults.standard.string(forKey: "roomCode") ?? "demo-room"
         let service = SupabaseService()
         self.supabaseService = service
         // Wire live auth token into Supabase REST calls

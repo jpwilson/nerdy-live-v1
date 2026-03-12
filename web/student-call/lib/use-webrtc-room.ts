@@ -62,10 +62,13 @@ function flattenPresence(channel: RealtimeChannel): ParticipantPresence[] {
       typeof entry.role === "string" &&
       typeof entry.joinedAt === "string"
     ) {
+      const entryRole = entry.role === "tutor_preview" ? "tutor_preview"
+        : entry.role === "tutor" ? "tutor"
+        : "student";
       deduped.set(entry.peerId, {
         peerId: entry.peerId,
         displayName: entry.displayName,
-        role: entry.role === "tutor_preview" ? "tutor_preview" : "student",
+        role: entryRole,
         joinedAt: entry.joinedAt,
       });
     }
@@ -280,6 +283,15 @@ export function useWebRtcRoom({
       remotePeerIdRef.current = null;
       cleanupPeerConnection(true);
       setConnectionState("waiting_for_peer");
+      return;
+    }
+
+    // Native iOS tutor doesn't support browser WebRTC — presence-only connection.
+    // Show "connected" without attempting SDP negotiation.
+    if (nextRemote.role === "tutor") {
+      remotePeerIdRef.current = nextRemote.peerId;
+      cleanupPeerConnection(false);
+      setConnectionState("connected");
       return;
     }
 
