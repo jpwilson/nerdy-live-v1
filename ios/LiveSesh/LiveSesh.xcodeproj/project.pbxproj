@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -19,6 +19,7 @@
 		428E872238E6FFFC07676CAA /* ModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10CC2759C468E86E4FBD3B9E /* ModelsTests.swift */; };
 		48BE531FC5F52DCFD6BA2A63 /* SessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C998CF5454E755914B06B07A /* SessionView.swift */; };
 		4E720C8F2B2C81D34DCDE40C /* AudioProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F04EAC97F399D0D28108A3 /* AudioProcessorTests.swift */; };
+		5F3FFB662BCE1CEAEA24E2A3 /* RTCVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A897CDAB81F4603BAF7C4B0 /* RTCVideoView.swift */; };
 		661EFD8B47B231F6EB46C1CC /* VideoProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5E0902061B646F2B772CB9 /* VideoProcessorTests.swift */; };
 		6EA0B97C780DA93BA003B8CE /* SimulatorDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B01E968768B233103ACC903 /* SimulatorDataProvider.swift */; };
 		749393B0526008ECEE3B5372 /* LiveCaptureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5127886E4AAAB62AF3F1C56 /* LiveCaptureController.swift */; };
@@ -33,6 +34,7 @@
 		D0887BB9FC840BEFFFC07928 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E36CB50CE62D92DC368CA477 /* SettingsView.swift */; };
 		D0EC18470D65ED3F614746DF /* SessionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E0BE0E1C9E11B1404864AD1 /* SessionStoreTests.swift */; };
 		E62630AD9DA177B25907C3BB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9C1C7C8CC9072B7936DACA6B /* Assets.xcassets */; };
+		EDE7EF84200BE604439F4523 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = A63F28E99C5BDC4A12DBBA36 /* WebRTC */; };
 		F053D9479FAF9A1C08EFC0D7 /* CoachingEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A385886AE5AD5DD99560B1 /* CoachingEngineTests.swift */; };
 		F0C75C2B7E63BE00E5DEF991 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91545FC4A571521CCAFBC474 /* ContentView.swift */; };
 		F622C5B5BA8DDE720D928199 /* CoachingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D864220C2D9B35751B4B9DD /* CoachingEngine.swift */; };
@@ -57,6 +59,7 @@
 		11F04EAC97F399D0D28108A3 /* AudioProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioProcessorTests.swift; sourceTree = "<group>"; };
 		1B01E968768B233103ACC903 /* SimulatorDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorDataProvider.swift; sourceTree = "<group>"; };
 		25D3A777EA3975BCFE21D7D4 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		3A897CDAB81F4603BAF7C4B0 /* RTCVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTCVideoView.swift; sourceTree = "<group>"; };
 		4E0BE0E1C9E11B1404864AD1 /* SessionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStoreTests.swift; sourceTree = "<group>"; };
 		4EB785C89268E182A6A7D7B6 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		50F0260E06953CE1FF6FF882 /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
@@ -70,7 +73,7 @@
 		9DD9A10ED498269ECB04C62A /* AudioProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioProcessor.swift; sourceTree = "<group>"; };
 		ACB4512C190148CA669BE6C8 /* MockProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProtocols.swift; sourceTree = "<group>"; };
 		B8FE90A09472152BEA90E8DC /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
-		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C998CF5454E755914B06B07A /* SessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionView.swift; sourceTree = "<group>"; };
 		D2814F7C75F4849E84693915 /* LiveSeshApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSeshApp.swift; sourceTree = "<group>"; };
 		D5127886E4AAAB62AF3F1C56 /* LiveCaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCaptureController.swift; sourceTree = "<group>"; };
@@ -83,6 +86,17 @@
 		FB5E0902061B646F2B772CB9 /* VideoProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoProcessorTests.swift; sourceTree = "<group>"; };
 		FD0F955DB08AE03C662A22EB /* AnalyticsDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsDashboardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E55D560935887655DBD47440 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EDE7EF84200BE604439F4523 /* WebRTC in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		0112BF94E8950A2A93537ADB /* LiveSeshTests */ = {
@@ -107,6 +121,7 @@
 		1E35EEDA6FEF9E7DD3102CC0 /* Session */ = {
 			isa = PBXGroup;
 			children = (
+				3A897CDAB81F4603BAF7C4B0 /* RTCVideoView.swift */,
 				C998CF5454E755914B06B07A /* SessionView.swift */,
 				50F0260E06953CE1FF6FF882 /* SessionViewModel.swift */,
 			);
@@ -374,6 +389,7 @@
 			buildPhases = (
 				BEDACA87FC8C9F5561FA2D37 /* Sources */,
 				4F88DB6E5BB0FADCB1136BD1 /* Resources */,
+				E55D560935887655DBD47440 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -381,6 +397,7 @@
 			);
 			name = LiveSesh;
 			packageProductDependencies = (
+				A63F28E99C5BDC4A12DBBA36 /* WebRTC */,
 			);
 			productName = LiveSesh;
 			productReference = B92393E3F14D41D45B631FC0 /* LiveSesh.app */;
@@ -398,6 +415,9 @@
 					EB5D9765FF59E0A509D44322 = {
 						DevelopmentTeam = "";
 					};
+					FB5827068CD98FF0ED5E2C1B = {
+						DevelopmentTeam = "";
+					};
 				};
 			};
 			buildConfigurationList = 6B10BF240954AEC85F74FEA9 /* Build configuration list for PBXProject "LiveSesh" */;
@@ -410,6 +430,10 @@
 			);
 			mainGroup = EEAEAE492D8B437D9177B937;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				788D81982801BF1C3461D051 /* XCRemoteSwiftPackageReference "WebRTC" */,
+			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -463,6 +487,7 @@
 				178443C0E71AD38290592C8F /* MetricsEngine.swift in Sources */,
 				386661CA799987606ADA41B8 /* Models.swift in Sources */,
 				38687A7CB70E0467D0664600 /* NerdyTheme.swift in Sources */,
+				5F3FFB662BCE1CEAEA24E2A3 /* RTCVideoView.swift in Sources */,
 				75B3D4DA0FE39751E2750A0F /* SessionStore.swift in Sources */,
 				48BE531FC5F52DCFD6BA2A63 /* SessionView.swift in Sources */,
 				2F325726889424092364A3A7 /* SessionViewModel.swift in Sources */,
@@ -491,7 +516,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7RUN765V47;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";
@@ -570,6 +594,7 @@
 				SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtcHFicnZxeWh2cmpwcnludnNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjc2MzgsImV4cCI6MjA4ODg0MzYzOH0.Asl68-9BJkahQErCBA3VXI4LQdmuEuKJN5E4lE13Thc";
 				SUPABASE_URL = "https://gmpqbrvqyhvrjprynvse.supabase.co";
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.9;
 			};
@@ -599,7 +624,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7RUN765V47;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";
@@ -685,6 +709,7 @@
 				SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtcHFicnZxeWh2cmpwcnludnNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjc2MzgsImV4cCI6MjA4ODg0MzYzOH0.Asl68-9BJkahQErCBA3VXI4LQdmuEuKJN5E4lE13Thc";
 				SUPABASE_URL = "https://gmpqbrvqyhvrjprynvse.supabase.co";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.9;
 			};
@@ -739,6 +764,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		788D81982801BF1C3461D051 /* XCRemoteSwiftPackageReference "WebRTC" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stasel/WebRTC.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 114.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A63F28E99C5BDC4A12DBBA36 /* WebRTC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 788D81982801BF1C3461D051 /* XCRemoteSwiftPackageReference "WebRTC" */;
+			productName = WebRTC;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B38CBF86EB59C7001E69FE1A /* Project object */;
 }

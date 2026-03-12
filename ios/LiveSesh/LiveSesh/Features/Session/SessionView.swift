@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import WebRTC
 #if os(iOS)
 import UIKit
 #endif
@@ -170,6 +171,12 @@ struct SessionView: View {
                 )
                 .padding(.horizontal)
 
+                // Student video feed (via WebRTC)
+                if !isTestMode {
+                    studentVideoSection
+                        .padding(.horizontal)
+                }
+
                 // Live Metrics Dashboard (inline)
                 LiveMetricsDashboardView(metrics: viewModel.currentMetrics)
                     .padding(.horizontal)
@@ -309,6 +316,51 @@ struct SessionView: View {
                         .stroke(color.opacity(0.3), lineWidth: 1)
                 )
         )
+    }
+
+    private var studentVideoSection: some View {
+        NerdyCard {
+            VStack(spacing: 8) {
+                HStack {
+                    Text("Student Feed")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Spacer()
+                    if let name = viewModel.studentDisplayName {
+                        Text(name)
+                            .font(.caption)
+                            .foregroundColor(NerdyTheme.cyan)
+                    }
+                }
+
+                #if os(iOS)
+                if let track = viewModel.webRTCService.remoteVideoTrack {
+                    RTCVideoViewRepresentable(videoTrack: track)
+                        .frame(height: 200)
+                        .clipShape(RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusSmall))
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusSmall)
+                            .fill(NerdyTheme.backgroundElevated)
+                        VStack(spacing: 8) {
+                            Image(systemName: viewModel.webRTCConnectionState == .waitingForStudent
+                                  ? "person.fill.questionmark" : "video.fill")
+                                .font(.title2)
+                                .foregroundColor(NerdyTheme.textMuted)
+                            Text(viewModel.webRTCConnectionState == .waitingForStudent
+                                 ? "Waiting for student to join..."
+                                 : viewModel.webRTCConnectionState == .studentConnected
+                                    ? "Connecting video..."
+                                    : "Student video will appear here")
+                                .font(.caption)
+                                .foregroundColor(NerdyTheme.textSecondary)
+                        }
+                    }
+                    .frame(height: 200)
+                }
+                #endif
+            }
+        }
     }
 
     private var captureStatusMessage: String? {

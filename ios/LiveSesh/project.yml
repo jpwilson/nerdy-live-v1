@@ -11,9 +11,15 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     DEVELOPMENT_TEAM: ""
+    SWIFT_ENABLE_EXPLICIT_MODULES: NO
     SUPABASE_URL: "https://gmpqbrvqyhvrjprynvse.supabase.co"
     SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtcHFicnZxeWh2cmpwcnludnNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjc2MzgsImV4cCI6MjA4ODg0MzYzOH0.Asl68-9BJkahQErCBA3VXI4LQdmuEuKJN5E4lE13Thc"
     SUPABASE_ACCESS_TOKEN: ""
+
+packages:
+  WebRTC:
+    url: https://github.com/stasel/WebRTC.git
+    from: "114.0.0"
 
 targets:
   LiveSesh:
@@ -23,6 +29,8 @@ targets:
       - path: LiveSesh
         excludes:
           - "**/.DS_Store"
+    dependencies:
+      - package: WebRTC
     settings:
       base:
         INFOPLIST_GENERATION_MODE: GeneratedFile

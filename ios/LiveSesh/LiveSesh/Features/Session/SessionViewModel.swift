@@ -39,7 +39,7 @@ final class SessionViewModel: ObservableObject {
     private let supabaseService: SupabaseServiceProtocol
     private let tutorId: UUID
     let liveCaptureController: LiveCaptureController
-    private let webRTCService = WebRTCService()
+    let webRTCService = WebRTCService()
 
     init(metricsEngine: MetricsEngineProtocol? = nil,
          coachingEngine: CoachingEngineProtocol? = nil,

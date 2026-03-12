@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import WebRTC
 
 // MARK: - WebRTC Service Protocol
 
@@ -9,35 +10,45 @@ protocol WebRTCServiceProtocol: AnyObject {
     var connectionStatePublisher: AnyPublisher<WebRTCConnectionState, Never> { get }
     var studentPresent: Bool { get }
     var studentDisplayName: String? { get }
+    var remoteVideoTrack: RTCVideoTrack? { get }
+    var localVideoTrack: RTCVideoTrack? { get }
 
     func connect(roomId: String, displayName: String, accessToken: String?) async
     func disconnect()
 }
 
-// MARK: - Supabase Realtime Signaling Service
+// MARK: - WebRTC Service (real peer connection + Supabase Realtime signaling)
 
-/// WebRTCService connects to a Supabase Realtime channel for WebRTC signaling and presence.
-///
-/// In the current implementation, this service handles:
-/// - Connecting to the `room:{roomId}:webrtc` channel via WebSocket
-/// - Tracking presence (detecting when a student joins/leaves)
-/// - Publishing connection state changes
-///
-/// The actual RTCPeerConnection for media exchange requires the WebRTC.framework binary.
-/// When that is added, extend this service to create/manage the peer connection, handle
-/// SDP offer/answer exchange, and ICE candidate trickle through the signaling channel.
-///
-/// For the demo, the front camera is used for analysis and metrics can be labeled as
-/// student metrics (simulating what would happen with a real WebRTC incoming stream).
 @MainActor
-final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
+final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
     @Published private(set) var connectionState: WebRTCConnectionState = .idle
     @Published private(set) var studentPresent = false
     @Published private(set) var studentDisplayName: String?
+    @Published private(set) var remoteVideoTrack: RTCVideoTrack?
+    @Published private(set) var localVideoTrack: RTCVideoTrack?
 
     var connectionStatePublisher: AnyPublisher<WebRTCConnectionState, Never> {
         $connectionState.eraseToAnyPublisher()
     }
+
+    // MARK: - WebRTC objects
+
+    private static let factory: RTCPeerConnectionFactory = {
+        RTCInitializeSSL()
+        return RTCPeerConnectionFactory(
+            encoderFactory: RTCDefaultVideoEncoderFactory(),
+            decoderFactory: RTCDefaultVideoDecoderFactory()
+        )
+    }()
+
+    private var peerConnection: RTCPeerConnection?
+    private var videoCapturer: RTCCameraVideoCapturer?
+    private var localAudioTrack: RTCAudioTrack?
+    fileprivate var makingOffer = false
+    fileprivate var isPolite = false
+    fileprivate var remotePeerId: String?
+
+    // MARK: - Signaling (Supabase Realtime WebSocket)
 
     private var webSocketTask: URLSessionWebSocketTask?
     private var heartbeatTimer: Timer?
@@ -51,9 +62,12 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
     private let supabaseURL: String
     private let supabaseAnonKey: String
 
+    // MARK: - Init
+
     init(supabaseURL: String? = nil, supabaseAnonKey: String? = nil) {
         self.supabaseURL = supabaseURL ?? SupabaseConfig.url
         self.supabaseAnonKey = supabaseAnonKey ?? SupabaseConfig.anonKey
+        super.init()
     }
 
     // MARK: - Public API
@@ -65,7 +79,16 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
         self.displayName = displayName
         connectionState = .connecting
 
-        // Build WebSocket URL for Supabase Realtime
+        // 1. Create peer connection
+        createPeerConnection()
+
+        // 2. Add local media tracks
+        addLocalMediaTracks()
+
+        // 3. Start camera capture
+        startCameraCapture()
+
+        // 4. Connect to Supabase Realtime signaling channel
         let wsURL = supabaseURL
             .replacingOccurrences(of: "https://", with: "wss://")
             .replacingOccurrences(of: "http://", with: "ws://")
@@ -85,10 +108,8 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
         webSocketTask = session.webSocketTask(with: request)
         webSocketTask?.resume()
 
-        // Start receiving messages
         receiveMessages()
 
-        // Join the channel after a small delay for the connection to establish
         try? await Task.sleep(nanoseconds: 500_000_000)
 
         joinChannel()
@@ -96,6 +117,20 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
     }
 
     func disconnect() {
+        // Close peer connection
+        peerConnection?.close()
+        peerConnection = nil
+
+        // Stop camera
+        videoCapturer?.stopCapture()
+        videoCapturer = nil
+
+        remoteVideoTrack = nil
+        localVideoTrack = nil
+        remotePeerId = nil
+        makingOffer = false
+
+        // Close signaling channel
         leaveChannel()
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
@@ -107,7 +142,84 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
         connectionState = .idle
     }
 
-    // MARK: - Channel Management
+    // MARK: - WebRTC Peer Connection Setup
+
+    private func createPeerConnection() {
+        let config = RTCConfiguration()
+        config.iceServers = [
+            RTCIceServer(urlStrings: ["stun:stun.l.google.com:19302"]),
+            RTCIceServer(urlStrings: ["stun:stun1.l.google.com:19302"])
+        ]
+        config.sdpSemantics = .unifiedPlan
+        config.continualGatheringPolicy = .gatherContinually
+
+        let constraints = RTCMediaConstraints(
+            mandatoryConstraints: nil,
+            optionalConstraints: ["DtlsSrtpKeyAgreement": "true"]
+        )
+
+        peerConnection = Self.factory.peerConnection(
+            with: config,
+            constraints: constraints,
+            delegate: nil
+        )
+
+        // Set delegate on background queue to avoid blocking main
+        peerConnection?.delegate = WebRTCDelegateProxy(service: self)
+    }
+
+    private func addLocalMediaTracks() {
+        guard let peerConnection else { return }
+
+        // Audio track
+        let audioConstraints = RTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: nil)
+        let audioSource = Self.factory.audioSource(with: audioConstraints)
+        let audioTrack = Self.factory.audioTrack(with: audioSource, trackId: "audio0")
+        peerConnection.add(audioTrack, streamIds: ["stream0"])
+        localAudioTrack = audioTrack
+
+        // Video track
+        let videoSource = Self.factory.videoSource()
+        let videoTrack = Self.factory.videoTrack(with: videoSource, trackId: "video0")
+        peerConnection.add(videoTrack, streamIds: ["stream0"])
+        localVideoTrack = videoTrack
+
+        // Create capturer attached to the video source
+        videoCapturer = RTCCameraVideoCapturer(delegate: videoSource)
+    }
+
+    private func startCameraCapture() {
+        guard let capturer = videoCapturer else { return }
+
+        guard let frontCamera = RTCCameraVideoCapturer.captureDevices().first(where: {
+            $0.position == .front
+        }) else {
+            print("[WebRTCService] No front camera found")
+            return
+        }
+
+        // Pick a reasonable format (720p or closest)
+        let formats = RTCCameraVideoCapturer.supportedFormats(for: frontCamera)
+        let targetWidth: Int32 = 1280
+        let selectedFormat = formats
+            .sorted { a, b in
+                let aWidth = CMVideoFormatDescriptionGetDimensions(a.formatDescription).width
+                let bWidth = CMVideoFormatDescriptionGetDimensions(b.formatDescription).width
+                return abs(aWidth - targetWidth) < abs(bWidth - targetWidth)
+            }
+            .first ?? formats.last
+
+        guard let format = selectedFormat else { return }
+
+        let fps = format.videoSupportedFrameRateRanges
+            .max(by: { $0.maxFrameRate < $1.maxFrameRate })?
+            .maxFrameRate ?? 30
+
+        capturer.startCapture(with: frontCamera, format: format, fps: Int(min(fps, 30)))
+        print("[WebRTCService] Camera capture started")
+    }
+
+    // MARK: - Signaling Channel Management
 
     private func joinChannel() {
         guard let roomId else { return }
@@ -123,27 +235,16 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
             ]
         ]
 
-        sendMessage(
-            topic: topic,
-            event: "phx_join",
-            payload: joinPayload,
-            ref: joinRef
-        )
+        sendWSMessage(topic: topic, event: "phx_join", payload: joinPayload, ref: joinRef)
     }
 
     private func leaveChannel() {
         guard let roomId, isJoined else { return }
         let topic = "realtime:room:\(roomId):webrtc"
         channelRef += 1
-        sendMessage(
-            topic: topic,
-            event: "phx_leave",
-            payload: [:],
-            ref: "\(channelRef)"
-        )
+        sendWSMessage(topic: topic, event: "phx_leave", payload: [:], ref: "\(channelRef)")
     }
 
-    /// Track presence by broadcasting tutor state.
     private func trackPresence() {
         guard let roomId, isJoined else { return }
         let topic = "realtime:room:\(roomId):webrtc"
@@ -160,13 +261,11 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
         ]
 
         channelRef += 1
-        sendMessage(topic: topic, event: "presence", payload: presencePayload, ref: "\(channelRef)")
+        sendWSMessage(topic: topic, event: "presence", payload: presencePayload, ref: "\(channelRef)")
     }
 
-    // MARK: - Signaling (stub for real WebRTC)
+    // MARK: - WebRTC Signaling via Broadcast
 
-    /// Send a WebRTC signal envelope via Supabase Realtime broadcast.
-    /// This is used when an RTCPeerConnection is integrated.
     private func sendSignal(kind: String, to peerId: String, description: [String: Any]? = nil, candidate: [String: Any]? = nil) {
         guard let roomId, isJoined else { return }
         let topic = "realtime:room:\(roomId):webrtc"
@@ -180,12 +279,8 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
             "kind": kind
         ]
 
-        if let description {
-            envelope["description"] = description
-        }
-        if let candidate {
-            envelope["candidate"] = candidate
-        }
+        if let description { envelope["description"] = description }
+        if let candidate { envelope["candidate"] = candidate }
 
         let broadcastPayload: [String: Any] = [
             "type": "broadcast",
@@ -194,12 +289,111 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
         ]
 
         channelRef += 1
-        sendMessage(topic: topic, event: "broadcast", payload: broadcastPayload, ref: "\(channelRef)")
+        sendWSMessage(topic: topic, event: "broadcast", payload: broadcastPayload, ref: "\(channelRef)")
+    }
+
+    // MARK: - SDP Negotiation
+
+    fileprivate func createAndSendOffer(to peerId: String) {
+        guard let peerConnection, !makingOffer else { return }
+        makingOffer = true
+
+        let constraints = RTCMediaConstraints(
+            mandatoryConstraints: [
+                "OfferToReceiveAudio": "true",
+                "OfferToReceiveVideo": "true"
+            ],
+            optionalConstraints: nil
+        )
+
+        peerConnection.offer(for: constraints) { [weak self] sdp, error in
+            Task { @MainActor in
+                guard let self, let sdp, error == nil else {
+                    self?.makingOffer = false
+                    return
+                }
+                self.peerConnection?.setLocalDescription(sdp) { setError in
+                    Task { @MainActor in
+                        if setError == nil {
+                            self.sendSignal(
+                                kind: "description",
+                                to: peerId,
+                                description: ["type": sdp.type.stringValue, "sdp": sdp.sdp]
+                            )
+                        }
+                        self.makingOffer = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleRemoteDescription(_ descDict: [String: Any], from peerId: String) {
+        guard let peerConnection else { return }
+        guard let typeStr = descDict["type"] as? String,
+              let sdpStr = descDict["sdp"] as? String else { return }
+
+        let type = RTCSessionDescription.type(for: typeStr)
+        let remoteSdp = RTCSessionDescription(type: type, sdp: sdpStr)
+
+        // Perfect negotiation: handle offer collision
+        let offerCollision = type == .offer && (makingOffer || peerConnection.signalingState != .stable)
+        if !isPolite && offerCollision {
+            print("[WebRTCService] Ignoring colliding offer (impolite)")
+            return
+        }
+
+        peerConnection.setRemoteDescription(remoteSdp) { [weak self] error in
+            Task { @MainActor in
+                guard let self, error == nil else { return }
+
+                if type == .offer {
+                    // Create and send answer
+                    let answerConstraints = RTCMediaConstraints(
+                        mandatoryConstraints: [
+                            "OfferToReceiveAudio": "true",
+                            "OfferToReceiveVideo": "true"
+                        ],
+                        optionalConstraints: nil
+                    )
+
+                    self.peerConnection?.answer(for: answerConstraints) { answer, answerError in
+                        Task { @MainActor in
+                            guard let answer, answerError == nil else { return }
+                            self.peerConnection?.setLocalDescription(answer) { setError in
+                                Task { @MainActor in
+                                    if setError == nil {
+                                        self.sendSignal(
+                                            kind: "description",
+                                            to: peerId,
+                                            description: ["type": answer.type.stringValue, "sdp": answer.sdp]
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleRemoteCandidate(_ candidateDict: [String: Any]) {
+        guard let sdp = candidateDict["candidate"] as? String,
+              let sdpMLineIndex = candidateDict["sdpMLineIndex"] as? Int32 else { return }
+        let sdpMid = candidateDict["sdpMid"] as? String
+
+        let candidate = RTCIceCandidate(sdp: sdp, sdpMLineIndex: sdpMLineIndex, sdpMid: sdpMid)
+        peerConnection?.add(candidate) { error in
+            if let error {
+                print("[WebRTCService] Failed to add ICE candidate: \(error)")
+            }
+        }
     }
 
     // MARK: - WebSocket Communication
 
-    private func sendMessage(topic: String, event: String, payload: [String: Any], ref: String?) {
+    private func sendWSMessage(topic: String, event: String, payload: [String: Any], ref: String?) {
         let message: [String: Any] = [
             "topic": topic,
             "event": event,
@@ -232,7 +426,6 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
                     @unknown default:
                         break
                     }
-                    // Continue receiving
                     self?.receiveMessages()
 
                 case .failure(let error):
@@ -250,14 +443,19 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
 
         let event = json["event"] as? String ?? ""
-        let topic = json["topic"] as? String ?? ""
         let payload = json["payload"] as? [String: Any] ?? [:]
+
+        let refValue: String? = {
+            if let s = json["ref"] as? String { return s }
+            if let n = json["ref"] as? Int { return "\(n)" }
+            return nil
+        }()
 
         switch event {
         case "phx_reply":
-            // Check for join reply
-            if let ref = json["ref"] as? String, ref == joinRef {
+            if let ref = refValue, ref == joinRef {
                 let status = payload["status"] as? String
+                print("[WebRTCService] Join reply: \(status ?? "unknown")")
                 if status == "ok" {
                     isJoined = true
                     connectionState = .waitingForStudent
@@ -268,18 +466,16 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
             }
 
         case "presence_state":
-            // Initial presence state - check for existing students
             handlePresenceState(payload)
 
         case "presence_diff":
-            // Presence changes
             handlePresenceDiff(payload)
 
         case "broadcast":
-            // WebRTC signaling messages
             handleBroadcast(payload)
 
         case "phx_error":
+            print("[WebRTCService] Channel error: \(payload)")
             connectionState = .disconnected
 
         case "phx_close":
@@ -290,16 +486,21 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
         }
     }
 
+    // MARK: - Presence Handling
+
     private func handlePresenceState(_ payload: [String: Any]) {
-        // Check all present peers for a student role
         for (_, value) in payload {
             if let metas = value as? [String: Any],
                let metaList = metas["metas"] as? [[String: Any]] {
                 for meta in metaList {
                     if let role = meta["role"] as? String, role == "student" {
+                        let peerId = meta["peerId"] as? String
                         studentPresent = true
                         studentDisplayName = meta["displayName"] as? String
                         connectionState = .studentConnected
+                        if let peerId {
+                            onStudentJoined(peerId: peerId)
+                        }
                         return
                     }
                 }
@@ -308,23 +509,25 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
     }
 
     private func handlePresenceDiff(_ payload: [String: Any]) {
-        // Check joins
         if let joins = payload["joins"] as? [String: Any] {
             for (_, value) in joins {
                 if let metas = value as? [String: Any],
                    let metaList = metas["metas"] as? [[String: Any]] {
                     for meta in metaList {
                         if let role = meta["role"] as? String, role == "student" {
+                            let peerId = meta["peerId"] as? String
                             studentPresent = true
                             studentDisplayName = meta["displayName"] as? String
                             connectionState = .studentConnected
+                            if let peerId {
+                                onStudentJoined(peerId: peerId)
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Check leaves
         if let leaves = payload["leaves"] as? [String: Any] {
             for (_, value) in leaves {
                 if let metas = value as? [String: Any],
@@ -333,6 +536,8 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
                         if let role = meta["role"] as? String, role == "student" {
                             studentPresent = false
                             studentDisplayName = nil
+                            remotePeerId = nil
+                            remoteVideoTrack = nil
                             if connectionState == .studentConnected {
                                 connectionState = .waitingForStudent
                             }
@@ -343,29 +548,50 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
         }
     }
 
+    private func onStudentJoined(peerId: String) {
+        remotePeerId = peerId
+        // Determine politeness: higher UUID is polite
+        isPolite = localPeerId.compare(peerId) == .orderedDescending
+        print("[WebRTCService] Student joined: \(peerId), I am \(isPolite ? "polite" : "impolite")")
+
+        // If impolite, we create the offer
+        if !isPolite {
+            createAndSendOffer(to: peerId)
+        }
+    }
+
+    // MARK: - Broadcast Handling
+
     private func handleBroadcast(_ payload: [String: Any]) {
         guard let envelope = payload["payload"] as? [String: Any] else { return }
         let kind = envelope["kind"] as? String ?? ""
         let from = envelope["from"] as? String ?? ""
 
-        // Skip messages from self
         guard from != localPeerId else { return }
+
+        // Auto-set remote peer if not set
+        if remotePeerId == nil {
+            remotePeerId = from
+            isPolite = localPeerId.compare(from) == .orderedDescending
+        }
 
         switch kind {
         case "description":
-            // TODO: When WebRTC.framework is integrated, handle SDP offer/answer here.
-            // Use perfect negotiation pattern:
-            // - Compare UUIDs to determine polite (higher UUID) vs impolite (lower UUID)
-            // - Polite peer rolls back on collision, impolite peer ignores incoming offer
-            print("[WebRTCService] Received SDP description from \(from) - WebRTC.framework required for media exchange")
+            if let descDict = envelope["description"] as? [String: Any] {
+                print("[WebRTCService] Received SDP \(descDict["type"] ?? "?") from \(from)")
+                handleRemoteDescription(descDict, from: from)
+            }
 
         case "ice_candidate":
-            // TODO: When WebRTC.framework is integrated, add ICE candidate to peer connection
-            print("[WebRTCService] Received ICE candidate from \(from) - WebRTC.framework required for media exchange")
+            if let candidateDict = envelope["candidate"] as? [String: Any] {
+                handleRemoteCandidate(candidateDict)
+            }
 
         case "hangup":
             studentPresent = false
             studentDisplayName = nil
+            remotePeerId = nil
+            remoteVideoTrack = nil
             connectionState = .waitingForStudent
 
         default:
@@ -385,17 +611,121 @@ final class WebRTCService: ObservableObject, WebRTCServiceProtocol {
 
     private func sendHeartbeat() {
         channelRef += 1
-        sendMessage(
-            topic: "phoenix",
-            event: "heartbeat",
-            payload: [:],
-            ref: "\(channelRef)"
+        sendWSMessage(topic: "phoenix", event: "heartbeat", payload: [:], ref: "\(channelRef)")
+    }
+
+    // MARK: - Delegate Callbacks (called from proxy)
+
+    fileprivate func didGenerateCandidate(_ candidate: RTCIceCandidate) {
+        guard let remotePeerId else { return }
+        sendSignal(
+            kind: "ice_candidate",
+            to: remotePeerId,
+            candidate: [
+                "candidate": candidate.sdp,
+                "sdpMLineIndex": candidate.sdpMLineIndex,
+                "sdpMid": candidate.sdpMid ?? ""
+            ]
         )
+    }
+
+    fileprivate func didAddRemoteTrack(_ track: RTCMediaStreamTrack) {
+        if let videoTrack = track as? RTCVideoTrack {
+            print("[WebRTCService] Remote video track received")
+            remoteVideoTrack = videoTrack
+        }
+    }
+
+    fileprivate func peerConnectionStateChanged(_ state: RTCPeerConnectionState) {
+        print("[WebRTCService] Peer connection state: \(state.rawValue)")
+        switch state {
+        case .connected:
+            connectionState = .studentConnected
+        case .disconnected, .failed:
+            remoteVideoTrack = nil
+            if studentPresent {
+                connectionState = .studentConnected // still in presence
+            }
+        default:
+            break
+        }
+    }
+}
+
+// MARK: - RTCPeerConnectionDelegate Proxy (non-MainActor)
+
+private class WebRTCDelegateProxy: NSObject, RTCPeerConnectionDelegate {
+    weak var service: WebRTCService?
+
+    init(service: WebRTCService) {
+        self.service = service
+    }
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didChange stateChanged: RTCSignalingState) {}
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didAdd stream: RTCMediaStream) {
+        for track in stream.videoTracks {
+            Task { @MainActor in
+                self.service?.didAddRemoteTrack(track)
+            }
+        }
+        for track in stream.audioTracks {
+            Task { @MainActor in
+                self.service?.didAddRemoteTrack(track)
+            }
+        }
+    }
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didRemove stream: RTCMediaStream) {}
+
+    func peerConnectionShouldNegotiate(_ peerConnection: RTCPeerConnection) {
+        // Negotiation needed — the polite/impolite side handles offer creation
+        Task { @MainActor in
+            guard let service = self.service, let remotePeerId = service.remotePeerId else { return }
+            if !service.isPolite {
+                service.createAndSendOffer(to: remotePeerId)
+            }
+        }
+    }
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCIceConnectionState) {}
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCIceGatheringState) {}
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didGenerate candidate: RTCIceCandidate) {
+        Task { @MainActor in
+            self.service?.didGenerateCandidate(candidate)
+        }
+    }
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didRemove candidates: [RTCIceCandidate]) {}
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didOpen dataChannel: RTCDataChannel) {}
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didChange stateChanged: RTCPeerConnectionState) {
+        Task { @MainActor in
+            self.service?.peerConnectionStateChanged(stateChanged)
+        }
+    }
+}
+
+// MARK: - RTCSessionDescription helpers
+
+private extension RTCSdpType {
+    var stringValue: String {
+        switch self {
+        case .offer: return "offer"
+        case .prAnswer: return "pranswer"
+        case .answer: return "answer"
+        case .rollback: return "rollback"
+        @unknown default: return "unknown"
+        }
     }
 }
 
 // MARK: - Mock WebRTC Service (for tests)
 
+@MainActor
 final class MockWebRTCService: WebRTCServiceProtocol {
     var connectionState: WebRTCConnectionState = .idle
     var connectionStatePublisher: AnyPublisher<WebRTCConnectionState, Never> {
@@ -403,6 +733,8 @@ final class MockWebRTCService: WebRTCServiceProtocol {
     }
     var studentPresent = false
     var studentDisplayName: String?
+    var remoteVideoTrack: RTCVideoTrack?
+    var localVideoTrack: RTCVideoTrack?
 
     func connect(roomId: String, displayName: String, accessToken: String?) async {
         connectionState = .waitingForStudent
