@@ -1,6 +1,9 @@
 import Foundation
+#if canImport(WebRTC)
 @preconcurrency import WebRTC
+#endif
 
+#if canImport(WebRTC)
 /// Extracts video frames from an RTCVideoTrack by acting as an RTCVideoRenderer.
 /// Converts incoming RTCVideoFrame objects to CVPixelBuffer and delivers them via a callback.
 /// Throttles delivery to approximately 5fps (every 6th frame at 30fps source).
@@ -141,3 +144,4 @@ final class WebRTCFrameExtractor: NSObject, RTCVideoRenderer {
         return output
     }
 }
+#endif

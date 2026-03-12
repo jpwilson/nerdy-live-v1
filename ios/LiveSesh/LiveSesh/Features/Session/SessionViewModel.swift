@@ -1,6 +1,8 @@
 import Foundation
 import Combine
+#if canImport(WebRTC)
 @preconcurrency import WebRTC
+#endif
 #if os(iOS)
 import UIKit
 #endif
@@ -40,12 +42,14 @@ final class SessionViewModel: ObservableObject {
     private let supabaseService: SupabaseServiceProtocol
     private let tutorId: UUID
     let liveCaptureController: LiveCaptureController
+    #if canImport(WebRTC)
     let webRTCService = WebRTCService()
 
     // Student video analysis via WebRTC remote track
     private var studentVideoProcessor: VideoProcessor?
     private var studentFrameExtractor: WebRTCFrameExtractor?
     private var studentVideoCancellables = Set<AnyCancellable>()
+    #endif
 
     init(metricsEngine: MetricsEngineProtocol? = nil,
          coachingEngine: CoachingEngineProtocol? = nil,
@@ -86,6 +90,7 @@ final class SessionViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
+        #if canImport(WebRTC)
         webRTCService.connectionStatePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
@@ -101,6 +106,7 @@ final class SessionViewModel: ObservableObject {
                 self?.handleRemoteVideoTrackChange(track)
             }
             .store(in: &cancellables)
+        #endif
     }
 
     func startSession(testModeEnabled: Bool = false, roomCode: String = "", accessToken: String? = nil) {
@@ -146,6 +152,7 @@ final class SessionViewModel: ObservableObject {
         }
 
         // Connect to WebRTC signaling channel when not in test mode and a room code is set
+        #if canImport(WebRTC)
         if !testModeEnabled && !roomCode.isEmpty {
             Task { [weak self] in
                 await self?.webRTCService.connect(
@@ -155,11 +162,14 @@ final class SessionViewModel: ObservableObject {
                 )
             }
         }
+        #endif
     }
 
     func endSession() {
+        #if canImport(WebRTC)
         detachStudentVideoAnalysis()
         webRTCService.disconnect()
+        #endif
         simulatorProvider?.stop()
         simulatorProvider = nil
         liveCaptureController.stop()
@@ -197,6 +207,7 @@ final class SessionViewModel: ObservableObject {
 
     // MARK: - Student Video Analysis (WebRTC Remote Track)
 
+    #if canImport(WebRTC)
     private func handleRemoteVideoTrackChange(_ track: RTCVideoTrack?) {
         if let track {
             attachStudentVideoAnalysis(to: track)
@@ -246,6 +257,7 @@ final class SessionViewModel: ObservableObject {
         studentVideoProcessor = nil
         studentVideoCancellables.removeAll()
     }
+    #endif
 
     // MARK: - Private
 

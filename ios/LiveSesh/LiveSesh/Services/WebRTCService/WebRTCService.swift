@@ -1,7 +1,9 @@
 import Foundation
 import AVFoundation
 import Combine
+#if canImport(WebRTC)
 import WebRTC
+#endif
 
 // MARK: - WebRTC Service Protocol
 
@@ -11,13 +13,16 @@ protocol WebRTCServiceProtocol: AnyObject {
     var connectionStatePublisher: AnyPublisher<WebRTCConnectionState, Never> { get }
     var studentPresent: Bool { get }
     var studentDisplayName: String? { get }
+    #if canImport(WebRTC)
     var remoteVideoTrack: RTCVideoTrack? { get }
     var localVideoTrack: RTCVideoTrack? { get }
+    #endif
 
     func connect(roomId: String, displayName: String, accessToken: String?) async
     func disconnect()
 }
 
+#if canImport(WebRTC)
 // MARK: - WebRTC Service (real peer connection + Supabase Realtime signaling)
 
 @MainActor
@@ -803,3 +808,4 @@ final class MockWebRTCService: WebRTCServiceProtocol {
         connectionState = .idle
     }
 }
+#endif

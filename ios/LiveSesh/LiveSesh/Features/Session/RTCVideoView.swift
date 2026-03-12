@@ -1,7 +1,9 @@
 import SwiftUI
+#if canImport(WebRTC)
 import WebRTC
+#endif
 
-#if os(iOS)
+#if os(iOS) && canImport(WebRTC)
 import UIKit
 
 /// A SwiftUI wrapper around RTCMTLVideoView for rendering WebRTC video tracks.

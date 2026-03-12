@@ -1,6 +1,8 @@
 import SwiftUI
 import AVFoundation
+#if canImport(WebRTC)
 import WebRTC
+#endif
 #if os(iOS)
 import UIKit
 #endif
@@ -42,7 +44,9 @@ struct SessionView: View {
                 }
             }
             .navigationTitle("")
+            #if os(iOS)
             .navigationBarHidden(hideChromeForCall)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     if !hideChromeForCall {
@@ -201,7 +205,7 @@ struct SessionView: View {
     private var liveCallActiveSessionView: some View {
         ZStack {
             // Full-screen student video (remote) — aspectFill to use all screen space
-            #if os(iOS)
+            #if os(iOS) && canImport(WebRTC)
             if let remoteTrack = viewModel.webRTCService.remoteVideoTrack {
                 Color.black.ignoresSafeArea()
                 RTCVideoViewRepresentable(videoTrack: remoteTrack, fill: true)
@@ -317,7 +321,7 @@ struct SessionView: View {
             }
 
             // PiP: Tutor's own camera (top-right) — aspectFill for compact framing
-            #if os(iOS)
+            #if os(iOS) && canImport(WebRTC)
             VStack {
                 HStack {
                     Spacer()
