@@ -286,15 +286,6 @@ export function useWebRtcRoom({
       return;
     }
 
-    // Native iOS tutor doesn't support browser WebRTC — presence-only connection.
-    // Show "connected" without attempting SDP negotiation.
-    if (nextRemote.role === "tutor") {
-      remotePeerIdRef.current = nextRemote.peerId;
-      cleanupPeerConnection(false);
-      setConnectionState("connected");
-      return;
-    }
-
     if (nextRemote.peerId !== remotePeerIdRef.current) {
       remotePeerIdRef.current = nextRemote.peerId;
       politeRef.current = peerIdRef.current.localeCompare(nextRemote.peerId) > 0;

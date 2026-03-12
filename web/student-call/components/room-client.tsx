@@ -102,21 +102,12 @@ function RoomClient({
 
   const sharePath = useMemo(() => buildStudentShareUrl(roomId), [roomId]);
 
-  const nativeTutorConnected =
-    connectionState === "connected" &&
-    !remoteStream &&
-    participants.some((p) => p.role === "tutor" && p.peerId !== localPeerId);
-
   const remoteTitle =
     role === "student" ? "Tutor feed" : "Student feed";
-  const emptyTitle = nativeTutorConnected
-    ? "Tutor connected via iOS app"
-    : role === "student"
-      ? "Waiting for the tutor app"
-      : "Waiting for the student";
-  const emptyCopy = nativeTutorConnected
-    ? "The tutor\u2019s iPhone is analyzing this session in real time. Your camera and microphone are being shared for engagement analysis."
-    : role === "student"
+  const emptyTitle =
+    role === "student" ? "Waiting for the tutor app" : "Waiting for the student";
+  const emptyCopy =
+    role === "student"
       ? "The student browser is connected and ready. Once the tutor app joins this room, video appears here."
       : "Use a second browser in Student mode, or wire the iOS app to this room topic to complete the call.";
 
