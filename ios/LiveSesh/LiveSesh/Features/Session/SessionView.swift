@@ -158,16 +158,13 @@ struct SessionView: View {
                 }
 
                 // Camera preview with glass status overlays
-                // Only show the camera preview in test mode (self-analysis).
-                // In normal mode the front camera runs for analysis only;
-                // the tutor doesn't need to see themselves on screen.
                 LiveCaptureSurfaceView(
                     controller: viewModel.liveCaptureController,
                     sessionDuration: viewModel.sessionDuration,
                     captureStatusMessage: captureStatusMessage,
                     syncStatusMessage: syncStatusMessage,
                     syncStatusAccentColor: syncStatusAccentColor,
-                    showCameraPreview: isTestMode
+                    showCameraPreview: true
                 )
                 .padding(.horizontal)
 

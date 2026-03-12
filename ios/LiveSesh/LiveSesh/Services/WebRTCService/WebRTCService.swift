@@ -641,6 +641,10 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
         switch state {
         case .connected:
             connectionState = .studentConnected
+            // Check transceivers for remote video track if not already set
+            if remoteVideoTrack == nil {
+                checkTransceiversForRemoteVideo()
+            }
         case .disconnected, .failed:
             remoteVideoTrack = nil
             if studentPresent {
@@ -648,6 +652,18 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
             }
         default:
             break
+        }
+    }
+
+    private func checkTransceiversForRemoteVideo() {
+        guard let peerConnection else { return }
+        for transceiver in peerConnection.transceivers {
+            if transceiver.mediaType == .video,
+               let track = transceiver.receiver.track as? RTCVideoTrack {
+                print("[WebRTCService] Found remote video track via transceiver")
+                remoteVideoTrack = track
+                return
+            }
         }
     }
 }
@@ -669,14 +685,18 @@ private class WebRTCDelegateProxy: NSObject, RTCPeerConnectionDelegate {
                 self.service?.didAddRemoteTrack(track)
             }
         }
-        for track in stream.audioTracks {
-            Task { @MainActor in
+    }
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didRemove stream: RTCMediaStream) {}
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didAdd receiver: RTCRtpReceiver, streams: [RTCMediaStream]) {
+        let track = receiver.track
+        Task { @MainActor in
+            if let track {
                 self.service?.didAddRemoteTrack(track)
             }
         }
     }
-
-    func peerConnection(_ peerConnection: RTCPeerConnection, didRemove stream: RTCMediaStream) {}
 
     func peerConnectionShouldNegotiate(_ peerConnection: RTCPeerConnection) {
         // Negotiation needed — the polite/impolite side handles offer creation
