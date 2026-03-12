@@ -169,6 +169,109 @@ See [docs/VALIDATION.md](docs/VALIDATION.md) for detailed latency measurements, 
 - [API Documentation](docs/API.md) - Data models and Supabase schema
 - [Supabase Schema](supabase/migrations/001_initial_schema.sql) - Database tables and RLS policies
 
+---
+
+## Codebase Overview
+
+LiveSesh is a two-app system: a **native iOS tutor app** that runs real-time AI engagement analysis, and a **web student app** that provides the student's side of the video call. They connect peer-to-peer via WebRTC, with Supabase Realtime handling signaling.
+
+### Why this architecture?
+
+The core insight is that engagement analysis must happen **on-device** — sending raw video to a server adds latency, costs money, and raises privacy concerns. Apple's Vision framework gives us face detection, gaze estimation, and expression analysis for free, running locally on the iPhone's Neural Engine. The student just needs a browser to join the call; they don't need analysis capabilities.
+
+### iOS App (`ios/LiveSesh/`)
+
+**Language:** Swift 5.9 · **UI:** SwiftUI · **Target:** iOS 17+ · **Build:** xcodegen (`project.yml` → `.xcodeproj`)
+
+```
+LiveSesh/
+├── App/                    # App entry point, global state, root navigation
+├── Core/
+│   ├── AudioProcessor/     # Voice activity detection, energy levels (CMSampleBuffer)
+│   ├── VideoProcessor/     # Face/gaze/expression analysis (Apple Vision)
+│   ├── MetricsEngine/      # 30s sliding windows, 2Hz metric updates
+│   └── LiveCapture/        # AVCaptureSession orchestrator (unified video + audio)
+├── Features/
+│   ├── Session/            # FaceTime-style live call UI, WebRTC video rendering
+│   ├── Coaching/           # Real-time nudge engine (6 types, configurable sensitivity)
+│   ├── Analytics/          # Post-session dashboard and trends
+│   ├── Auth/               # Email OTP sign-in (Supabase Auth)
+│   └── Settings/           # Profile, sign-out
+├── Models/                 # Domain types (Session, Metrics, Nudge, Summary)
+├── Services/
+│   ├── WebRTCService/      # Peer connection + Supabase Realtime signaling (Phoenix WS)
+│   ├── AuthService/        # Token management, session restore, refresh
+│   ├── SupabaseService/    # REST client with RLS-compatible auth headers
+│   └── SessionStore/       # Local-first persistence (UserDefaults)
+└── Design/                 # Nerdy brand theme tokens
+```
+
+**Key dependencies:** [stasel/WebRTC](https://github.com/stasel/WebRTC) v114 (Google WebRTC compiled for iOS via SPM).
+
+**Testing:** 124 unit tests across 8 test files covering all core modules. Run with `swift test` from `ios/LiveSesh/`.
+
+### Web App (`web/student-call/`)
+
+**Language:** TypeScript · **Framework:** Next.js 15 (React 19) · **Deployed:** Vercel
+
+```
+student-call/
+├── app/                    # Next.js App Router pages
+│   ├── page.tsx            # Landing page with room join form
+│   └── room/[roomId]/      # Dynamic room page
+├── components/
+│   ├── join-form.tsx       # Room entry UI with demo accounts
+│   └── room-client.tsx     # Video call UI (remote + local PiP, controls, presence)
+└── lib/
+    ├── use-webrtc-room.ts  # WebRTC hook: getUserMedia, peer connection, ICE, presence
+    ├── supabase-browser.ts # Supabase client singleton
+    ├── call-types.ts       # Shared types (roles, signals, connection states)
+    └── room-utils.ts       # Display helpers (labels, URLs, formatting)
+```
+
+**Key dependencies:** `@supabase/supabase-js` for Realtime signaling and presence.
+
+The web app is intentionally simple — it's a video endpoint, not an analysis tool. Students join via a link, see the tutor's video, and send their own camera/mic back. All the intelligence lives on the iOS side.
+
+### Backend (`supabase/`)
+
+**Platform:** Supabase (hosted PostgreSQL + Auth + Realtime + Edge Functions)
+
+- `migrations/001_initial_schema.sql` — Tables for sessions, metrics snapshots, coaching nudges, summaries. Row Level Security ensures each tutor only sees their own data.
+- `functions/session-summary/` — Edge function for post-session summary generation.
+- **Realtime** — Used as the WebRTC signaling layer. Both apps join a Phoenix channel (`room:{roomId}:webrtc`), exchange SDP offers/answers and ICE candidates via broadcast, and track presence to detect who's in the room.
+
+### How the video call works
+
+1. **Tutor** starts a session on iOS with a room code (e.g., `demo-room`)
+2. **Student** opens the web app and joins the same room code
+3. Both connect to a Supabase Realtime channel and announce via presence
+4. When both peers are present, WebRTC negotiation starts (perfect negotiation pattern)
+5. SDP offers/answers and ICE candidates flow through Supabase broadcast
+6. Once the P2P connection is established, video/audio streams directly between devices
+7. The iOS app renders the student's video full-screen and runs Vision analysis on it
+8. The student sees the tutor's video in their browser
+
+### CI/CD (`.github/workflows/ci.yml`)
+
+Runs on every push to `main` and all PRs:
+- **iOS:** Swift tests with coverage on macOS
+- **Web:** TypeScript typecheck + Next.js production build on Ubuntu (Node 20)
+
+### Infrastructure summary
+
+| Component | Technology | Why |
+|-----------|-----------|-----|
+| iOS app | Swift / SwiftUI | Native access to Vision framework, camera, Neural Engine |
+| ML inference | Apple Vision | On-device, zero-latency, no API costs, privacy-preserving |
+| Web app | Next.js / TypeScript | Fast to build, easy Vercel deploy, minimal student-side complexity |
+| Video call | WebRTC (peer-to-peer) | Direct media streaming, no relay server needed for 1:1 |
+| Signaling | Supabase Realtime | Already using Supabase for backend; avoids a separate signaling server |
+| Auth | Supabase Auth (Email OTP) | Simple, no password management, works with RLS |
+| Database | Supabase (PostgreSQL) | RLS for data isolation, REST API, matches Nerdy's stack |
+| Deployment | Vercel (web), Xcode (iOS) | Zero-config for Next.js; standard iOS distribution |
+| CI | GitHub Actions | Free for open-source, runs both Swift and Node |
+
 ## License
 
 Proprietary - Nerdy, Inc.

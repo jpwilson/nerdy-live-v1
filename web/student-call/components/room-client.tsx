@@ -80,6 +80,7 @@ function RoomClient({
 }) {
   const router = useRouter();
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const {
     connectionState,
     error,
@@ -181,19 +182,28 @@ function RoomClient({
             </div>
           </div>
 
-          <div className="stage-note">
-            <p className="body-copy">
-              {role === "student"
-                ? "The browser stays student-simple. Engagement analysis belongs on the tutor-side surface once the iPhone app consumes this WebRTC stream."
-                : "Tutor preview is a browser-only fallback so the WebRTC path can be rehearsed before the iOS tutor app is connected."}
-            </p>
-            <p className="body-copy">
-              Room topic: <span className="mono">{roomTopic}</span>
-            </p>
-          </div>
+          {!remoteStream && (
+            <div className="stage-note">
+              <p className="body-copy">
+                {role === "student"
+                  ? "The browser stays student-simple. Engagement analysis belongs on the tutor-side surface once the iPhone app consumes this WebRTC stream."
+                  : "Tutor preview is a browser-only fallback so the WebRTC path can be rehearsed before the iOS tutor app is connected."}
+              </p>
+              <p className="body-copy">
+                Room topic: <span className="mono">{roomTopic}</span>
+              </p>
+            </div>
+          )}
         </article>
 
-        <aside className="sidebar">
+        <button
+          className="sidebar-toggle"
+          type="button"
+          onClick={() => setSidebarCollapsed((prev) => !prev)}
+        >
+          {sidebarCollapsed ? "Show panel" : "Hide panel"}
+        </button>
+        <aside className={`sidebar${sidebarCollapsed ? " collapsed" : ""}`}>
           <section className="sidebar-card">
             <h3>Call controls</h3>
             <div className="call-controls">

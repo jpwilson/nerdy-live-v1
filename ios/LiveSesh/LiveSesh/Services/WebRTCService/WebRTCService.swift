@@ -1,4 +1,5 @@
 import Foundation
+import AVFoundation
 import Combine
 import WebRTC
 
@@ -42,6 +43,7 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
     }()
 
     private var peerConnection: RTCPeerConnection?
+    private var delegateProxy: WebRTCDelegateProxy?  // MUST retain — RTCPeerConnection.delegate is weak
     private var videoCapturer: RTCCameraVideoCapturer?
     private var localAudioTrack: RTCAudioTrack?
     fileprivate var makingOffer = false
@@ -78,6 +80,9 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
         self.roomId = roomId
         self.displayName = displayName
         connectionState = .connecting
+
+        // 0. Route audio to the loudspeaker (not earpiece)
+        configureAudioSession()
 
         // 1. Create peer connection
         createPeerConnection()
@@ -118,8 +123,10 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
 
     func disconnect() {
         // Close peer connection
+        peerConnection?.delegate = nil
         peerConnection?.close()
         peerConnection = nil
+        delegateProxy = nil
 
         // Stop camera
         videoCapturer?.stopCapture()
@@ -142,6 +149,19 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
         connectionState = .idle
     }
 
+    // MARK: - Audio Session
+
+    private func configureAudioSession() {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playAndRecord, options: [.defaultToSpeaker, .allowBluetooth])
+            try session.setActive(true)
+            print("[WebRTCService] Audio session: playAndRecord, defaultToSpeaker")
+        } catch {
+            print("[WebRTCService] Audio session config failed: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - WebRTC Peer Connection Setup
 
     private func createPeerConnection() {
@@ -158,14 +178,14 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
             optionalConstraints: ["DtlsSrtpKeyAgreement": "true"]
         )
 
+        let proxy = WebRTCDelegateProxy(service: self)
+        delegateProxy = proxy  // retain the proxy — delegate is weak
+
         peerConnection = Self.factory.peerConnection(
             with: config,
             constraints: constraints,
-            delegate: nil
+            delegate: proxy
         )
-
-        // Set delegate on background queue to avoid blocking main
-        peerConnection?.delegate = WebRTCDelegateProxy(service: self)
     }
 
     private func addLocalMediaTracks() {
@@ -440,10 +460,19 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
 
     private func handleMessage(_ text: String) {
         guard let data = text.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            print("[WebRTCService] Failed to parse WS message")
+            return
+        }
 
         let event = json["event"] as? String ?? ""
         let payload = json["payload"] as? [String: Any] ?? [:]
+
+        // Log every non-heartbeat message for debugging
+        if event != "phx_reply" || (payload["status"] as? String) != nil {
+            let topic = json["topic"] as? String ?? ""
+            print("[WebRTCService] WS event=\(event) topic=\(topic) payloadKeys=\(payload.keys.sorted())")
+        }
 
         let refValue: String? = {
             if let s = json["ref"] as? String { return s }
@@ -489,7 +518,9 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
     // MARK: - Presence Handling
 
     private func handlePresenceState(_ payload: [String: Any]) {
-        for (_, value) in payload {
+        print("[WebRTCService] presence_state keys: \(payload.keys.sorted())")
+        for (key, value) in payload {
+            print("[WebRTCService]   presence key=\(key) valueType=\(type(of: value))")
             if let metas = value as? [String: Any],
                let metaList = metas["metas"] as? [[String: Any]] {
                 for meta in metaList {
@@ -509,8 +540,11 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
     }
 
     private func handlePresenceDiff(_ payload: [String: Any]) {
+        print("[WebRTCService] presence_diff joins=\(payload["joins"] != nil) leaves=\(payload["leaves"] != nil)")
         if let joins = payload["joins"] as? [String: Any] {
-            for (_, value) in joins {
+            print("[WebRTCService]   joins keys: \(joins.keys.sorted())")
+            for (key, value) in joins {
+                print("[WebRTCService]   join key=\(key) valueType=\(type(of: value))")
                 if let metas = value as? [String: Any],
                    let metaList = metas["metas"] as? [[String: Any]] {
                     for meta in metaList {
@@ -563,9 +597,14 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
     // MARK: - Broadcast Handling
 
     private func handleBroadcast(_ payload: [String: Any]) {
-        guard let envelope = payload["payload"] as? [String: Any] else { return }
+        print("[WebRTCService] broadcast payloadKeys=\(payload.keys.sorted())")
+        guard let envelope = payload["payload"] as? [String: Any] else {
+            print("[WebRTCService]   broadcast: no nested payload found")
+            return
+        }
         let kind = envelope["kind"] as? String ?? ""
         let from = envelope["from"] as? String ?? ""
+        print("[WebRTCService]   broadcast kind=\(kind) from=\(from.prefix(8))")
 
         guard from != localPeerId else { return }
 

@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+@preconcurrency import WebRTC
 #if os(iOS)
 import UIKit
 #endif
@@ -40,6 +41,11 @@ final class SessionViewModel: ObservableObject {
     private let tutorId: UUID
     let liveCaptureController: LiveCaptureController
     let webRTCService = WebRTCService()
+
+    // Student video analysis via WebRTC remote track
+    private var studentVideoProcessor: VideoProcessor?
+    private var studentFrameExtractor: WebRTCFrameExtractor?
+    private var studentVideoCancellables = Set<AnyCancellable>()
 
     init(metricsEngine: MetricsEngineProtocol? = nil,
          coachingEngine: CoachingEngineProtocol? = nil,
@@ -85,6 +91,14 @@ final class SessionViewModel: ObservableObject {
             .sink { [weak self] state in
                 self?.webRTCConnectionState = state
                 self?.studentDisplayName = self?.webRTCService.studentDisplayName
+            }
+            .store(in: &cancellables)
+
+        // Observe the remote video track and attach the student frame extractor
+        webRTCService.$remoteVideoTrack
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] track in
+                self?.handleRemoteVideoTrackChange(track)
             }
             .store(in: &cancellables)
     }
@@ -144,6 +158,7 @@ final class SessionViewModel: ObservableObject {
     }
 
     func endSession() {
+        detachStudentVideoAnalysis()
         webRTCService.disconnect()
         simulatorProvider?.stop()
         simulatorProvider = nil
@@ -178,6 +193,58 @@ final class SessionViewModel: ObservableObject {
     func dismissNudge(_ nudge: CoachingNudge) {
         coachingEngine.dismissNudge(nudge)
         activeNudges.removeAll { $0.id == nudge.id }
+    }
+
+    // MARK: - Student Video Analysis (WebRTC Remote Track)
+
+    private func handleRemoteVideoTrackChange(_ track: RTCVideoTrack?) {
+        if let track {
+            attachStudentVideoAnalysis(to: track)
+        } else {
+            detachStudentVideoAnalysis()
+        }
+    }
+
+    private func attachStudentVideoAnalysis(to track: RTCVideoTrack) {
+        // Tear down any existing student pipeline first
+        detachStudentVideoAnalysis()
+
+        let processor = VideoProcessor(analyzeEveryNFrames: 1) // Throttling is handled by the extractor
+        processor.startProcessing()
+
+        // Bind student video processor outputs to the metrics engine with .student role
+        processor.gazeEstimationPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] gaze in
+                self?.metricsEngine.processGaze(gaze, for: .student)
+            }
+            .store(in: &studentVideoCancellables)
+
+        processor.expressionPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] expression in
+                self?.metricsEngine.processExpression(expression, for: .student)
+            }
+            .store(in: &studentVideoCancellables)
+
+        let extractor = WebRTCFrameExtractor(deliverEveryNFrames: 6)
+        extractor.onFrame = { [weak processor] pixelBuffer in
+            processor?.processPixelBuffer(pixelBuffer)
+        }
+        extractor.attach(to: track)
+
+        studentVideoProcessor = processor
+        studentFrameExtractor = extractor
+
+        print("[SessionViewModel] Student video analysis pipeline attached")
+    }
+
+    private func detachStudentVideoAnalysis() {
+        studentFrameExtractor?.detach()
+        studentFrameExtractor = nil
+        studentVideoProcessor?.stopProcessing()
+        studentVideoProcessor = nil
+        studentVideoCancellables.removeAll()
     }
 
     // MARK: - Private

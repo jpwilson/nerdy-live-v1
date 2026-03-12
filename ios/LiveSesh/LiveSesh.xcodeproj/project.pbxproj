@@ -33,6 +33,7 @@
 		CAA052D0B7474011E23607CC /* MetricsEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C099B849506CEA255F84AA4 /* MetricsEngineTests.swift */; };
 		D0887BB9FC840BEFFFC07928 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E36CB50CE62D92DC368CA477 /* SettingsView.swift */; };
 		D0EC18470D65ED3F614746DF /* SessionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E0BE0E1C9E11B1404864AD1 /* SessionStoreTests.swift */; };
+		D223B736FA6BE76F84B69741 /* WebRTCFrameExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE3E38B575BDACD912022BDC /* WebRTCFrameExtractor.swift */; };
 		E62630AD9DA177B25907C3BB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9C1C7C8CC9072B7936DACA6B /* Assets.xcassets */; };
 		EDE7EF84200BE604439F4523 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = A63F28E99C5BDC4A12DBBA36 /* WebRTC */; };
 		F053D9479FAF9A1C08EFC0D7 /* CoachingEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A385886AE5AD5DD99560B1 /* CoachingEngineTests.swift */; };
@@ -72,6 +73,7 @@
 		9C1C7C8CC9072B7936DACA6B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9DD9A10ED498269ECB04C62A /* AudioProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioProcessor.swift; sourceTree = "<group>"; };
 		ACB4512C190148CA669BE6C8 /* MockProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProtocols.swift; sourceTree = "<group>"; };
+		AE3E38B575BDACD912022BDC /* WebRTCFrameExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCFrameExtractor.swift; sourceTree = "<group>"; };
 		B8FE90A09472152BEA90E8DC /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
 		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C998CF5454E755914B06B07A /* SessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionView.swift; sourceTree = "<group>"; };
@@ -243,6 +245,7 @@
 		89C4D99B46B32E79CD3B502B /* WebRTCService */ = {
 			isa = PBXGroup;
 			children = (
+				AE3E38B575BDACD912022BDC /* WebRTCFrameExtractor.swift */,
 				04C9B285943C2D2C587FE579 /* WebRTCService.swift */,
 			);
 			path = WebRTCService;
@@ -495,6 +498,7 @@
 				6EA0B97C780DA93BA003B8CE /* SimulatorDataProvider.swift in Sources */,
 				8FCE333EEBF4B2AF2AA6A08C /* SupabaseService.swift in Sources */,
 				A3733C30B7AAFF4381F0FEFB /* VideoProcessor.swift in Sources */,
+				D223B736FA6BE76F84B69741 /* WebRTCFrameExtractor.swift in Sources */,
 				16FBC3496AC57060FDCFAAA7 /* WebRTCService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

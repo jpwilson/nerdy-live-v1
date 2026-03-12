@@ -24,6 +24,11 @@ struct SessionView: View {
         appState.roomCode
     }
 
+    /// Whether the nav bar should be hidden (live call mode = fullscreen video)
+    private var hideChromeForCall: Bool {
+        viewModel.isSessionActive && !isTestMode
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -37,9 +42,12 @@ struct SessionView: View {
                 }
             }
             .navigationTitle("")
+            .navigationBarHidden(hideChromeForCall)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    NerdyLogo()
+                    if !hideChromeForCall {
+                        NerdyLogo()
+                    }
                 }
             }
             #if os(iOS)
@@ -146,18 +154,23 @@ struct SessionView: View {
     // MARK: - Active Session View
 
     private var activeSessionView: some View {
+        Group {
+            if isTestMode {
+                testModeActiveSessionView
+            } else {
+                liveCallActiveSessionView
+            }
+        }
+    }
+
+    // MARK: - Test Mode Layout (scrollable cards, no WebRTC)
+
+    private var testModeActiveSessionView: some View {
         ScrollView {
             VStack(spacing: 12) {
-                // Test mode / connection status bar
-                if isTestMode {
-                    activeTestModePill
-                        .padding(.horizontal)
-                } else if !roomCode.isEmpty {
-                    activeConnectionPill
-                        .padding(.horizontal)
-                }
+                activeTestModePill
+                    .padding(.horizontal)
 
-                // Camera preview with glass status overlays
                 LiveCaptureSurfaceView(
                     controller: viewModel.liveCaptureController,
                     sessionDuration: viewModel.sessionDuration,
@@ -168,41 +181,246 @@ struct SessionView: View {
                 )
                 .padding(.horizontal)
 
-                // Student video feed (via WebRTC)
-                if !isTestMode {
-                    studentVideoSection
-                        .padding(.horizontal)
-                }
-
-                // Live Metrics Dashboard (inline)
                 LiveMetricsDashboardView(metrics: viewModel.currentMetrics)
                     .padding(.horizontal)
 
-                // Speaking Indicator
                 SpeakingIndicatorView(
                     tutorSpeaking: viewModel.currentMetrics.tutor.isSpeaking,
                     studentSpeaking: viewModel.currentMetrics.student.isSpeaking
                 )
                 .padding(.horizontal)
 
-                // End Session Button
-                Button(action: { viewModel.endSession() }) {
-                    HStack {
-                        Image(systemName: "stop.circle.fill")
-                        Text("End Session")
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusLarge)
-                            .fill(Color.red.opacity(0.8))
-                    )
-                }
-                .padding(.vertical, 8)
+                endSessionButton
             }
         }
         .scrollIndicators(.hidden)
+    }
+
+    // MARK: - Live Call Layout (FaceTime-style)
+
+    private var liveCallActiveSessionView: some View {
+        ZStack {
+            // Full-screen student video (remote) — aspectFill to use all screen space
+            #if os(iOS)
+            if let remoteTrack = viewModel.webRTCService.remoteVideoTrack {
+                Color.black.ignoresSafeArea()
+                RTCVideoViewRepresentable(videoTrack: remoteTrack, fill: true)
+                    .ignoresSafeArea()
+            } else {
+                // Waiting state — dark background with status
+                NerdyTheme.backgroundGradient
+                    .ignoresSafeArea()
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .tint(NerdyTheme.cyan)
+                    Text(viewModel.webRTCConnectionState == .waitingForStudent
+                         ? "Waiting for student to join..."
+                         : viewModel.webRTCConnectionState == .studentConnected
+                            ? "Connecting video..."
+                            : "Connecting to room...")
+                        .font(.headline)
+                        .foregroundColor(NerdyTheme.textSecondary)
+                    Text("Room: \(roomCode)")
+                        .font(.caption)
+                        .foregroundColor(NerdyTheme.textMuted)
+                }
+            }
+            #endif
+
+            // Gradient overlay for readability at top and bottom
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [Color.black.opacity(0.5), Color.black.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 80)
+
+                Spacer()
+
+                LinearGradient(
+                    colors: [Color.black.opacity(0), Color.black.opacity(0.65)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 160)
+            }
+            .ignoresSafeArea()
+
+            // Overlays
+            VStack {
+                // Top bar: timer + connection status
+                HStack {
+                    // Live indicator + timer
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 8, height: 8)
+                        Text(viewModel.sessionDuration)
+                            .font(.system(size: 16, weight: .bold, design: .monospaced))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.black.opacity(0.4)))
+
+                    Spacer()
+
+                    // Connection status
+                    if let name = viewModel.studentDisplayName,
+                       viewModel.webRTCConnectionState == .studentConnected {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(NerdyTheme.cyan)
+                                .frame(width: 6, height: 6)
+                            Text(name)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(Color.black.opacity(0.4)))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+
+                Spacer()
+
+                // Bottom: compact metrics + controls
+                VStack(spacing: 12) {
+                    // Compact metrics row
+                    compactMetricsBar
+
+                    // Speaking indicators + end call
+                    HStack(spacing: 16) {
+                        SpeakingIndicatorView(
+                            tutorSpeaking: viewModel.currentMetrics.tutor.isSpeaking,
+                            studentSpeaking: viewModel.currentMetrics.student.isSpeaking
+                        )
+
+                        Spacer()
+
+                        // End call button (red circle like FaceTime)
+                        Button(action: { viewModel.endSession() }) {
+                            Image(systemName: "phone.down.fill")
+                                .font(.title3)
+                                .foregroundColor(.white)
+                                .frame(width: 56, height: 56)
+                                .background(Circle().fill(Color.red))
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+            }
+
+            // PiP: Tutor's own camera (top-right) — aspectFill for compact framing
+            #if os(iOS)
+            VStack {
+                HStack {
+                    Spacer()
+                    if let localTrack = viewModel.webRTCService.localVideoTrack {
+                        RTCVideoViewRepresentable(videoTrack: localTrack, fill: true, mirrored: true)
+                            .frame(width: 90, height: 120)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            )
+                            .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 3)
+                            .padding(.top, 8)
+                            .padding(.trailing, 12)
+                    }
+                }
+                Spacer()
+            }
+            #endif
+        }
+    }
+
+    // MARK: - Compact Metrics Bar (for live call overlay)
+
+    private var compactMetricsBar: some View {
+        HStack(spacing: 16) {
+            compactGauge(icon: "eye.fill", label: "Eye", value: effectiveEyeContact)
+            compactGauge(icon: "bolt.fill", label: "Energy", value: effectiveEnergy)
+            compactGauge(icon: "scale.3d", label: "Balance", value: effectiveTalkBalance)
+
+            if viewModel.currentMetrics.session.silenceDurationCurrent > 10 {
+                HStack(spacing: 4) {
+                    Image(systemName: "speaker.slash.fill")
+                        .font(.caption2)
+                    Text("\(Int(viewModel.currentMetrics.session.silenceDurationCurrent))s")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(NerdyTheme.nudgeSuggestion)
+            }
+
+            Spacer()
+
+            TrendBadge(trend: viewModel.currentMetrics.session.engagementTrend)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.ultraThinMaterial)
+                .opacity(0.9)
+        )
+    }
+
+    private func compactGauge(icon: String, label: String, value: Double) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption2)
+                .foregroundColor(gaugeColor(for: value))
+            Text("\(Int(value * 100))%")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.white)
+        }
+    }
+
+    private func gaugeColor(for value: Double) -> Color {
+        if value >= 0.6 { return NerdyTheme.cyan }
+        if value >= 0.4 { return NerdyTheme.nudgeSuggestion }
+        return NerdyTheme.nudgeAlert
+    }
+
+    private var effectiveEyeContact: Double {
+        let m = viewModel.currentMetrics
+        let hasStudent = m.student.eyeContactScore > 0
+        return hasStudent ? (m.tutor.eyeContactScore + m.student.eyeContactScore) / 2 : m.tutor.eyeContactScore
+    }
+
+    private var effectiveEnergy: Double {
+        let m = viewModel.currentMetrics
+        let hasStudent = m.student.energyScore != 0.5
+        return hasStudent ? (m.tutor.energyScore + m.student.energyScore) / 2 : m.tutor.energyScore
+    }
+
+    private var effectiveTalkBalance: Double {
+        1.0 - abs(viewModel.currentMetrics.tutor.talkTimePercent - 0.5) * 2
+    }
+
+    private var endSessionButton: some View {
+        Button(action: { viewModel.endSession() }) {
+            HStack {
+                Image(systemName: "stop.circle.fill")
+                Text("End Session")
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusLarge)
+                    .fill(Color.red.opacity(0.8))
+            )
+        }
+        .padding(.vertical, 8)
     }
 
     // MARK: - Nudge Overlay
@@ -313,51 +531,6 @@ struct SessionView: View {
                         .stroke(color.opacity(0.3), lineWidth: 1)
                 )
         )
-    }
-
-    private var studentVideoSection: some View {
-        NerdyCard {
-            VStack(spacing: 8) {
-                HStack {
-                    Text("Student Feed")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    Spacer()
-                    if let name = viewModel.studentDisplayName {
-                        Text(name)
-                            .font(.caption)
-                            .foregroundColor(NerdyTheme.cyan)
-                    }
-                }
-
-                #if os(iOS)
-                if let track = viewModel.webRTCService.remoteVideoTrack {
-                    RTCVideoViewRepresentable(videoTrack: track)
-                        .frame(height: 200)
-                        .clipShape(RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusSmall))
-                } else {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusSmall)
-                            .fill(NerdyTheme.backgroundElevated)
-                        VStack(spacing: 8) {
-                            Image(systemName: viewModel.webRTCConnectionState == .waitingForStudent
-                                  ? "person.fill.questionmark" : "video.fill")
-                                .font(.title2)
-                                .foregroundColor(NerdyTheme.textMuted)
-                            Text(viewModel.webRTCConnectionState == .waitingForStudent
-                                 ? "Waiting for student to join..."
-                                 : viewModel.webRTCConnectionState == .studentConnected
-                                    ? "Connecting video..."
-                                    : "Student video will appear here")
-                                .font(.caption)
-                                .foregroundColor(NerdyTheme.textSecondary)
-                        }
-                    }
-                    .frame(height: 200)
-                }
-                #endif
-            }
-        }
     }
 
     private var captureStatusMessage: String? {

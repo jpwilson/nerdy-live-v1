@@ -90,7 +90,7 @@ final class CoachingEngine: CoachingEngineProtocol {
            metrics.timestamp.timeIntervalSince(start) >= config.silenceThresholdSeconds {
             emitNudge(
                 type: .engagementCheck,
-                message: "Student hasn't spoken in \(Int(config.silenceThresholdSeconds / 60)) minutes. Consider asking a question.",
+                message: "No student voice for \(Int(metrics.timestamp.timeIntervalSince(start)))s. Try asking an open-ended question to re-engage.",
                 priority: .medium,
                 sessionId: sessionId,
                 triggerData: [
@@ -117,7 +117,7 @@ final class CoachingEngine: CoachingEngineProtocol {
            metrics.timestamp.timeIntervalSince(start) >= 30 {
             emitNudge(
                 type: .attentionAlert,
-                message: "Student may be distracted. Try engaging directly.",
+                message: "Student eye contact dropped to \(Int(metrics.student.eyeContactScore * 100))% (last 30s). Try calling them by name or switching activities.",
                 priority: .medium,
                 sessionId: sessionId,
                 triggerData: [
@@ -144,7 +144,7 @@ final class CoachingEngine: CoachingEngineProtocol {
            metrics.timestamp.timeIntervalSince(start) >= 300 { // 5 min lecture
             emitNudge(
                 type: .talkTimeBalance,
-                message: "You've been talking for a while. Try asking a question to check understanding.",
+                message: "You've been talking \(Int(metrics.tutor.talkTimePercent * 100))% of the time. Try pausing for a question to check understanding.",
                 priority: .low,
                 sessionId: sessionId,
                 triggerData: [
@@ -166,7 +166,7 @@ final class CoachingEngine: CoachingEngineProtocol {
             if drop >= config.energyDropThreshold {
                 emitNudge(
                     type: .energyDrop,
-                    message: "Energy seems to be dropping. Consider a short break or change of pace.",
+                    message: "Session energy dropped by \(Int(drop * 100))% — consider a quick stretch break or topic change.",
                     priority: .low,
                     sessionId: sessionId,
                     triggerData: [
@@ -188,7 +188,7 @@ final class CoachingEngine: CoachingEngineProtocol {
             if newInterruptions >= config.interruptionSpikeCount {
                 emitNudge(
                     type: .interruptionSpike,
-                    message: "Multiple interruptions detected. Try giving more wait time after questions.",
+                    message: "\(newInterruptions) interruptions in the last window. Try adding 3-second wait time after questions.",
                     priority: .medium,
                     sessionId: sessionId,
                     triggerData: [
@@ -210,7 +210,7 @@ final class CoachingEngine: CoachingEngineProtocol {
         if overallEngagement > 0.8 && metrics.session.engagementTrend == .rising {
             emitNudge(
                 type: .positiveReinforcement,
-                message: "Great engagement! The session is going well.",
+                message: "Engagement is strong at \(Int(overallEngagement * 100))% and rising — great pace, keep it up!",
                 priority: .low,
                 sessionId: sessionId,
                 triggerData: [

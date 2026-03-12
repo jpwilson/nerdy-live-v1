@@ -389,17 +389,59 @@ export function useWebRtcRoom({
       setError(null);
 
       try {
+        // Enumerate devices to find the built-in camera and mic,
+        // avoiding Continuity Camera (iPhone) devices on macOS.
+        let videoConstraints: MediaTrackConstraints = {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        };
+        let audioConstraints: MediaTrackConstraints = {
+          autoGainControl: true,
+          echoCancellation: true,
+          noiseSuppression: true,
+        };
+
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const isExternalOrContinuity = (label: string) => {
+            const lower = label.toLowerCase();
+            return (
+              lower.includes("iphone") ||
+              lower.includes("ipad") ||
+              lower.includes("continuity")
+            );
+          };
+
+          const builtInCamera = devices.find(
+            (d) =>
+              d.kind === "videoinput" && !isExternalOrContinuity(d.label)
+          );
+          const builtInMic = devices.find(
+            (d) =>
+              d.kind === "audioinput" && !isExternalOrContinuity(d.label)
+          );
+
+          if (builtInCamera) {
+            videoConstraints = {
+              ...videoConstraints,
+              deviceId: { exact: builtInCamera.deviceId },
+            };
+          }
+          if (builtInMic) {
+            audioConstraints = {
+              ...audioConstraints,
+              deviceId: { exact: builtInMic.deviceId },
+            };
+          }
+        } catch {
+          // enumerateDevices may fail or return empty labels before
+          // permission grant — fall through to default constraints.
+        }
+
         const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "user",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: {
-            autoGainControl: true,
-            echoCancellation: true,
-            noiseSuppression: true,
-          },
+          video: videoConstraints,
+          audio: audioConstraints,
         });
 
         if (!active) {

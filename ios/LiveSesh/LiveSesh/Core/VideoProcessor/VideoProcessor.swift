@@ -12,6 +12,7 @@ protocol VideoProcessorProtocol: AnyObject {
     func startProcessing()
     func stopProcessing()
     func processFrame(_ sampleBuffer: CMSampleBuffer)
+    func processPixelBuffer(_ pixelBuffer: CVPixelBuffer)
 }
 
 // MARK: - Output Models
@@ -126,6 +127,18 @@ final class VideoProcessor: VideoProcessorProtocol {
         frameSkipCounter = 0
 
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+
+        processingQueue.async { [weak self] in
+            self?.runFaceDetection(on: pixelBuffer)
+        }
+    }
+
+    func processPixelBuffer(_ pixelBuffer: CVPixelBuffer) {
+        guard isProcessing else { return }
+
+        frameSkipCounter += 1
+        guard frameSkipCounter >= analyzeEveryNFrames else { return }
+        frameSkipCounter = 0
 
         processingQueue.async { [weak self] in
             self?.runFaceDetection(on: pixelBuffer)
