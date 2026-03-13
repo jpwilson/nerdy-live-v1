@@ -273,16 +273,16 @@ struct LoginView: View {
     }
 
     private static let demoTutors: [DemoAccount] = [
-        DemoAccount(name: "Kim", email: "kim@livesesh.app", role: .tutor),
-        DemoAccount(name: "Nick", email: "nick@livesesh.app", role: .tutor),
+        DemoAccount(name: "Kim (Tutor)", email: "demo@livesesh.app", role: .tutor),
+        DemoAccount(name: "Nick (Tutor)", email: "tutor2@livesesh.app", role: .tutor),
     ]
 
     private static let demoStudents: [DemoAccount] = [
-        DemoAccount(name: "Sarah Chen", email: "sarah@livesesh.app", role: .student),
-        DemoAccount(name: "Alex Rivera", email: "alex@livesesh.app", role: .student),
-        DemoAccount(name: "Jordan Patel", email: "jordan@livesesh.app", role: .student),
-        DemoAccount(name: "Casey Kim", email: "casey@livesesh.app", role: .student),
-        DemoAccount(name: "Morgan Davis", email: "morgan@livesesh.app", role: .student),
+        DemoAccount(name: "Sarah Chen", email: "demo-student@livesesh.app", role: .student),
+        DemoAccount(name: "Alex Rivera", email: "student-alex@livesesh.app", role: .student),
+        DemoAccount(name: "Jordan Patel", email: "student-jordan@livesesh.app", role: .student),
+        DemoAccount(name: "Casey Kim", email: "student-casey@livesesh.app", role: .student),
+        DemoAccount(name: "Morgan Davis", email: "student-morgan@livesesh.app", role: .student),
     ]
 
     private var demoAccountsSection: some View {
