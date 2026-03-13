@@ -135,42 +135,47 @@ export function JoinForm() {
         </div>
 
         <fieldset className="fieldset">
-          <legend>Quick demo — Students</legend>
+          <legend>Quick demo login</legend>
           <p className="field-hint">
-            Sign in as a demo student to join a tutoring session.
+            Select a name to sign in instantly with the correct role.
           </p>
-          <div className="demo-grid">
-            {DEMO_STUDENTS.map((account) => (
-              <button
-                key={account.email}
-                className="demo-button"
-                type="button"
+          <div className="demo-dropdowns">
+            <div className="demo-select-group">
+              <label htmlFor="demo-student">Student</label>
+              <select
+                id="demo-student"
                 disabled={authLoading}
-                onClick={() => void demoSignIn(account, "student")}
+                defaultValue=""
+                onChange={(e) => {
+                  const account = DEMO_STUDENTS.find((a) => a.email === e.target.value);
+                  if (account) void demoSignIn(account, "student");
+                  e.target.value = "";
+                }}
               >
-                {account.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset className="fieldset">
-          <legend>Quick demo — Tutors</legend>
-          <p className="field-hint">
-            Sign in as a tutor (browser preview mode).
-          </p>
-          <div className="demo-grid">
-            {DEMO_TUTORS.map((account) => (
-              <button
-                key={account.email}
-                className="demo-button"
-                type="button"
+                <option value="" disabled>Choose student...</option>
+                {DEMO_STUDENTS.map((account) => (
+                  <option key={account.email} value={account.email}>{account.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="demo-select-group">
+              <label htmlFor="demo-tutor">Tutor</label>
+              <select
+                id="demo-tutor"
                 disabled={authLoading}
-                onClick={() => void demoSignIn(account, "tutor_preview")}
+                defaultValue=""
+                onChange={(e) => {
+                  const account = DEMO_TUTORS.find((a) => a.email === e.target.value);
+                  if (account) void demoSignIn(account, "tutor_preview");
+                  e.target.value = "";
+                }}
               >
-                {account.label}
-              </button>
-            ))}
+                <option value="" disabled>Choose tutor...</option>
+                {DEMO_TUTORS.map((account) => (
+                  <option key={account.email} value={account.email}>{account.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </fieldset>
 

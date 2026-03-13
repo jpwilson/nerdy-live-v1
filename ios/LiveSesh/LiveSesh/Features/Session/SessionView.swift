@@ -26,6 +26,10 @@ struct SessionView: View {
         appState.roomCode
     }
 
+    private var showOverlays: Bool {
+        appState.showAnalysisOverlays
+    }
+
     /// Whether the nav bar should be hidden (live call mode = fullscreen video)
     private var hideChromeForCall: Bool {
         viewModel.isSessionActive && !isTestMode
@@ -53,6 +57,13 @@ struct SessionView: View {
                         NerdyLogo()
                     }
                 }
+                #if os(iOS)
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if viewModel.isSessionActive && !hideChromeForCall {
+                        overlayToggleButton
+                    }
+                }
+                #endif
             }
             #if os(iOS)
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -60,6 +71,15 @@ struct SessionView: View {
         }
         .overlay(alignment: .topTrailing) {
             nudgeOverlay
+        }
+    }
+
+    private var overlayToggleButton: some View {
+        Button {
+            appState.showAnalysisOverlays.toggle()
+        } label: {
+            Image(systemName: showOverlays ? "eye.fill" : "eye.slash.fill")
+                .foregroundColor(showOverlays ? NerdyTheme.cyan : NerdyTheme.textMuted)
         }
     }
 
@@ -152,6 +172,19 @@ struct SessionView: View {
             }
 
             Spacer()
+
+            // Sign out button on session start page
+            Button {
+                appState.authService.signOut()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                    Text("Sign Out")
+                }
+                .font(.subheadline)
+                .foregroundColor(NerdyTheme.textSecondary)
+            }
+            .padding(.bottom, 8)
         }
     }
 
@@ -175,14 +208,31 @@ struct SessionView: View {
                 activeTestModePill
                     .padding(.horizontal)
 
-                LiveCaptureSurfaceView(
-                    controller: viewModel.liveCaptureController,
-                    sessionDuration: viewModel.sessionDuration,
-                    captureStatusMessage: captureStatusMessage,
-                    syncStatusMessage: syncStatusMessage,
-                    syncStatusAccentColor: syncStatusAccentColor,
-                    showCameraPreview: true
-                )
+                ZStack {
+                    LiveCaptureSurfaceView(
+                        controller: viewModel.liveCaptureController,
+                        sessionDuration: viewModel.sessionDuration,
+                        captureStatusMessage: captureStatusMessage,
+                        syncStatusMessage: syncStatusMessage,
+                        syncStatusAccentColor: syncStatusAccentColor,
+                        showCameraPreview: true
+                    )
+
+                    if showOverlays {
+                        GeometryReader { geo in
+                            FaceOverlayView(
+                                faceDetection: viewModel.latestFaceDetection,
+                                gaze: viewModel.latestGaze,
+                                expression: viewModel.latestExpression,
+                                viewSize: geo.size
+                            )
+                            FaceMeshOverlayView(
+                                faceDetection: viewModel.latestFaceDetection,
+                                viewSize: geo.size
+                            )
+                        }
+                    }
+                }
                 .padding(.horizontal)
 
                 LiveMetricsDashboardView(metrics: viewModel.currentMetrics)
@@ -269,6 +319,17 @@ struct SessionView: View {
                     .background(Capsule().fill(Color.black.opacity(0.4)))
 
                     Spacer()
+
+                    // Overlay toggle in live call
+                    Button {
+                        appState.showAnalysisOverlays.toggle()
+                    } label: {
+                        Image(systemName: showOverlays ? "eye.fill" : "eye.slash.fill")
+                            .font(.caption)
+                            .foregroundColor(showOverlays ? NerdyTheme.cyan : .white.opacity(0.6))
+                            .padding(8)
+                            .background(Circle().fill(Color.black.opacity(0.4)))
+                    }
 
                     // Connection status
                     if let name = viewModel.studentDisplayName,

@@ -31,6 +31,15 @@ final class AuthService: ObservableObject {
     @Published private(set) var accessToken: String?
     @Published private(set) var isLoading = false
     @Published var error: String?
+    @Published var selectedRole: UserRole? {
+        didSet {
+            if let role = selectedRole {
+                UserDefaults.standard.set(role.rawValue, forKey: Self.roleKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Self.roleKey)
+            }
+        }
+    }
 
     var isAuthenticated: Bool { currentUser != nil && accessToken != nil }
 
@@ -43,6 +52,7 @@ final class AuthService: ObservableObject {
     private static let refreshTokenKey = "livesesh_auth_refresh_token"
     private static let userIdKey = "livesesh_auth_user_id"
     private static let userEmailKey = "livesesh_auth_user_email"
+    private static let roleKey = "livesesh_auth_user_role"
 
     nonisolated static let defaultSupabaseURL = SupabaseConfig.url
     nonisolated static let defaultSupabaseAnonKey = SupabaseConfig.anonKey
@@ -68,6 +78,12 @@ final class AuthService: ObservableObject {
     // MARK: - Session Restore
 
     func restoreSession() async {
+        // Restore persisted role
+        if let roleString = UserDefaults.standard.string(forKey: Self.roleKey),
+           let role = UserRole(rawValue: roleString) {
+            self.selectedRole = role
+        }
+
         guard let storedAccessToken = UserDefaults.standard.string(forKey: Self.accessTokenKey),
               let storedRefreshToken = UserDefaults.standard.string(forKey: Self.refreshTokenKey),
               let userIdString = UserDefaults.standard.string(forKey: Self.userIdKey),
@@ -148,11 +164,10 @@ final class AuthService: ObservableObject {
         scheduleRefresh(expiresIn: authSession.expiresIn)
     }
 
-    // MARK: - Demo Login
+    // MARK: - Email + Password Auth
 
-    /// Sign in with the pre-created demo account (email + password).
-    /// Evaluators can use this to skip the OTP flow entirely.
-    func signInDemo() async throws {
+    /// Sign in with email and password.
+    func signIn(email: String, password: String) async throws {
         isLoading = true
         error = nil
         defer { isLoading = false }
@@ -163,8 +178,8 @@ final class AuthService: ObservableObject {
 
         var request = makeRequest(url: components.url!, method: "POST")
         let body: [String: String] = [
-            "email": "demo@livesesh.app",
-            "password": "DemoPass123!"
+            "email": email,
+            "password": password
         ]
         request.httpBody = try JSONEncoder().encode(body)
 
@@ -186,6 +201,46 @@ final class AuthService: ObservableObject {
         scheduleRefresh(expiresIn: authSession.expiresIn)
     }
 
+    /// Create a new account with email and password.
+    func signUp(email: String, password: String) async throws {
+        isLoading = true
+        error = nil
+        defer { isLoading = false }
+
+        let url = baseURL.appendingPathComponent("/auth/v1/signup")
+        var request = makeRequest(url: url, method: "POST")
+        let body: [String: String] = [
+            "email": email,
+            "password": password
+        ]
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AuthError.invalidResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let responseBody = String(data: data, encoding: .utf8) ?? ""
+            throw AuthError.serverError(statusCode: httpResponse.statusCode, message: responseBody)
+        }
+
+        let authSession = try JSONDecoder().decode(AuthSession.self, from: data)
+        self.accessToken = authSession.accessToken
+        self.currentUser = authSession.user
+        persistTokens(accessToken: authSession.accessToken, refreshToken: authSession.refreshToken, user: authSession.user)
+        scheduleRefresh(expiresIn: authSession.expiresIn)
+    }
+
+    // MARK: - Demo Login
+
+    /// Sign in with the pre-created demo account (email + password).
+    /// Evaluators can use this to skip the OTP flow entirely.
+    func signInDemo() async throws {
+        try await signIn(email: "demo@livesesh.app", password: "DemoPass123!")
+    }
+
     // MARK: - Sign Out
 
     func signOut() {
@@ -193,6 +248,7 @@ final class AuthService: ObservableObject {
         refreshTimer = nil
         accessToken = nil
         currentUser = nil
+        selectedRole = nil
         clearPersistedTokens()
     }
 

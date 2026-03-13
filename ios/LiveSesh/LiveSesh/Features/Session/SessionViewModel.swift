@@ -22,6 +22,9 @@ final class SessionViewModel: ObservableObject {
     @Published var keyMoments: [KeyMoment] = []
     @Published var webRTCConnectionState: WebRTCConnectionState = .idle
     @Published var studentDisplayName: String?
+    @Published var latestFaceDetection: FaceDetectionResult?
+    @Published var latestGaze: GazeEstimation?
+    @Published var latestExpression: FacialExpression?
 
     private var session: LiveSession?
     private var cancellables = Set<AnyCancellable>()
@@ -89,6 +92,30 @@ final class SessionViewModel: ObservableObject {
                 self?.persistNudge(nudge)
             }
             .store(in: &cancellables)
+
+        // Subscribe to video processor face data for overlays
+        #if os(iOS)
+        liveCaptureController.videoProcessor.faceDetectionPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] detection in
+                self?.latestFaceDetection = detection
+            }
+            .store(in: &cancellables)
+
+        liveCaptureController.videoProcessor.gazeEstimationPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] gaze in
+                self?.latestGaze = gaze
+            }
+            .store(in: &cancellables)
+
+        liveCaptureController.videoProcessor.expressionPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] expression in
+                self?.latestExpression = expression
+            }
+            .store(in: &cancellables)
+        #endif
 
         #if canImport(WebRTC)
         webRTCService.connectionStatePublisher

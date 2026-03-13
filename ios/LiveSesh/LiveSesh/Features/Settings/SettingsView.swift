@@ -15,8 +15,13 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         profileSection
-                        connectionSection
-                        testModeSection
+                        if appState.userRole != .student {
+                            connectionSection
+                        }
+                        overlaySection
+                        if appState.userRole != .student {
+                            testModeSection
+                        }
                         signOutSection
                     }
                     .padding()
@@ -43,7 +48,7 @@ struct SettingsView: View {
                         .foregroundStyle(NerdyTheme.gradientAccent)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(appState.tutorProfile?.name ?? "Tutor")
+                        Text(appState.tutorProfile?.name ?? "User")
                             .font(.title3)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
@@ -52,6 +57,13 @@ struct SettingsView: View {
                             Text(email)
                                 .font(.caption)
                                 .foregroundColor(NerdyTheme.textSecondary)
+                        }
+
+                        if let role = appState.userRole {
+                            Text(role.rawValue.capitalized)
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(NerdyTheme.cyan)
                         }
                     }
 
@@ -93,6 +105,34 @@ struct SettingsView: View {
                 Text("Share this room code with your student. They can join from the web app at the same room URL.")
                     .font(.caption2)
                     .foregroundColor(NerdyTheme.textMuted)
+            }
+        }
+    }
+
+    // MARK: - Analysis Overlays Section
+
+    private var overlaySection: some View {
+        NerdyCard {
+            VStack(alignment: .leading, spacing: 16) {
+                Label("Analysis Overlays", systemImage: "eye.trianglebadge.exclamationmark")
+                    .font(.headline)
+                    .foregroundColor(.white)
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Show Overlays")
+                            .foregroundColor(.white)
+                        Text("Display face detection bounding box, gaze direction, and face mesh wireframe on the camera preview.")
+                            .font(.caption2)
+                            .foregroundColor(NerdyTheme.textMuted)
+                    }
+
+                    Spacer()
+
+                    Toggle("", isOn: $appState.showAnalysisOverlays)
+                        .tint(NerdyTheme.cyan)
+                        .labelsHidden()
+                }
             }
         }
     }

@@ -2,9 +2,12 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
-    @State private var selectedTab: Tab = .session
+    @State private var selectedTutorTab: TutorTab = .session
+    @State private var selectedStudentTab: StudentTab = .room
 
-    enum Tab: String, CaseIterable {
+    // MARK: - Tutor Tabs
+
+    enum TutorTab: String, CaseIterable {
         case session = "Session"
         case analytics = "Analytics"
         case settings = "Settings"
@@ -18,20 +21,29 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Student Tabs
+
+    enum StudentTab: String, CaseIterable {
+        case room = "Room"
+        case settings = "Settings"
+
+        var icon: String {
+            switch self {
+            case .room: return "video.fill"
+            case .settings: return "gearshape.fill"
+            }
+        }
+    }
+
     var body: some View {
         Group {
             if appState.isAuthenticated {
-                TabView(selection: $selectedTab) {
-                    ForEach(Tab.allCases, id: \.self) { tab in
-                        tabContent(for: tab)
-                            .tabItem {
-                                Image(systemName: tab.icon)
-                                Text(tab.rawValue)
-                            }
-                            .tag(tab)
-                    }
+                switch appState.userRole {
+                case .student:
+                    studentTabView
+                case .tutor, .none:
+                    tutorTabView
                 }
-                .tint(NerdyTheme.cyan)
             } else {
                 LoginView()
             }
@@ -41,8 +53,24 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Tutor Tab View
+
+    private var tutorTabView: some View {
+        TabView(selection: $selectedTutorTab) {
+            ForEach(TutorTab.allCases, id: \.self) { tab in
+                tutorTabContent(for: tab)
+                    .tabItem {
+                        Image(systemName: tab.icon)
+                        Text(tab.rawValue)
+                    }
+                    .tag(tab)
+            }
+        }
+        .tint(NerdyTheme.cyan)
+    }
+
     @ViewBuilder
-    private func tabContent(for tab: Tab) -> some View {
+    private func tutorTabContent(for tab: TutorTab) -> some View {
         switch tab {
         case .session:
             SessionView(
@@ -51,6 +79,32 @@ struct ContentView: View {
             )
         case .analytics:
             AnalyticsDashboardView()
+        case .settings:
+            SettingsView()
+        }
+    }
+
+    // MARK: - Student Tab View
+
+    private var studentTabView: some View {
+        TabView(selection: $selectedStudentTab) {
+            ForEach(StudentTab.allCases, id: \.self) { tab in
+                studentTabContent(for: tab)
+                    .tabItem {
+                        Image(systemName: tab.icon)
+                        Text(tab.rawValue)
+                    }
+                    .tag(tab)
+            }
+        }
+        .tint(NerdyTheme.cyan)
+    }
+
+    @ViewBuilder
+    private func studentTabContent(for tab: StudentTab) -> some View {
+        switch tab {
+        case .room:
+            StudentRoomView()
         case .settings:
             SettingsView()
         }
@@ -74,7 +128,7 @@ struct ProfileView: View {
                         .font(.system(size: 80))
                         .foregroundStyle(NerdyTheme.gradientAccent)
 
-                    Text(appState.tutorProfile?.name ?? "Tutor")
+                    Text(appState.tutorProfile?.name ?? "User")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
@@ -83,6 +137,13 @@ struct ProfileView: View {
                         Text(email)
                             .font(.caption)
                             .foregroundColor(NerdyTheme.textSecondary)
+                    }
+
+                    if let role = appState.userRole {
+                        Text(role.rawValue.capitalized)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(NerdyTheme.cyan)
                     }
 
                     NerdyCard {

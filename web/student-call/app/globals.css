@@ -259,29 +259,48 @@ h3 {
   font-size: 0.9rem;
 }
 
-/* Demo quick-join */
-.demo-grid {
+/* Demo quick-join dropdowns */
+.demo-dropdowns {
   display: grid;
-  gap: 10px;
-  margin-top: 10px;
-  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+  grid-template-columns: 1fr 1fr;
 }
 
-.demo-button {
-  border: 1px solid rgba(0, 212, 170, 0.25);
-  border-radius: 16px;
-  padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(120, 75, 160, 0.1));
-  color: var(--cyan);
+.demo-select-group {
+  display: grid;
+  gap: 6px;
+}
+
+.demo-select-group label {
+  font-size: 0.78rem;
   font-weight: 700;
-  font-size: 0.92rem;
-  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
 }
 
-.demo-button:hover {
-  transform: translateY(-1px);
+.demo-select-group select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  border-radius: 14px;
+  padding: 12px 32px 12px 14px;
+  background: var(--bg-elevated) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B8CA0' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 12px center;
+  color: var(--ink);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.demo-select-group select:hover {
   border-color: var(--cyan);
-  background: linear-gradient(135deg, rgba(0, 212, 170, 0.18), rgba(120, 75, 160, 0.15));
+}
+
+.demo-select-group select:focus {
+  outline: 2px solid rgba(0, 212, 170, 0.5);
+  outline-offset: 2px;
 }
 
 .divider-label {
@@ -436,6 +455,7 @@ h3 {
 }
 
 .stage {
+  position: relative;
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -664,6 +684,39 @@ h3 {
   background: rgba(239, 68, 68, 0.25);
 }
 
+/* Floating hangup button on video stage */
+.stage-hangup {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.hangup-fab {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
+  transition: background 0.15s, transform 0.15s;
+}
+
+.hangup-fab:hover {
+  background: #dc2626;
+  transform: scale(1.08);
+}
+
+.hangup-fab:active {
+  transform: scale(0.95);
+}
+
 .message {
   padding: 14px 16px;
   border-radius: 18px;
@@ -719,7 +772,7 @@ h3 {
 
 @media (max-width: 720px) {
   .shell {
-    width: min(100vw - 20px, 1220px);
+    width: min(100vw - 16px, 1220px);
     padding-top: 12px;
     padding-bottom: 0;
   }
@@ -729,7 +782,19 @@ h3 {
   .stage,
   .sidebar-card {
     padding: 14px;
-    border-radius: 22px;
+    border-radius: 18px;
+  }
+
+  .hero-copy {
+    padding: 20px;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+  }
+
+  .lede {
+    font-size: 0.95rem;
   }
 
   .hero-grid {
@@ -737,11 +802,13 @@ h3 {
   }
 
   .local-preview {
-    width: min(38%, 170px);
+    width: min(38%, 150px);
+    border-radius: 14px;
   }
 
-  .demo-grid {
-    grid-template-columns: 1fr;
+  .local-preview .video-label {
+    font-size: 0.7rem;
+    padding: 6px 10px;
   }
 
   .toolbar {
@@ -750,5 +817,108 @@ h3 {
 
   .toolbar-title h1 {
     font-size: 1rem;
+  }
+
+  .toolbar-group {
+    gap: 8px;
+  }
+
+  .status-chip,
+  .role-chip {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  .fieldset {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .choice-card {
+    padding: 12px 12px 12px 38px;
+  }
+
+  .call-controls {
+    gap: 6px;
+  }
+
+  .control-button {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+
+  .hangup-fab {
+    width: 56px;
+    height: 56px;
+  }
+
+  .stage-hangup {
+    bottom: 16px;
+  }
+
+  .video-label {
+    padding: 8px 12px;
+    font-size: 0.78rem;
+  }
+
+  .sidebar-card {
+    padding: 12px;
+  }
+
+  .sidebar-card h3 {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .shell {
+    width: 100vw;
+    padding: 8px 0 0;
+  }
+
+  .hero-copy,
+  .form-card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    padding: 16px;
+  }
+
+  .demo-dropdowns {
+    grid-template-columns: 1fr;
+  }
+
+  .room-layout {
+    padding-top: 8px !important;
+  }
+
+  .stage {
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .video-frame {
+    border-radius: 14px;
+  }
+
+  .local-preview {
+    width: min(35%, 120px);
+    right: 10px;
+    bottom: 10px;
+    border-radius: 12px;
+  }
+
+  .toolbar-title h1 {
+    font-size: 0.9rem;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .primary-button,
+  .ghost-button {
+    width: 100%;
+    text-align: center;
   }
 }

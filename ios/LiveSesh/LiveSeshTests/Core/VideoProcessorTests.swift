@@ -126,14 +126,24 @@ final class FaceLandmarksTests: XCTestCase {
             rightEyeCenter: CGPoint(x: 0.7, y: 0.6),
             noseTip: CGPoint(x: 0.5, y: 0.5),
             mouthCenter: CGPoint(x: 0.5, y: 0.3),
-            faceContour: []
+            faceContour: [],
+            leftEyePoints: [], rightEyePoints: [],
+            leftEyebrowPoints: [], rightEyebrowPoints: [],
+            nosePoints: [], noseCrestPoints: [],
+            innerLipsPoints: [], outerLipsPoints: [],
+            medianLinePoints: []
         )
         let landmarks2 = FaceLandmarks(
             leftEyeCenter: CGPoint(x: 0.3, y: 0.6),
             rightEyeCenter: CGPoint(x: 0.7, y: 0.6),
             noseTip: CGPoint(x: 0.5, y: 0.5),
             mouthCenter: CGPoint(x: 0.5, y: 0.3),
-            faceContour: []
+            faceContour: [],
+            leftEyePoints: [], rightEyePoints: [],
+            leftEyebrowPoints: [], rightEyebrowPoints: [],
+            nosePoints: [], noseCrestPoints: [],
+            innerLipsPoints: [], outerLipsPoints: [],
+            medianLinePoints: []
         )
         XCTAssertEqual(landmarks1, landmarks2)
     }
@@ -144,14 +154,24 @@ final class FaceLandmarksTests: XCTestCase {
             rightEyeCenter: CGPoint(x: 0.7, y: 0.6),
             noseTip: CGPoint(x: 0.5, y: 0.5),
             mouthCenter: CGPoint(x: 0.5, y: 0.3),
-            faceContour: []
+            faceContour: [],
+            leftEyePoints: [], rightEyePoints: [],
+            leftEyebrowPoints: [], rightEyebrowPoints: [],
+            nosePoints: [], noseCrestPoints: [],
+            innerLipsPoints: [], outerLipsPoints: [],
+            medianLinePoints: []
         )
         let landmarks2 = FaceLandmarks(
             leftEyeCenter: CGPoint(x: 0.4, y: 0.6),
             rightEyeCenter: CGPoint(x: 0.7, y: 0.6),
             noseTip: CGPoint(x: 0.5, y: 0.5),
             mouthCenter: CGPoint(x: 0.5, y: 0.3),
-            faceContour: []
+            faceContour: [],
+            leftEyePoints: [], rightEyePoints: [],
+            leftEyebrowPoints: [], rightEyebrowPoints: [],
+            nosePoints: [], noseCrestPoints: [],
+            innerLipsPoints: [], outerLipsPoints: [],
+            medianLinePoints: []
         )
         XCTAssertNotEqual(landmarks1, landmarks2)
     }

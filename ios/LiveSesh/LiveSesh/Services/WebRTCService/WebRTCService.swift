@@ -13,12 +13,14 @@ protocol WebRTCServiceProtocol: AnyObject {
     var connectionStatePublisher: AnyPublisher<WebRTCConnectionState, Never> { get }
     var studentPresent: Bool { get }
     var studentDisplayName: String? { get }
+    var remotePeerPresent: Bool { get }
+    var remotePeerDisplayName: String? { get }
     #if canImport(WebRTC)
     var remoteVideoTrack: RTCVideoTrack? { get }
     var localVideoTrack: RTCVideoTrack? { get }
     #endif
 
-    func connect(roomId: String, displayName: String, accessToken: String?) async
+    func connect(roomId: String, displayName: String, accessToken: String?, role: String) async
     func disconnect()
 }
 
@@ -30,12 +32,19 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
     @Published private(set) var connectionState: WebRTCConnectionState = .idle
     @Published private(set) var studentPresent = false
     @Published private(set) var studentDisplayName: String?
+    @Published private(set) var remotePeerPresent = false
+    @Published private(set) var remotePeerDisplayName: String?
     @Published private(set) var remoteVideoTrack: RTCVideoTrack?
     @Published private(set) var localVideoTrack: RTCVideoTrack?
 
     var connectionStatePublisher: AnyPublisher<WebRTCConnectionState, Never> {
         $connectionState.eraseToAnyPublisher()
     }
+
+    /// The role this service operates as ("tutor" or "student")
+    private var localRole: String = "tutor"
+    /// The role we're looking for in the remote peer
+    private var targetRole: String { localRole == "tutor" ? "student" : "tutor" }
 
     // MARK: - WebRTC objects
 
@@ -79,11 +88,12 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
 
     // MARK: - Public API
 
-    func connect(roomId: String, displayName: String, accessToken: String?) async {
+    func connect(roomId: String, displayName: String, accessToken: String?, role: String = "tutor") async {
         guard connectionState == .idle || connectionState == .disconnected else { return }
 
         self.roomId = roomId
         self.displayName = displayName
+        self.localRole = role
         connectionState = .connecting
 
         // 0. Route audio to the loudspeaker (not earpiece)
@@ -151,6 +161,8 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
         isJoined = false
         studentPresent = false
         studentDisplayName = nil
+        remotePeerPresent = false
+        remotePeerDisplayName = nil
         connectionState = .idle
     }
 
@@ -280,7 +292,7 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
             "payload": [
                 "peerId": localPeerId,
                 "displayName": displayName,
-                "role": "tutor",
+                "role": localRole,
                 "joinedAt": ISO8601DateFormatter().string(from: Date())
             ]
         ]
@@ -300,7 +312,7 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
             "to": peerId,
             "sentAt": ISO8601DateFormatter().string(from: Date()),
             "displayName": displayName,
-            "role": "tutor",
+            "role": localRole,
             "kind": kind
         ]
 
@@ -529,13 +541,16 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
             if let metas = value as? [String: Any],
                let metaList = metas["metas"] as? [[String: Any]] {
                 for meta in metaList {
-                    if let role = meta["role"] as? String, role == "student" {
+                    if let role = meta["role"] as? String, role == targetRole {
                         let peerId = meta["peerId"] as? String
+                        remotePeerPresent = true
+                        remotePeerDisplayName = meta["displayName"] as? String
+                        // Keep backward compat
                         studentPresent = true
-                        studentDisplayName = meta["displayName"] as? String
+                        studentDisplayName = remotePeerDisplayName
                         connectionState = .studentConnected
                         if let peerId {
-                            onStudentJoined(peerId: peerId)
+                            onRemotePeerJoined(peerId: peerId)
                         }
                         return
                     }
@@ -553,13 +568,15 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
                 if let metas = value as? [String: Any],
                    let metaList = metas["metas"] as? [[String: Any]] {
                     for meta in metaList {
-                        if let role = meta["role"] as? String, role == "student" {
+                        if let role = meta["role"] as? String, role == targetRole {
                             let peerId = meta["peerId"] as? String
+                            remotePeerPresent = true
+                            remotePeerDisplayName = meta["displayName"] as? String
                             studentPresent = true
-                            studentDisplayName = meta["displayName"] as? String
+                            studentDisplayName = remotePeerDisplayName
                             connectionState = .studentConnected
                             if let peerId {
-                                onStudentJoined(peerId: peerId)
+                                onRemotePeerJoined(peerId: peerId)
                             }
                         }
                     }
@@ -572,7 +589,9 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
                 if let metas = value as? [String: Any],
                    let metaList = metas["metas"] as? [[String: Any]] {
                     for meta in metaList {
-                        if let role = meta["role"] as? String, role == "student" {
+                        if let role = meta["role"] as? String, role == targetRole {
+                            remotePeerPresent = false
+                            remotePeerDisplayName = nil
                             studentPresent = false
                             studentDisplayName = nil
                             remotePeerId = nil
@@ -587,11 +606,11 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
         }
     }
 
-    private func onStudentJoined(peerId: String) {
+    private func onRemotePeerJoined(peerId: String) {
         remotePeerId = peerId
         // Determine politeness: higher UUID is polite
         isPolite = localPeerId.compare(peerId) == .orderedDescending
-        print("[WebRTCService] Student joined: \(peerId), I am \(isPolite ? "polite" : "impolite")")
+        print("[WebRTCService] Remote peer (\(targetRole)) joined: \(peerId), I am \(isPolite ? "polite" : "impolite")")
 
         // If impolite, we create the offer
         if !isPolite {
@@ -634,6 +653,8 @@ final class WebRTCService: NSObject, ObservableObject, WebRTCServiceProtocol {
         case "hangup":
             studentPresent = false
             studentDisplayName = nil
+            remotePeerPresent = false
+            remotePeerDisplayName = nil
             remotePeerId = nil
             remoteVideoTrack = nil
             connectionState = .waitingForStudent
@@ -797,10 +818,12 @@ final class MockWebRTCService: WebRTCServiceProtocol {
     }
     var studentPresent = false
     var studentDisplayName: String?
+    var remotePeerPresent = false
+    var remotePeerDisplayName: String?
     var remoteVideoTrack: RTCVideoTrack?
     var localVideoTrack: RTCVideoTrack?
 
-    func connect(roomId: String, displayName: String, accessToken: String?) async {
+    func connect(roomId: String, displayName: String, accessToken: String?, role: String = "tutor") async {
         connectionState = .waitingForStudent
     }
 

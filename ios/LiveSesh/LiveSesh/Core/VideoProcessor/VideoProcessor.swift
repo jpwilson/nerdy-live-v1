@@ -38,6 +38,17 @@ struct FaceLandmarks: Equatable {
     let noseTip: CGPoint
     let mouthCenter: CGPoint
     let faceContour: [CGPoint]
+
+    // Full point arrays for mesh overlay
+    let leftEyePoints: [CGPoint]
+    let rightEyePoints: [CGPoint]
+    let leftEyebrowPoints: [CGPoint]
+    let rightEyebrowPoints: [CGPoint]
+    let nosePoints: [CGPoint]
+    let noseCrestPoints: [CGPoint]
+    let innerLipsPoints: [CGPoint]
+    let outerLipsPoints: [CGPoint]
+    let medianLinePoints: [CGPoint]
 }
 
 struct GazeEstimation: Equatable {
@@ -185,18 +196,28 @@ final class VideoProcessor: VideoProcessorProtocol {
     private func extractLandmarks(from observation: VNFaceObservation) -> FaceLandmarks? {
         guard let landmarks = observation.landmarks else { return nil }
 
-        let leftEye = landmarks.leftEye?.normalizedPoints.first ?? .zero
-        let rightEye = landmarks.rightEye?.normalizedPoints.first ?? .zero
-        let nose = landmarks.nose?.normalizedPoints.first ?? .zero
-        let mouth = landmarks.innerLips?.normalizedPoints.first ?? .zero
+        let leftEyeAll = landmarks.leftEye?.normalizedPoints ?? []
+        let rightEyeAll = landmarks.rightEye?.normalizedPoints ?? []
+        let noseAll = landmarks.nose?.normalizedPoints ?? []
+        let innerLipsAll = landmarks.innerLips?.normalizedPoints ?? []
+        let outerLipsAll = landmarks.outerLips?.normalizedPoints ?? []
         let contour = landmarks.faceContour?.normalizedPoints ?? []
 
         return FaceLandmarks(
-            leftEyeCenter: leftEye,
-            rightEyeCenter: rightEye,
-            noseTip: nose,
-            mouthCenter: mouth,
-            faceContour: contour
+            leftEyeCenter: leftEyeAll.first ?? .zero,
+            rightEyeCenter: rightEyeAll.first ?? .zero,
+            noseTip: noseAll.first ?? .zero,
+            mouthCenter: innerLipsAll.first ?? .zero,
+            faceContour: contour,
+            leftEyePoints: leftEyeAll,
+            rightEyePoints: rightEyeAll,
+            leftEyebrowPoints: landmarks.leftEyebrow?.normalizedPoints ?? [],
+            rightEyebrowPoints: landmarks.rightEyebrow?.normalizedPoints ?? [],
+            nosePoints: noseAll,
+            noseCrestPoints: landmarks.noseCrest?.normalizedPoints ?? [],
+            innerLipsPoints: innerLipsAll,
+            outerLipsPoints: outerLipsAll,
+            medianLinePoints: landmarks.medianLine?.normalizedPoints ?? []
         )
     }
 

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,6 +12,7 @@
 		028BD0266603B311155ECED1 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027C88EEBB6968486C8BA1C1 /* LoginView.swift */; };
 		16FBC3496AC57060FDCFAAA7 /* WebRTCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04C9B285943C2D2C587FE579 /* WebRTCService.swift */; };
 		178443C0E71AD38290592C8F /* MetricsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83B73B4559A0C710477EBBA /* MetricsEngine.swift */; };
+		2C1B609E6A2D5DCADE3A79F9 /* FaceMeshOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4BCAC88E77F9B200EFE434C /* FaceMeshOverlayView.swift */; };
 		2F325726889424092364A3A7 /* SessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F0260E06953CE1FF6FF882 /* SessionViewModel.swift */; };
 		32632CA6EA6BE71DAC505459 /* AudioProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD9A10ED498269ECB04C62A /* AudioProcessor.swift */; };
 		386661CA799987606ADA41B8 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E0C65238951004CD39F029 /* Models.swift */; };
@@ -24,12 +25,14 @@
 		6EA0B97C780DA93BA003B8CE /* SimulatorDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B01E968768B233103ACC903 /* SimulatorDataProvider.swift */; };
 		749393B0526008ECEE3B5372 /* LiveCaptureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5127886E4AAAB62AF3F1C56 /* LiveCaptureController.swift */; };
 		75B3D4DA0FE39751E2750A0F /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB785C89268E182A6A7D7B6 /* SessionStore.swift */; };
+		7B00B135B22247067BD0AFDA /* StudentSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65C4095D1C0E60483C16943D /* StudentSessionViewModel.swift */; };
+		8A7E22D1AAF678A29A01141D /* StudentAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39DBEA7CF5C8B17EC23BB4C5 /* StudentAnalyticsView.swift */; };
 		8F60E9B80D8B352FD2EB53BB /* MockProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACB4512C190148CA669BE6C8 /* MockProtocols.swift */; };
 		8FCE333EEBF4B2AF2AA6A08C /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8FE90A09472152BEA90E8DC /* SupabaseService.swift */; };
 		930F659C135E284B155069D7 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6981B26E8F43806977DF92E6 /* AppState.swift */; };
 		A3733C30B7AAFF4381F0FEFB /* VideoProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD66E86E35C014A2372001AE /* VideoProcessor.swift */; };
+		AA4559D0617B6B1BFFD6E059 /* FaceOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A7DD7BE825271CC22B2209 /* FaceOverlayView.swift */; };
 		B4694BE43E3C7D7D76184714 /* AnalyticsDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0F955DB08AE03C662A22EB /* AnalyticsDashboardView.swift */; };
-		B4694BE43E3C7D7D76184715 /* StudentAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0F955DB08AE03C662A22EC /* StudentAnalyticsView.swift */; };
 		B624E4FB7B01B140573230A0 /* CoachingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B1F270F6AA1E93A211BFAC /* CoachingSettingsView.swift */; };
 		CAA052D0B7474011E23607CC /* MetricsEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C099B849506CEA255F84AA4 /* MetricsEngineTests.swift */; };
 		D0887BB9FC840BEFFFC07928 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E36CB50CE62D92DC368CA477 /* SettingsView.swift */; };
@@ -39,6 +42,7 @@
 		EDE7EF84200BE604439F4523 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = A63F28E99C5BDC4A12DBBA36 /* WebRTC */; };
 		F053D9479FAF9A1C08EFC0D7 /* CoachingEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A385886AE5AD5DD99560B1 /* CoachingEngineTests.swift */; };
 		F0C75C2B7E63BE00E5DEF991 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91545FC4A571521CCAFBC474 /* ContentView.swift */; };
+		F5E10C4572457D145E338B8E /* StudentRoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C03B831F763934A7FFD8C120 /* StudentRoomView.swift */; };
 		F622C5B5BA8DDE720D928199 /* CoachingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D864220C2D9B35751B4B9DD /* CoachingEngine.swift */; };
 		FF21A8C7A509C90A3C784437 /* LiveSeshApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2814F7C75F4849E84693915 /* LiveSeshApp.swift */; };
 /* End PBXBuildFile section */
@@ -61,11 +65,13 @@
 		11F04EAC97F399D0D28108A3 /* AudioProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioProcessorTests.swift; sourceTree = "<group>"; };
 		1B01E968768B233103ACC903 /* SimulatorDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorDataProvider.swift; sourceTree = "<group>"; };
 		25D3A777EA3975BCFE21D7D4 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		39DBEA7CF5C8B17EC23BB4C5 /* StudentAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudentAnalyticsView.swift; sourceTree = "<group>"; };
 		3A897CDAB81F4603BAF7C4B0 /* RTCVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTCVideoView.swift; sourceTree = "<group>"; };
 		4E0BE0E1C9E11B1404864AD1 /* SessionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStoreTests.swift; sourceTree = "<group>"; };
 		4EB785C89268E182A6A7D7B6 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		50F0260E06953CE1FF6FF882 /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
 		618D9CBA8CBD12E97FA22978 /* NerdyTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NerdyTheme.swift; sourceTree = "<group>"; };
+		65C4095D1C0E60483C16943D /* StudentSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudentSessionViewModel.swift; sourceTree = "<group>"; };
 		67A294FEC98C603C15D91AEF /* LiveSeshTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LiveSeshTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6981B26E8F43806977DF92E6 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		6D864220C2D9B35751B4B9DD /* CoachingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingEngine.swift; sourceTree = "<group>"; };
@@ -75,8 +81,10 @@
 		9DD9A10ED498269ECB04C62A /* AudioProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioProcessor.swift; sourceTree = "<group>"; };
 		ACB4512C190148CA669BE6C8 /* MockProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProtocols.swift; sourceTree = "<group>"; };
 		AE3E38B575BDACD912022BDC /* WebRTCFrameExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCFrameExtractor.swift; sourceTree = "<group>"; };
+		B7A7DD7BE825271CC22B2209 /* FaceOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceOverlayView.swift; sourceTree = "<group>"; };
 		B8FE90A09472152BEA90E8DC /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
-		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C03B831F763934A7FFD8C120 /* StudentRoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudentRoomView.swift; sourceTree = "<group>"; };
 		C998CF5454E755914B06B07A /* SessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionView.swift; sourceTree = "<group>"; };
 		D2814F7C75F4849E84693915 /* LiveSeshApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSeshApp.swift; sourceTree = "<group>"; };
 		D5127886E4AAAB62AF3F1C56 /* LiveCaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCaptureController.swift; sourceTree = "<group>"; };
@@ -85,10 +93,10 @@
 		DD66E86E35C014A2372001AE /* VideoProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoProcessor.swift; sourceTree = "<group>"; };
 		E36CB50CE62D92DC368CA477 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		E3E0C65238951004CD39F029 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		E4BCAC88E77F9B200EFE434C /* FaceMeshOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceMeshOverlayView.swift; sourceTree = "<group>"; };
 		E6A385886AE5AD5DD99560B1 /* CoachingEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingEngineTests.swift; sourceTree = "<group>"; };
 		FB5E0902061B646F2B772CB9 /* VideoProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoProcessorTests.swift; sourceTree = "<group>"; };
 		FD0F955DB08AE03C662A22EB /* AnalyticsDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsDashboardView.swift; sourceTree = "<group>"; };
-		FD0F955DB08AE03C662A22EC /* StudentAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudentAnalyticsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -125,6 +133,8 @@
 		1E35EEDA6FEF9E7DD3102CC0 /* Session */ = {
 			isa = PBXGroup;
 			children = (
+				E4BCAC88E77F9B200EFE434C /* FaceMeshOverlayView.swift */,
+				B7A7DD7BE825271CC22B2209 /* FaceOverlayView.swift */,
 				3A897CDAB81F4603BAF7C4B0 /* RTCVideoView.swift */,
 				C998CF5454E755914B06B07A /* SessionView.swift */,
 				50F0260E06953CE1FF6FF882 /* SessionViewModel.swift */,
@@ -188,6 +198,7 @@
 				246DBE376AC2B73963688F55 /* Dashboard */,
 				1E35EEDA6FEF9E7DD3102CC0 /* Session */,
 				A7B4759A3CC8FDD4B00DA0E3 /* Settings */,
+				FCFD065CAD3EA804117AFD48 /* Student */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -268,7 +279,7 @@
 			isa = PBXGroup;
 			children = (
 				FD0F955DB08AE03C662A22EB /* AnalyticsDashboardView.swift */,
-				FD0F955DB08AE03C662A22EC /* StudentAnalyticsView.swift */,
+				39DBEA7CF5C8B17EC23BB4C5 /* StudentAnalyticsView.swift */,
 			);
 			path = Analytics;
 			sourceTree = "<group>";
@@ -368,6 +379,15 @@
 			path = MetricsEngine;
 			sourceTree = "<group>";
 		};
+		FCFD065CAD3EA804117AFD48 /* Student */ = {
+			isa = PBXGroup;
+			children = (
+				C03B831F763934A7FFD8C120 /* StudentRoomView.swift */,
+				65C4095D1C0E60483C16943D /* StudentSessionViewModel.swift */,
+			);
+			path = Student;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -421,6 +441,9 @@
 					EB5D9765FF59E0A509D44322 = {
 						DevelopmentTeam = "";
 					};
+					FB5827068CD98FF0ED5E2C1B = {
+						DevelopmentTeam = "";
+					};
 				};
 			};
 			buildConfigurationList = 6B10BF240954AEC85F74FEA9 /* Build configuration list for PBXProject "LiveSesh" */;
@@ -436,6 +459,7 @@
 			packageReferences = (
 				788D81982801BF1C3461D051 /* XCRemoteSwiftPackageReference "WebRTC" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -477,13 +501,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				B4694BE43E3C7D7D76184714 /* AnalyticsDashboardView.swift in Sources */,
-				B4694BE43E3C7D7D76184715 /* StudentAnalyticsView.swift in Sources */,
 				930F659C135E284B155069D7 /* AppState.swift in Sources */,
 				32632CA6EA6BE71DAC505459 /* AudioProcessor.swift in Sources */,
 				0082D5E8BBE2D1F401BDB42C /* AuthService.swift in Sources */,
 				F622C5B5BA8DDE720D928199 /* CoachingEngine.swift in Sources */,
 				B624E4FB7B01B140573230A0 /* CoachingSettingsView.swift in Sources */,
 				F0C75C2B7E63BE00E5DEF991 /* ContentView.swift in Sources */,
+				2C1B609E6A2D5DCADE3A79F9 /* FaceMeshOverlayView.swift in Sources */,
+				AA4559D0617B6B1BFFD6E059 /* FaceOverlayView.swift in Sources */,
 				749393B0526008ECEE3B5372 /* LiveCaptureController.swift in Sources */,
 				FF21A8C7A509C90A3C784437 /* LiveSeshApp.swift in Sources */,
 				028BD0266603B311155ECED1 /* LoginView.swift in Sources */,
@@ -496,6 +521,9 @@
 				2F325726889424092364A3A7 /* SessionViewModel.swift in Sources */,
 				D0887BB9FC840BEFFFC07928 /* SettingsView.swift in Sources */,
 				6EA0B97C780DA93BA003B8CE /* SimulatorDataProvider.swift in Sources */,
+				8A7E22D1AAF678A29A01141D /* StudentAnalyticsView.swift in Sources */,
+				F5E10C4572457D145E338B8E /* StudentRoomView.swift in Sources */,
+				7B00B135B22247067BD0AFDA /* StudentSessionViewModel.swift in Sources */,
 				8FCE333EEBF4B2AF2AA6A08C /* SupabaseService.swift in Sources */,
 				A3733C30B7AAFF4381F0FEFB /* VideoProcessor.swift in Sources */,
 				D223B736FA6BE76F84B69741 /* WebRTCFrameExtractor.swift in Sources */,
@@ -520,7 +548,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7RUN765V47;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";
@@ -629,7 +656,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7RUN765V47;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";

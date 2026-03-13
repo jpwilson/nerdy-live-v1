@@ -41,7 +41,7 @@ final class LiveCaptureController: ObservableObject {
     let captureSession = AVCaptureSession()
 
     private let metricsEngine: MetricsEngineProtocol
-    private let videoProcessor: VideoProcessorProtocol
+    let videoProcessor: VideoProcessorProtocol
     private let audioProcessor: AudioProcessorProtocol
     private let captureQueue = DispatchQueue(label: "com.livesesh.capture", qos: .userInitiated)
     private var videoOutputDelegate: CameraVideoOutputDelegate?

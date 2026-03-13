@@ -194,6 +194,24 @@ function RoomClient({
               </p>
             </div>
           )}
+
+          {/* Floating hangup button on video stage */}
+          {connectionState === "connected" && (
+            <div className="stage-hangup">
+              <button
+                className="hangup-fab"
+                type="button"
+                onClick={() => {
+                  void hangUp().then(() => router.push("/"));
+                }}
+                title="End call"
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-5.33-5.33A19.79 19.79 0 0 1 2.79 5.18 2 2 0 0 1 4.79 3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.77 10.91a16 16 0 0 0 1.91 2.4z" transform="rotate(135 12 12)"/>
+                </svg>
+              </button>
+            </div>
+          )}
         </article>
 
         <button

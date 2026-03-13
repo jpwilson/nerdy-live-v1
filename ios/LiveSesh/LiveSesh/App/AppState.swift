@@ -4,6 +4,7 @@ import Combine
 @MainActor
 final class AppState: ObservableObject {
     @Published var isAuthenticated = false
+    @Published var userRole: UserRole?
     @Published var currentSession: LiveSession?
     @Published var tutorProfile: TutorProfile?
     @Published var testModeEnabled: Bool {
@@ -11,6 +12,9 @@ final class AppState: ObservableObject {
     }
     @Published var roomCode: String {
         didSet { UserDefaults.standard.set(roomCode, forKey: "roomCode") }
+    }
+    @Published var showAnalysisOverlays: Bool {
+        didSet { UserDefaults.standard.set(showAnalysisOverlays, forKey: "showAnalysisOverlays") }
     }
 
     let authService = AuthService()
@@ -22,6 +26,7 @@ final class AppState: ObservableObject {
     init() {
         self.testModeEnabled = UserDefaults.standard.bool(forKey: "testModeEnabled")
         self.roomCode = UserDefaults.standard.string(forKey: "roomCode") ?? "demo-room"
+        self.showAnalysisOverlays = UserDefaults.standard.bool(forKey: "showAnalysisOverlays")
         let service = SupabaseService()
         self.supabaseService = service
         // Wire live auth token into Supabase REST calls
@@ -41,6 +46,11 @@ final class AppState: ObservableObject {
         authService.currentUser?.id
     }
 
+    /// Alias for authenticatedTutorId (works for both roles).
+    var authenticatedUserId: UUID? {
+        authService.currentUser?.id
+    }
+
     /// The current access token for authenticated Supabase requests.
     var currentAccessToken: String? {
         authService.accessToken
@@ -50,6 +60,9 @@ final class AppState: ObservableObject {
         authService.$currentUser
             .map { $0 != nil }
             .assign(to: &$isAuthenticated)
+
+        authService.$selectedRole
+            .assign(to: &$userRole)
 
         authService.$currentUser
             .compactMap { $0 }
