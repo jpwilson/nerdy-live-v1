@@ -29,6 +29,7 @@
 		930F659C135E284B155069D7 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6981B26E8F43806977DF92E6 /* AppState.swift */; };
 		A3733C30B7AAFF4381F0FEFB /* VideoProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD66E86E35C014A2372001AE /* VideoProcessor.swift */; };
 		B4694BE43E3C7D7D76184714 /* AnalyticsDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0F955DB08AE03C662A22EB /* AnalyticsDashboardView.swift */; };
+		B4694BE43E3C7D7D76184715 /* StudentAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0F955DB08AE03C662A22EC /* StudentAnalyticsView.swift */; };
 		B624E4FB7B01B140573230A0 /* CoachingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B1F270F6AA1E93A211BFAC /* CoachingSettingsView.swift */; };
 		CAA052D0B7474011E23607CC /* MetricsEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C099B849506CEA255F84AA4 /* MetricsEngineTests.swift */; };
 		D0887BB9FC840BEFFFC07928 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E36CB50CE62D92DC368CA477 /* SettingsView.swift */; };
@@ -87,6 +88,7 @@
 		E6A385886AE5AD5DD99560B1 /* CoachingEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingEngineTests.swift; sourceTree = "<group>"; };
 		FB5E0902061B646F2B772CB9 /* VideoProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoProcessorTests.swift; sourceTree = "<group>"; };
 		FD0F955DB08AE03C662A22EB /* AnalyticsDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsDashboardView.swift; sourceTree = "<group>"; };
+		FD0F955DB08AE03C662A22EC /* StudentAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudentAnalyticsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -266,6 +268,7 @@
 			isa = PBXGroup;
 			children = (
 				FD0F955DB08AE03C662A22EB /* AnalyticsDashboardView.swift */,
+				FD0F955DB08AE03C662A22EC /* StudentAnalyticsView.swift */,
 			);
 			path = Analytics;
 			sourceTree = "<group>";
@@ -474,6 +477,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B4694BE43E3C7D7D76184714 /* AnalyticsDashboardView.swift in Sources */,
+				B4694BE43E3C7D7D76184715 /* StudentAnalyticsView.swift in Sources */,
 				930F659C135E284B155069D7 /* AppState.swift in Sources */,
 				32632CA6EA6BE71DAC505459 /* AudioProcessor.swift in Sources */,
 				0082D5E8BBE2D1F401BDB42C /* AuthService.swift in Sources */,
