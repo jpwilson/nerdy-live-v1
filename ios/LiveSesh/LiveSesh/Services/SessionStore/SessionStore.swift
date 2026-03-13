@@ -101,6 +101,21 @@ final class SessionStore: SessionStoreProtocol {
             .sorted { $0.timestamp < $1.timestamp }
     }
 
+    func getSessions(studentName: String) -> [LiveSession] {
+        getAllSessions().filter { $0.studentName == studentName }
+            .sorted { $0.startedAt > $1.startedAt }
+    }
+
+    func getUniqueStudents() -> [(name: String, sessionCount: Int, lastSessionDate: Date)] {
+        let sessions = getAllSessions().filter { $0.studentName != nil }
+        let grouped = Dictionary(grouping: sessions) { $0.studentName! }
+        return grouped.map { (name, sessions) in
+            let sorted = sessions.sorted { $0.startedAt > $1.startedAt }
+            return (name: name, sessionCount: sessions.count, lastSessionDate: sorted.first!.startedAt)
+        }
+        .sorted { $0.lastSessionDate > $1.lastSessionDate }
+    }
+
     // MARK: - Delete
 
     func deleteSession(id: UUID) {

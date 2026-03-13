@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -75,7 +75,7 @@
 		ACB4512C190148CA669BE6C8 /* MockProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProtocols.swift; sourceTree = "<group>"; };
 		AE3E38B575BDACD912022BDC /* WebRTCFrameExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCFrameExtractor.swift; sourceTree = "<group>"; };
 		B8FE90A09472152BEA90E8DC /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
-		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B92393E3F14D41D45B631FC0 /* LiveSesh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveSesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C998CF5454E755914B06B07A /* SessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionView.swift; sourceTree = "<group>"; };
 		D2814F7C75F4849E84693915 /* LiveSeshApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSeshApp.swift; sourceTree = "<group>"; };
 		D5127886E4AAAB62AF3F1C56 /* LiveCaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCaptureController.swift; sourceTree = "<group>"; };
@@ -418,9 +418,6 @@
 					EB5D9765FF59E0A509D44322 = {
 						DevelopmentTeam = "";
 					};
-					FB5827068CD98FF0ED5E2C1B = {
-						DevelopmentTeam = "";
-					};
 				};
 			};
 			buildConfigurationList = 6B10BF240954AEC85F74FEA9 /* Build configuration list for PBXProject "LiveSesh" */;
@@ -436,7 +433,6 @@
 			packageReferences = (
 				788D81982801BF1C3461D051 /* XCRemoteSwiftPackageReference "WebRTC" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -520,6 +516,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7RUN765V47;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";
@@ -628,6 +625,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7RUN765V47;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LiveSesh needs camera access to analyze engagement during tutoring sessions";

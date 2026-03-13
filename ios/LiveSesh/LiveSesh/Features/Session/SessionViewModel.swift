@@ -96,6 +96,15 @@ final class SessionViewModel: ObservableObject {
             .sink { [weak self] state in
                 self?.webRTCConnectionState = state
                 self?.studentDisplayName = self?.webRTCService.studentDisplayName
+                // Capture student identity into the session when they connect
+                if state == .studentConnected,
+                   let name = self?.webRTCService.studentDisplayName,
+                   self?.session?.studentName == nil {
+                    self?.session?.studentName = name
+                    if let session = self?.session {
+                        self?.sessionStore.saveSession(session)
+                    }
+                }
             }
             .store(in: &cancellables)
 

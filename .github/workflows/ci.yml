@@ -50,8 +50,8 @@ jobs:
           name: coverage-report
           path: ios/LiveSesh/coverage-report.txt
 
-  web-typecheck:
-    name: Web App Typecheck & Build
+  web-student-call:
+    name: Student Call — Typecheck & Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -76,3 +76,24 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+
+  web-tutor-dashboard:
+    name: Tutor Dashboard — Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web/tutor-dashboard
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/tutor-dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build

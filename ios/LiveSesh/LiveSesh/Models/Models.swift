@@ -13,6 +13,7 @@ struct LiveSession: Identifiable, Codable, Equatable {
     let id: UUID
     var tutorId: UUID
     var studentId: UUID?
+    var studentName: String?
     var subject: String
     var studentLevel: StudentLevel
     var startedAt: Date
@@ -26,10 +27,13 @@ struct LiveSession: Identifiable, Codable, Equatable {
 
     var isActive: Bool { endedAt == nil }
 
-    static func new(tutorId: UUID, subject: String, level: StudentLevel) -> LiveSession {
+    static func new(tutorId: UUID, subject: String, level: StudentLevel,
+                     studentId: UUID? = nil, studentName: String? = nil) -> LiveSession {
         LiveSession(
             id: UUID(),
             tutorId: tutorId,
+            studentId: studentId,
+            studentName: studentName,
             subject: subject,
             studentLevel: level,
             startedAt: Date()

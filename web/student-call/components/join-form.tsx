@@ -10,9 +10,17 @@ import {
 } from "@/lib/room-utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
-const DEMO_ACCOUNTS = [
-  { label: "Demo Student", email: "demo-student@livesesh.app", password: "DemoPass123!", defaultRole: "student" as RoomRole },
-  { label: "Demo Tutor", email: "demo@livesesh.app", password: "DemoPass123!", defaultRole: "tutor_preview" as RoomRole },
+const DEMO_STUDENTS = [
+  { label: "Sarah Chen", email: "demo-student@livesesh.app", password: "DemoPass123!" },
+  { label: "Alex Rivera", email: "student-alex@livesesh.app", password: "DemoPass123!" },
+  { label: "Jordan Patel", email: "student-jordan@livesesh.app", password: "DemoPass123!" },
+  { label: "Casey Kim", email: "student-casey@livesesh.app", password: "DemoPass123!" },
+  { label: "Morgan Davis", email: "student-morgan@livesesh.app", password: "DemoPass123!" },
+] as const;
+
+const DEMO_TUTORS = [
+  { label: "Kim (Tutor)", email: "demo@livesesh.app", password: "DemoPass123!" },
+  { label: "Nick (Tutor)", email: "tutor2@livesesh.app", password: "DemoPass123!" },
 ] as const;
 
 const DEMO_ROOM = "demo-room";
@@ -85,7 +93,7 @@ export function JoinForm() {
     }
   };
 
-  const demoSignIn = async (account: (typeof DEMO_ACCOUNTS)[number]) => {
+  const demoSignIn = async (account: { label: string; email: string; password: string }, asRole: RoomRole) => {
     setAuthLoading(true);
     setAuthError(null);
     try {
@@ -96,7 +104,7 @@ export function JoinForm() {
       });
       if (error) throw error;
       setSignedInEmail(account.email);
-      setRole(account.defaultRole);
+      setRole(asRole);
       setDisplayName(account.label);
       setRoomId(DEMO_ROOM);
       setAuthState("signed_in");
@@ -127,18 +135,38 @@ export function JoinForm() {
         </div>
 
         <fieldset className="fieldset">
-          <legend>Quick demo</legend>
+          <legend>Quick demo — Students</legend>
           <p className="field-hint">
-            Jump in instantly with a pre-configured demo account.
+            Sign in as a demo student to join a tutoring session.
           </p>
           <div className="demo-grid">
-            {DEMO_ACCOUNTS.map((account) => (
+            {DEMO_STUDENTS.map((account) => (
               <button
-                key={account.label}
+                key={account.email}
                 className="demo-button"
                 type="button"
                 disabled={authLoading}
-                onClick={() => void demoSignIn(account)}
+                onClick={() => void demoSignIn(account, "student")}
+              >
+                {account.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset className="fieldset">
+          <legend>Quick demo — Tutors</legend>
+          <p className="field-hint">
+            Sign in as a tutor (browser preview mode).
+          </p>
+          <div className="demo-grid">
+            {DEMO_TUTORS.map((account) => (
+              <button
+                key={account.email}
+                className="demo-button"
+                type="button"
+                disabled={authLoading}
+                onClick={() => void demoSignIn(account, "tutor_preview")}
               >
                 {account.label}
               </button>

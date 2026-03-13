@@ -496,10 +496,13 @@ export function useWebRtcRoom({
             }
 
             if (status === "SUBSCRIBED") {
+              // Include auth user ID in presence so the tutor app can link sessions to students
+              const { data: { user } } = await supabase.auth.getUser();
               await channel.track({
                 peerId: peerIdRef.current,
                 displayName,
                 role,
+                userId: user?.id ?? null,
                 joinedAt: new Date().toISOString(),
               });
               syncParticipants();

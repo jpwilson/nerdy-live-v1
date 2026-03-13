@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 struct AnalyticsDashboardView: View {
     @EnvironmentObject var appState: AppState
@@ -13,6 +14,7 @@ struct AnalyticsDashboardView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         overviewCards
+                        studentsSection
                         recentSessionsList
                     }
                     .padding()
@@ -60,6 +62,33 @@ struct AnalyticsDashboardView: View {
                     icon: "arrow.up.right",
                     color: NerdyTheme.cyan
                 )
+            }
+        }
+    }
+
+    // MARK: - Students Section
+
+    private var studentsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            NavigationLink(destination: StudentListView()) {
+                NerdyCard {
+                    HStack {
+                        Image(systemName: "person.3.fill")
+                            .foregroundColor(NerdyTheme.purple)
+                            .font(.title3)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Per-Student Analytics")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            Text("Track engagement trends for each student over time")
+                                .font(.caption)
+                                .foregroundColor(NerdyTheme.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(NerdyTheme.textMuted)
+                    }
+                }
             }
         }
     }
@@ -215,6 +244,8 @@ struct MiniMetric: View {
 
 struct SessionDetailView: View {
     let summary: SessionSummary
+    @State private var snapshots: [MetricsSnapshot] = []
+    private let sessionStore = SessionStore()
 
     var body: some View {
         ZStack {
@@ -233,6 +264,11 @@ struct SessionDetailView: View {
                             .foregroundColor(NerdyTheme.textSecondary)
                     }
                     .padding(.top, 20)
+
+                    // Engagement Timeline
+                    if snapshots.count >= 2 {
+                        engagementTimelineCard
+                    }
 
                     // Detailed Metrics
                     NerdyCard {
@@ -305,7 +341,137 @@ struct SessionDetailView: View {
         #if os(iOS)
         .toolbarColorScheme(.dark, for: .navigationBar)
         #endif
+        .onAppear {
+            snapshots = sessionStore.getSnapshots(sessionId: summary.sessionId)
+                .sorted { $0.timestamp < $1.timestamp }
+        }
     }
+
+    // MARK: - Engagement Timeline Chart
+
+    private var engagementTimelineCard: some View {
+        NerdyCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Engagement Timeline")
+                    .font(.headline)
+                    .foregroundColor(.white)
+
+                engagementChart
+                    .frame(height: 180)
+
+                // Legend
+                HStack(spacing: 16) {
+                    chartLegendItem(color: NerdyTheme.cyan, label: "Eye Contact")
+                    chartLegendItem(color: NerdyTheme.purple, label: "Energy")
+                    chartLegendItem(color: NerdyTheme.orange, label: "Talk Balance")
+                }
+                .font(.caption2)
+            }
+        }
+    }
+
+    private var engagementChart: some View {
+        let dataPoints = buildChartData()
+        return Chart(dataPoints) { point in
+            LineMark(
+                x: .value("Time", point.elapsed),
+                y: .value("Value", point.value)
+            )
+            .foregroundStyle(by: .value("Metric", point.metric))
+            .interpolationMethod(.catmullRom)
+            .lineStyle(StrokeStyle(lineWidth: 2))
+
+            AreaMark(
+                x: .value("Time", point.elapsed),
+                y: .value("Value", point.value)
+            )
+            .foregroundStyle(by: .value("Metric", point.metric))
+            .opacity(0.08)
+        }
+        .chartForegroundStyleScale([
+            "Eye Contact": NerdyTheme.cyan,
+            "Energy": NerdyTheme.purple,
+            "Talk Balance": NerdyTheme.orange
+        ])
+        .chartYScale(domain: 0...1)
+        .chartYAxis {
+            AxisMarks(values: [0, 0.25, 0.5, 0.75, 1.0]) { value in
+                AxisGridLine()
+                    .foregroundStyle(Color.white.opacity(0.1))
+                AxisValueLabel {
+                    if let v = value.as(Double.self) {
+                        Text("\(Int(v * 100))%")
+                            .font(.caption2)
+                            .foregroundColor(NerdyTheme.textMuted)
+                    }
+                }
+            }
+        }
+        .chartXAxis {
+            AxisMarks { value in
+                AxisGridLine()
+                    .foregroundStyle(Color.white.opacity(0.05))
+                AxisValueLabel {
+                    if let v = value.as(Double.self) {
+                        Text(formatMinutes(v))
+                            .font(.caption2)
+                            .foregroundColor(NerdyTheme.textMuted)
+                    }
+                }
+            }
+        }
+        .chartLegend(.hidden)
+    }
+
+    private func chartLegendItem(color: Color, label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            Text(label)
+                .foregroundColor(NerdyTheme.textSecondary)
+        }
+    }
+
+    private func formatMinutes(_ seconds: Double) -> String {
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", mins, secs)
+    }
+
+    private func buildChartData() -> [TimelineDataPoint] {
+        guard let firstTimestamp = snapshots.first?.timestamp else { return [] }
+
+        // Downsample to ~60 points max for smooth rendering
+        let stride = max(1, snapshots.count / 60)
+        let sampled = Swift.stride(from: 0, to: snapshots.count, by: stride).map { snapshots[$0] }
+
+        var points: [TimelineDataPoint] = []
+        for snap in sampled {
+            let elapsed = snap.timestamp.timeIntervalSince(firstTimestamp)
+
+            let eyeContact = averagedOrTutor(tutor: snap.tutorEyeContact, student: snap.studentEyeContact)
+            points.append(TimelineDataPoint(elapsed: elapsed, value: eyeContact, metric: "Eye Contact"))
+
+            let energy = averagedOrTutor(tutor: snap.tutorEnergy, student: snap.studentEnergy)
+            points.append(TimelineDataPoint(elapsed: elapsed, value: energy, metric: "Energy"))
+
+            let talkBalance = 1.0 - abs(snap.tutorTalkPct - 0.5) * 2
+            points.append(TimelineDataPoint(elapsed: elapsed, value: max(0, talkBalance), metric: "Talk Balance"))
+        }
+        return points
+    }
+
+    private func averagedOrTutor(tutor: Double, student: Double) -> Double {
+        student > 0 ? (tutor + student) / 2 : tutor
+    }
+}
+
+private struct TimelineDataPoint: Identifiable {
+    let id = UUID()
+    let elapsed: Double   // seconds from session start
+    let value: Double     // 0.0–1.0
+    let metric: String    // series name
 }
 
 struct BatteryUsageCard: View {
