@@ -13,6 +13,8 @@ import {
   roleLabel,
 } from "@/lib/room-utils";
 import { useWebRtcRoom } from "@/lib/use-webrtc-room";
+import { useStudentAnalysis } from "@/lib/use-student-analysis";
+import { AnalysisPanel } from "@/components/analysis-panel";
 
 function VideoSurface({
   title,
@@ -100,6 +102,12 @@ function RoomClient({
     displayName,
     role,
   });
+
+  const isTutor = role === "tutor_preview";
+  const { metrics, modelLoading, modelReady } = useStudentAnalysis(
+    remoteStream,
+    isTutor,
+  );
 
   const sharePath = useMemo(() => buildStudentShareUrl(roomId), [roomId]);
 
@@ -254,6 +262,14 @@ function RoomClient({
               </button>
             </div>
           </section>
+
+          {isTutor && (
+            <AnalysisPanel
+              metrics={metrics}
+              modelLoading={modelLoading}
+              modelReady={modelReady}
+            />
+          )}
 
           <section className="sidebar-card">
             <h3>Room state</h3>

@@ -717,6 +717,123 @@ h3 {
   transform: scale(0.95);
 }
 
+/* ── Analysis panel ────────────────────────── */
+.analysis-card {
+  display: grid;
+  gap: 12px;
+}
+
+.analysis-loading {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.analysis-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.analysis-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.analysis-dot.detected {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+.analysis-dot.missing {
+  background: var(--danger);
+  box-shadow: 0 0 6px var(--danger);
+}
+
+.metrics-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.metric-row {
+  display: grid;
+  gap: 4px;
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.metric-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.metric-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.metric-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 300ms ease;
+}
+
+.metric-details {
+  display: grid;
+  gap: 6px;
+}
+
+.metric-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.metric-detail-row span {
+  color: var(--muted);
+}
+
+.metric-detail-row strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.coaching-nudge {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  font-size: 0.84rem;
+  color: var(--warn);
+  line-height: 1.4;
+}
+
+.nudge-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
 .message {
   padding: 14px 16px;
   border-radius: 18px;

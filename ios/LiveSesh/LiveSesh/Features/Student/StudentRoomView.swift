@@ -82,6 +82,30 @@ struct StudentRoomView: View {
                             #if os(iOS)
                             .textInputAutocapitalization(.never)
                             #endif
+
+                        if viewModel.roomCode.isEmpty || viewModel.roomCode != "demo-room" {
+                            Button {
+                                viewModel.roomCode = "demo-room"
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "play.circle.fill")
+                                        .font(.caption2)
+                                    Text("demo-room")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(NerdyTheme.cyan.opacity(0.15))
+                                        .overlay(
+                                            Capsule().stroke(NerdyTheme.cyan.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                                .foregroundColor(NerdyTheme.cyan)
+                            }
+                        }
                     }
 
                     if let error = viewModel.errorMessage {
@@ -161,12 +185,17 @@ struct StudentRoomView: View {
 
     private var inCallView: some View {
         ZStack {
-            // Full-screen tutor video (remote)
+            // Full-screen tutor video (remote) — biased toward bottom to center face
             #if os(iOS) && canImport(WebRTC)
             if let remoteTrack = viewModel.webRTCService.remoteVideoTrack {
                 Color.black.ignoresSafeArea()
-                RTCVideoViewRepresentable(videoTrack: remoteTrack, fill: true)
-                    .ignoresSafeArea()
+                GeometryReader { geo in
+                    RTCVideoViewRepresentable(videoTrack: remoteTrack, fill: true)
+                        .frame(height: geo.size.height * 1.25)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                }
+                .clipped()
+                .ignoresSafeArea()
             } else {
                 NerdyTheme.backgroundGradient.ignoresSafeArea()
                 VStack(spacing: 16) {

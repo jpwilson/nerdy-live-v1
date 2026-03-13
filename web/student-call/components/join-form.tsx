@@ -273,7 +273,11 @@ export function JoinForm() {
           spellCheck={false}
           autoCapitalize="none"
           autoCorrect="off"
+          list="room-suggestions"
         />
+        <datalist id="room-suggestions">
+          <option value="demo-room" />
+        </datalist>
       </div>
 
       <fieldset className="fieldset">

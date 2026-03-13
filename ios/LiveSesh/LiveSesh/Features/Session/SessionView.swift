@@ -258,8 +258,13 @@ struct SessionView: View {
             #if os(iOS) && canImport(WebRTC)
             if let remoteTrack = viewModel.webRTCService.remoteVideoTrack {
                 Color.black.ignoresSafeArea()
-                RTCVideoViewRepresentable(videoTrack: remoteTrack, fill: true)
-                    .ignoresSafeArea()
+                GeometryReader { geo in
+                    RTCVideoViewRepresentable(videoTrack: remoteTrack, fill: true)
+                        .frame(height: geo.size.height * 1.25)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                }
+                .clipped()
+                .ignoresSafeArea()
             } else {
                 // Waiting state — dark background with status
                 NerdyTheme.backgroundGradient
