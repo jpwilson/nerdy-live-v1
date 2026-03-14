@@ -12,7 +12,7 @@ import {
   parseRole,
   roleLabel,
 } from "@/lib/room-utils";
-import { useWebRtcRoom } from "@/lib/use-webrtc-room";
+import { useLiveKitRoom } from "@/lib/use-livekit-room";
 import { StudentAnalysisCard, type FacePositionData } from "@/components/analysis-panel";
 
 // ── MediaPipe face mesh connectivity (Tesselation subset for wireframe) ──
@@ -259,7 +259,7 @@ function RoomClient({
     roomTopic,
     toggleCamera,
     toggleMicrophone,
-  } = useWebRtcRoom({
+  } = useLiveKitRoom({
     roomId,
     displayName,
     role,
