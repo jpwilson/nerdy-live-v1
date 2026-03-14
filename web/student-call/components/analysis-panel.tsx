@@ -310,6 +310,24 @@ function AnalysisPanelInner({
   const eyeHistRef = useRef<number[]>([]);
   const speakHistRef = useRef<boolean[]>([]);
 
+  // Eye contact auto-calibration: learn where the student naturally looks
+  // during the first 60s, then use that as the "engaged" baseline.
+  const gazeCalibrationRef = useRef<{
+    samples: { hDev: number; lookUp: number; lookDown: number }[];
+    baselineH: number;
+    baselineLookUp: number;
+    baselineLookDown: number;
+    calibrated: boolean;
+    startTime: number;
+  }>({
+    samples: [],
+    baselineH: 0,
+    baselineLookUp: 0,
+    baselineLookDown: 0,
+    calibrated: false,
+    startTime: Date.now(),
+  });
+
   // Load MediaPipe FaceLandmarker
   useEffect(() => {
     let cancelled = false;
@@ -483,26 +501,48 @@ function AnalysisPanelInner({
             bh.push(blinkAvg > 0.5 ? 1 : 0);
             if (bh.length > 60) bh.shift();
 
-            // Eye contact: in video calls, looking at the screen (slightly down/forward)
-            // IS engaged behavior. Only flag as disengaged when looking away from screen
-            // (significantly sideways, or upward away from monitor).
+            // Eye contact with auto-calibration:
+            // During first 60s, learn where the student naturally looks (their "engaged" position).
+            // After calibration, measure deviation FROM that baseline, not from a fixed center.
             const hDev =
               ((s.eyeLookInLeft ?? 0) +
                 (s.eyeLookOutLeft ?? 0) +
                 (s.eyeLookInRight ?? 0) +
                 (s.eyeLookOutRight ?? 0)) /
               4;
-            // Looking down is normal in video calls (screen is below camera).
-            // Only penalize strongly for looking UP (away from screen) or extreme down.
             const lookUp = ((s.eyeLookUpLeft ?? 0) + (s.eyeLookUpRight ?? 0)) / 2;
             const lookDown = ((s.eyeLookDownLeft ?? 0) + (s.eyeLookDownRight ?? 0)) / 2;
-            // Moderate downward gaze (<0.45) is screen-looking — tolerate it
-            const vDev = Math.max(lookUp, Math.max(0, lookDown - 0.45));
-            // Horizontal gaze is the primary disengagement signal
-            eyeContact = Math.max(
-              0,
-              Math.min(1, 1 - (hDev * 2.5 + vDev * 1.5)),
-            );
+
+            const cal = gazeCalibrationRef.current;
+            const elapsed = Date.now() - cal.startTime;
+
+            if (!cal.calibrated && elapsed < 60_000) {
+              // Calibration phase: collect samples
+              cal.samples.push({ hDev, lookUp, lookDown });
+              // During calibration, be generous — assume engaged
+              eyeContact = Math.max(0.6, Math.min(1, 1 - hDev * 1.5));
+            } else {
+              // Finalize calibration if not done yet
+              if (!cal.calibrated && cal.samples.length > 10) {
+                const n = cal.samples.length;
+                cal.baselineH = cal.samples.reduce((a, s2) => a + s2.hDev, 0) / n;
+                cal.baselineLookUp = cal.samples.reduce((a, s2) => a + s2.lookUp, 0) / n;
+                cal.baselineLookDown = cal.samples.reduce((a, s2) => a + s2.lookDown, 0) / n;
+                cal.calibrated = true;
+              }
+
+              // Deviation from personal baseline (how far from their natural position)
+              const hDevFromBaseline = Math.max(0, Math.abs(hDev - cal.baselineH) - 0.05);
+              const upDevFromBaseline = Math.max(0, lookUp - cal.baselineLookUp - 0.08);
+              const downDevFromBaseline = Math.max(0, lookDown - cal.baselineLookDown - 0.15);
+              const vDev = Math.max(upDevFromBaseline, downDevFromBaseline);
+
+              // Horizontal drift is primary disengagement; vertical is secondary
+              eyeContact = Math.max(
+                0,
+                Math.min(1, 1 - (hDevFromBaseline * 3.0 + vDev * 1.5)),
+              );
+            }
 
             if (result.faceLandmarks?.length > 0) {
               const lmks = result.faceLandmarks[0];
@@ -851,9 +891,10 @@ function AnalysisPanelInner({
         )}
       </div>
 
-      {/* Collapsed: show engagement spectrum bar */}
+      {/* Collapsed: show engagement summary */}
       {collapsed && status === "ready" && (
         <div className="collapsed-engagement">
+          <span className="collapsed-eng-title">Engagement</span>
           <div className="collapsed-eng-bar">
             <div
               className="collapsed-eng-fill"

@@ -657,98 +657,113 @@ h3 {
 }
 
 .control-button {
-  background: var(--bg-elevated);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--ink);
-  font-weight: 700;
-  border: 1px solid var(--line);
+  font-weight: 600;
+  font-size: 0.82rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.control-button:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .control-button.active {
-  background: rgba(0, 212, 170, 0.12);
-  color: var(--success);
-  border-color: rgba(0, 212, 170, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e0e0e0;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .control-button.inactive {
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--danger);
+  background: rgba(239, 68, 68, 0.15);
+  color: #ff8a8a;
   border-color: rgba(239, 68, 68, 0.25);
 }
 
 .control-button.leave {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--danger);
+  background: rgba(239, 68, 68, 0.2);
+  color: #ff6b6b;
   border-color: rgba(239, 68, 68, 0.35);
 }
 
 .control-button.leave:hover {
-  background: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.3);
 }
 
-/* Floating call controls on video stage */
-.stage-hangup {
+/* ── Floating call controls (frosted pill toolbar) ─── */
+.stage-controls {
   position: absolute;
-  bottom: 24px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 16px;
+  background: rgba(32, 32, 36, 0.75);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
-.hangup-fab {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #ef4444;
+.stage-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
-  color: white;
+  color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
-  transition: background 0.15s, transform 0.15s;
+  transition: background 0.15s, transform 0.1s;
 }
 
-.hangup-fab:hover {
-  background: #dc2626;
-  transform: scale(1.08);
+.stage-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
-.hangup-fab:active {
-  transform: scale(0.95);
+.stage-btn:active {
+  transform: scale(0.92);
 }
 
-.mute-fab {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+.stage-btn.off {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ff8a8a;
+}
+
+.stage-btn.off:hover {
+  background: rgba(239, 68, 68, 0.45);
+}
+
+.stage-btn-divider {
+  width: 1px;
+  height: 28px;
   background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, transform 0.15s, border-color 0.15s;
+  margin: 0 4px;
 }
 
-.mute-fab:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: scale(1.08);
+.stage-btn.hangup {
+  width: 52px;
+  height: 44px;
+  background: #ef4444;
+  border-radius: 12px;
 }
 
-.mute-fab:active {
-  transform: scale(0.95);
+.stage-btn.hangup:hover {
+  background: #dc2626;
 }
 
-.mute-fab.muted {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #ef4444;
+.stage-btn.hangup:active {
+  transform: scale(0.92);
 }
 
 /* ── Face mesh overlay canvas ────────────────── */
@@ -967,6 +982,13 @@ h3 {
 }
 
 /* ── Collapsed engagement bar ────────────── */
+.collapsed-eng-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .collapsed-engagement {
   display: flex;
   align-items: center;
@@ -1487,6 +1509,9 @@ h3 {
     background: var(--bg-dark);
     border-left: 1px solid var(--line);
     padding: 60px 12px 12px;
+    padding-bottom: env(safe-area-inset-bottom, 12px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .sidebar.collapsed {
@@ -1573,18 +1598,20 @@ h3 {
     font-size: 0.85rem;
   }
 
-  .hangup-fab {
-    width: 56px;
-    height: 56px;
+  .stage-controls {
+    bottom: 12px;
+    padding: 4px;
+    gap: 3px;
   }
 
-  .mute-fab {
-    width: 44px;
-    height: 44px;
+  .stage-btn {
+    width: 40px;
+    height: 40px;
   }
 
-  .stage-hangup {
-    bottom: 16px;
+  .stage-btn.hangup {
+    width: 48px;
+    height: 40px;
   }
 
   .video-label {
