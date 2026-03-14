@@ -718,6 +718,84 @@ h3 {
   transform: scale(0.95);
 }
 
+/* ── Face mesh overlay canvas ────────────────── */
+.face-mesh-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: inherit;
+}
+
+/* ── Face warning badge ─────────────────────── */
+.face-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  z-index: 6;
+  backdrop-filter: blur(8px);
+  animation: face-badge-pulse 2s ease-in-out infinite;
+}
+
+.face-badge--danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.face-badge--warn {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warn);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+@keyframes face-badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ── Face mesh toggle button ────────────────── */
+.mesh-toggle-btn {
+  position: absolute;
+  top: 16px;
+  left: 160px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+  padding: 0;
+}
+
+.mesh-toggle-btn:hover {
+  background: rgba(0, 212, 170, 0.15);
+  color: var(--cyan);
+  border-color: rgba(0, 212, 170, 0.5);
+}
+
+.mesh-toggle-btn.active {
+  background: rgba(0, 212, 170, 0.2);
+  color: var(--cyan);
+  border-color: rgba(0, 212, 170, 0.5);
+}
+
 /* ── Analysis panel ────────────────────────── */
 .analysis-card {
   display: grid;
@@ -977,6 +1055,19 @@ h3 {
   .video-label {
     padding: 8px 12px;
     font-size: 0.78rem;
+  }
+
+  .mesh-toggle-btn {
+    left: 130px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .face-badge {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    top: 12px;
+    right: 12px;
   }
 
   .sidebar-card {

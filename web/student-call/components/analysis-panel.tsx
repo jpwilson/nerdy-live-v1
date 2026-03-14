@@ -14,6 +14,22 @@ interface StudentMetrics {
   coachingNudge: string | null;
 }
 
+/** Face position data exposed to parent for centering + overlay */
+export interface FacePositionData {
+  /** Is a face currently detected? */
+  faceDetected: boolean;
+  /** Normalized bounding box [0..1] of the face in the video frame */
+  boundingBox: { x: number; y: number; width: number; height: number } | null;
+  /** Whether the face is partially out of frame */
+  partiallyOutOfFrame: boolean;
+  /** Raw 478 face landmarks (normalized 0..1) */
+  landmarks: Array<{ x: number; y: number; z: number }> | null;
+  /** Blendshape scores keyed by name */
+  blendshapes: Record<string, number> | null;
+  /** Head pose */
+  headPose: { yaw: number; pitch: number };
+}
+
 const INITIAL_METRICS: StudentMetrics = {
   faceDetected: false,
   eyeContact: 0,
@@ -57,12 +73,14 @@ class AnalysisErrorBoundary extends Component<
 // ── Public API: self-contained analysis panel ───────────────────
 export function StudentAnalysisCard({
   remoteStream,
+  onFacePosition,
 }: {
   remoteStream: MediaStream | null;
+  onFacePosition?: (data: FacePositionData) => void;
 }) {
   return (
     <AnalysisErrorBoundary>
-      <AnalysisPanelInner remoteStream={remoteStream} />
+      <AnalysisPanelInner remoteStream={remoteStream} onFacePosition={onFacePosition} />
     </AnalysisErrorBoundary>
   );
 }
@@ -70,8 +88,10 @@ export function StudentAnalysisCard({
 // ── Inner panel with all analysis logic ─────────────────────────
 function AnalysisPanelInner({
   remoteStream,
+  onFacePosition,
 }: {
   remoteStream: MediaStream | null;
+  onFacePosition?: (data: FacePositionData) => void;
 }) {
   const [metrics, setMetrics] = useState<StudentMetrics>(INITIAL_METRICS);
   const [status, setStatus] = useState("Initializing…");
@@ -173,6 +193,10 @@ function AnalysisPanelInner({
     };
   }, [remoteStream]);
 
+  // Stable ref for onFacePosition to avoid re-creating the interval
+  const onFacePositionRef = useRef(onFacePosition);
+  onFacePositionRef.current = onFacePosition;
+
   // Analysis loop
   useEffect(() => {
     const interval = setInterval(() => {
@@ -183,6 +207,10 @@ function AnalysisPanelInner({
       let eyeContact = 0;
       let yaw = 0;
       let pitch = 0;
+      let faceBoundingBox: FacePositionData["boundingBox"] = null;
+      let partiallyOutOfFrame = false;
+      let rawLandmarks: FacePositionData["landmarks"] = null;
+      let blendshapeScores: Record<string, number> | null = null;
 
       // Face analysis (if model loaded and video ready)
       if (lm && video && video.readyState >= 2) {
@@ -194,6 +222,7 @@ function AnalysisPanelInner({
             const cats = result.faceBlendshapes[0].categories;
             const s: Record<string, number> = {};
             for (const c of cats) s[c.categoryName] = c.score;
+            blendshapeScores = s;
 
             const hDev =
               ((s.eyeLookInLeft ?? 0) +
@@ -214,6 +243,12 @@ function AnalysisPanelInner({
 
             if (result.faceLandmarks?.length > 0) {
               const lmks = result.faceLandmarks[0];
+              rawLandmarks = lmks.map((l: { x: number; y: number; z: number }) => ({
+                x: l.x,
+                y: l.y,
+                z: l.z,
+              }));
+
               const nose = lmks[1];
               const lc = lmks[234];
               const rc = lmks[454];
@@ -221,6 +256,40 @@ function AnalysisPanelInner({
               const le = lmks[33];
               const re = lmks[263];
               pitch = (nose.y - (le.y + re.y) / 2) * 180;
+
+              // Compute bounding box from all landmarks
+              let minX = 1, maxX = 0, minY = 1, maxY = 0;
+              for (const pt of lmks) {
+                if (pt.x < minX) minX = pt.x;
+                if (pt.x > maxX) maxX = pt.x;
+                if (pt.y < minY) minY = pt.y;
+                if (pt.y > maxY) maxY = pt.y;
+              }
+              // Add some padding (15% of face size)
+              const padX = (maxX - minX) * 0.15;
+              const padY = (maxY - minY) * 0.15;
+              minX = Math.max(0, minX - padX);
+              maxX = Math.min(1, maxX + padX);
+              minY = Math.max(0, minY - padY);
+              maxY = Math.min(1, maxY + padY);
+
+              faceBoundingBox = {
+                x: minX,
+                y: minY,
+                width: maxX - minX,
+                height: maxY - minY,
+              };
+
+              // Check if face is partially out of frame
+              const EDGE_THRESH = 0.03;
+              if (
+                minX < EDGE_THRESH ||
+                maxX > 1 - EDGE_THRESH ||
+                minY < EDGE_THRESH ||
+                maxY > 1 - EDGE_THRESH
+              ) {
+                partiallyOutOfFrame = true;
+              }
             }
           }
         } catch {
@@ -275,6 +344,16 @@ function AnalysisPanelInner({
         engagement: Math.round(engagement),
         headPose: { yaw: Math.round(yaw), pitch: Math.round(pitch) },
         coachingNudge,
+      });
+
+      // Pass face position data to parent
+      onFacePositionRef.current?.({
+        faceDetected,
+        boundingBox: faceBoundingBox,
+        partiallyOutOfFrame,
+        landmarks: rawLandmarks,
+        blendshapes: blendshapeScores,
+        headPose: { yaw, pitch },
       });
     }, 350);
 
