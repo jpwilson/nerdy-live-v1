@@ -18,6 +18,8 @@ final class LiveKitService: NSObject, ObservableObject {
     @Published private(set) var remoteVideoTrack: VideoTrack?
     @Published private(set) var localVideoTrack: VideoTrack?
     @Published var isMicrophoneEnabled = true
+    @Published var isCameraEnabled = true
+    @Published var cameraPosition: AVCaptureDevice.Position = .front
 
     var connectionStatePublisher: AnyPublisher<WebRTCConnectionState, Never> {
         $connectionState.eraseToAnyPublisher()
@@ -50,8 +52,8 @@ final class LiveKitService: NSObject, ObservableObject {
         do {
             try await room.connect(url: LiveKitConfig.url, token: token)
 
-            // Enable camera and microphone
-            try await room.localParticipant.setCamera(enabled: true)
+            // Enable camera (front-facing) and microphone
+            try await room.localParticipant.setCamera(enabled: true, captureOptions: CameraCaptureOptions(position: .front))
             try await room.localParticipant.setMicrophone(enabled: true)
 
             // Grab local video track
@@ -79,6 +81,32 @@ final class LiveKitService: NSObject, ObservableObject {
         isMicrophoneEnabled = next
         Task {
             try? await room?.localParticipant.setMicrophone(enabled: next)
+        }
+    }
+
+    func toggleCamera() {
+        let next = !isCameraEnabled
+        isCameraEnabled = next
+        Task {
+            try? await room?.localParticipant.setCamera(enabled: next, captureOptions: CameraCaptureOptions(position: cameraPosition))
+            if next {
+                if let pub = room?.localParticipant.localVideoTracks.first,
+                   let track = pub.track as? VideoTrack {
+                    localVideoTrack = track
+                }
+            }
+        }
+    }
+
+    func switchCamera() {
+        let next: AVCaptureDevice.Position = cameraPosition == .front ? .back : .front
+        cameraPosition = next
+        Task {
+            try? await room?.localParticipant.setCamera(enabled: true, captureOptions: CameraCaptureOptions(position: next))
+            if let pub = room?.localParticipant.localVideoTracks.first,
+               let track = pub.track as? VideoTrack {
+                localVideoTrack = track
+            }
         }
     }
 

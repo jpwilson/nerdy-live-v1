@@ -403,8 +403,8 @@ struct SessionView: View {
 
                         Spacer()
 
-                        // Mute button
                         #if canImport(LiveKit)
+                        // Mute button
                         Button(action: { viewModel.liveKitService.toggleMicrophone() }) {
                             Image(systemName: viewModel.isMicrophoneEnabled ? "mic.fill" : "mic.slash.fill")
                                 .font(.title3)
@@ -424,6 +424,20 @@ struct SessionView: View {
                                             : Color.red.opacity(0.4),
                                         lineWidth: 1
                                     )
+                                )
+                        }
+
+                        // Switch camera button
+                        Button(action: { viewModel.liveKitService.switchCamera() }) {
+                            Image(systemName: "camera.rotate.fill")
+                                .font(.title3)
+                                .foregroundColor(.white)
+                                .frame(width: 48, height: 48)
+                                .background(
+                                    Circle().fill(Color.white.opacity(0.15))
+                                )
+                                .overlay(
+                                    Circle().stroke(Color.white.opacity(0.2), lineWidth: 1)
                                 )
                         }
                         #endif
