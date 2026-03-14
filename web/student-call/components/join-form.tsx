@@ -307,9 +307,9 @@ export function JoinForm() {
               checked={role === "tutor_preview"}
               onChange={() => setRole("tutor_preview")}
             />
-            <strong>Tutor preview</strong>
+            <strong>Tutor</strong>
             <span>
-              Browser fallback for rehearsing the call before the iOS app joins.
+              Join as tutor to view student engagement analysis in real time.
             </span>
           </label>
         </div>

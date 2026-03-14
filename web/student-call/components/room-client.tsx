@@ -104,7 +104,7 @@ function RoomClient({
   });
 
   const isTutor = role === "tutor_preview";
-  const { metrics, modelLoading, modelReady } = useStudentAnalysis(
+  const { metrics, modelLoading, modelReady, modelError } = useStudentAnalysis(
     remoteStream,
     isTutor,
   );
@@ -268,6 +268,7 @@ function RoomClient({
               metrics={metrics}
               modelLoading={modelLoading}
               modelReady={modelReady}
+              modelError={modelError}
             />
           )}
 

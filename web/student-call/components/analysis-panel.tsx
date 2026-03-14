@@ -33,11 +33,24 @@ export function AnalysisPanel({
   metrics,
   modelLoading,
   modelReady,
+  modelError,
 }: {
   metrics: StudentMetrics;
   modelLoading: boolean;
   modelReady: boolean;
+  modelError: string | null;
 }) {
+  if (modelError) {
+    return (
+      <section className="sidebar-card analysis-card">
+        <h3>Student Analysis</h3>
+        <p className="analysis-loading" style={{ color: "var(--danger)" }}>
+          Analysis failed: {modelError}
+        </p>
+      </section>
+    );
+  }
+
   if (modelLoading) {
     return (
       <section className="sidebar-card analysis-card">

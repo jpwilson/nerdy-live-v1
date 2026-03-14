@@ -38,6 +38,7 @@ export function useStudentAnalysis(
   const [metrics, setMetrics] = useState<StudentMetrics>(INITIAL);
   const [modelLoading, setModelLoading] = useState(false);
   const [modelReady, setModelReady] = useState(false);
+  const [modelError, setModelError] = useState<string | null>(null);
 
   // Refs for long-lived objects
   const landmarkerRef = useRef<any>(null);
@@ -78,6 +79,7 @@ export function useStudentAnalysis(
         }
       } catch (err) {
         console.error("[analysis] FaceLandmarker init failed:", err);
+        if (!cancelled) setModelError(err instanceof Error ? err.message : String(err));
       } finally {
         if (!cancelled) setModelLoading(false);
       }
@@ -253,5 +255,5 @@ export function useStudentAnalysis(
     };
   }, [enabled, modelReady]);
 
-  return { metrics, modelLoading, modelReady };
+  return { metrics, modelLoading, modelReady, modelError };
 }

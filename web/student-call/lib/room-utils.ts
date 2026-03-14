@@ -14,7 +14,7 @@ export function createRoomId(): string {
 }
 
 export function defaultDisplayName(role: RoomRole): string {
-  return role === "student" ? "Student Guest" : "Tutor Preview";
+  return role === "student" ? "Student Guest" : "Tutor";
 }
 
 export function parseRole(input: string | null | undefined): RoomRole {
@@ -23,7 +23,7 @@ export function parseRole(input: string | null | undefined): RoomRole {
 
 export function roleLabel(role: RoomRole): string {
   if (role === "tutor") return "Tutor (iOS)";
-  if (role === "tutor_preview") return "Tutor preview";
+  if (role === "tutor_preview") return "Tutor";
   return "Student";
 }
 

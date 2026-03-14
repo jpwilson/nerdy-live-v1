@@ -255,7 +255,16 @@ export function useWebRtcRoom({
     };
 
     stream.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, stream);
+      const sender = peerConnection.addTrack(track, stream);
+      // Boost video bitrate for better quality
+      if (track.kind === "video") {
+        const params = sender.getParameters();
+        if (!params.encodings || params.encodings.length === 0) {
+          params.encodings = [{}];
+        }
+        params.encodings[0].maxBitrate = 2_500_000; // 2.5 Mbps
+        sender.setParameters(params).catch(() => {});
+      }
     });
 
     peerConnectionRef.current = peerConnection;
