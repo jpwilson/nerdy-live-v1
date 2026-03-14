@@ -283,20 +283,28 @@ export function useLiveKitRoom({
     };
   }, [roomId, displayName, role, rebuildRemoteStream, syncState]);
 
-  const toggleMicrophone = useCallback(() => {
+  const toggleMicrophone = useCallback(async () => {
     const room = roomRef.current;
     if (!room) return;
     const next = !isMicrophoneEnabled;
-    room.localParticipant.setMicrophoneEnabled(next);
-    setIsMicrophoneEnabled(next);
+    try {
+      await room.localParticipant.setMicrophoneEnabled(next);
+      setIsMicrophoneEnabled(next);
+    } catch (err) {
+      console.error("[livekit] toggleMicrophone failed:", err);
+    }
   }, [isMicrophoneEnabled]);
 
-  const toggleCamera = useCallback(() => {
+  const toggleCamera = useCallback(async () => {
     const room = roomRef.current;
     if (!room) return;
     const next = !isCameraEnabled;
-    room.localParticipant.setCameraEnabled(next);
-    setIsCameraEnabled(next);
+    try {
+      await room.localParticipant.setCameraEnabled(next);
+      setIsCameraEnabled(next);
+    } catch (err) {
+      console.error("[livekit] toggleCamera failed:", err);
+    }
   }, [isCameraEnabled]);
 
   const hangUp = useCallback(async () => {

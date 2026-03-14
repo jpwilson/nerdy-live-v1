@@ -483,21 +483,25 @@ function AnalysisPanelInner({
             bh.push(blinkAvg > 0.5 ? 1 : 0);
             if (bh.length > 60) bh.shift();
 
+            // Eye contact: in video calls, looking at the screen (slightly down/forward)
+            // IS engaged behavior. Only flag as disengaged when looking away from screen
+            // (significantly sideways, or upward away from monitor).
             const hDev =
               ((s.eyeLookInLeft ?? 0) +
                 (s.eyeLookOutLeft ?? 0) +
                 (s.eyeLookInRight ?? 0) +
                 (s.eyeLookOutRight ?? 0)) /
               4;
-            const vDev =
-              ((s.eyeLookUpLeft ?? 0) +
-                (s.eyeLookUpRight ?? 0) +
-                (s.eyeLookDownLeft ?? 0) +
-                (s.eyeLookDownRight ?? 0)) /
-              4;
+            // Looking down is normal in video calls (screen is below camera).
+            // Only penalize strongly for looking UP (away from screen) or extreme down.
+            const lookUp = ((s.eyeLookUpLeft ?? 0) + (s.eyeLookUpRight ?? 0)) / 2;
+            const lookDown = ((s.eyeLookDownLeft ?? 0) + (s.eyeLookDownRight ?? 0)) / 2;
+            // Moderate downward gaze (<0.45) is screen-looking — tolerate it
+            const vDev = Math.max(lookUp, Math.max(0, lookDown - 0.45));
+            // Horizontal gaze is the primary disengagement signal
             eyeContact = Math.max(
               0,
-              Math.min(1, 1 - Math.max(hDev, vDev) * 3),
+              Math.min(1, 1 - (hDev * 2.5 + vDev * 1.5)),
             );
 
             if (result.faceLandmarks?.length > 0) {
@@ -692,39 +696,42 @@ function AnalysisPanelInner({
         return now - last > 300_000; // 5 min suppress per category
       };
 
-      // HIGH priority nudges
+      // HIGH priority — actionable pedagogical suggestions
       if (canHighPriority) {
         if (!faceDetected && lm && noFaceCountRef.current > 10 && categoryNotRecent("engagement")) {
           pendingNudge = { id: `nudge-${now}`, priority: "high", category: "engagement",
-            message: "Student has been off-camera — check if they're still there.", timestamp: now };
+            message: "Try: \"Hey, are you still with me? Everything okay?\"", timestamp: now };
         } else if (engagement < 20 && eh.length > 10 && categoryNotRecent("engagement")) {
           pendingNudge = { id: `nudge-${now}`, priority: "high", category: "engagement",
-            message: "Very low engagement — try a direct question or activity change.", timestamp: now };
+            message: "Try: \"Let's pause — can you explain back to me what we just covered?\"", timestamp: now };
         }
       }
 
-      // MEDIUM priority nudges
+      // MEDIUM priority — practical teaching suggestions
       if (!pendingNudge && canNudge) {
-        if (ecSmoothed < 30 && eh.length > 10 && categoryNotRecent("attention")) {
-          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "attention",
-            message: "Low eye contact (30s avg) — student may be distracted.", timestamp: now };
-        } else if (spk < 10 && sh.length > 20 && categoryNotRecent("talk_balance")) {
+        if (spk < 10 && sh.length > 20 && categoryNotRecent("talk_balance")) {
           pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "talk_balance",
-            message: "Student hasn't spoken much — try an open-ended question.", timestamp: now };
+            message: "Try: \"What do you think the next step would be?\" — let them think aloud.", timestamp: now };
         } else if (expressions.some(e => e.name === "Yawning") && categoryNotRecent("engagement")) {
           pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "engagement",
-            message: "Student appears tired — consider a short break.", timestamp: now };
+            message: "Try: \"Let's take a 2-minute break — stretch, get water, then we'll pick up.\"", timestamp: now };
         } else if (expressions.some(e => e.name === "Frowning" && e.interpretation === "Possibly confused") && categoryNotRecent("technique")) {
           pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "technique",
-            message: "Student looks confused — try rephrasing or asking what's unclear.", timestamp: now };
+            message: "Try: \"What part is tricky? Walk me through where you got stuck.\"", timestamp: now };
+        } else if (expressions.some(e => e.name === "Frustrated") && categoryNotRecent("technique")) {
+          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "technique",
+            message: "Try: \"This is a tough one — let's break it into smaller pieces together.\"", timestamp: now };
+        } else if (ecSmoothed < 25 && eh.length > 10 && categoryNotRecent("attention")) {
+          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "attention",
+            message: "Try: \"What are you thinking about right now?\" — check in gently.", timestamp: now };
         }
       }
 
-      // LOW priority — positive reinforcement
+      // LOW priority — positive reinforcement (important for tutor morale)
       if (!pendingNudge && canNudge && now - sessionStartRef.current > 180_000) {
-        if (ecSmoothed > 70 && engagement > 65 && categoryNotRecent("positive")) {
+        if (engagement > 65 && categoryNotRecent("positive")) {
           pendingNudge = { id: `nudge-${now}`, priority: "low", category: "positive",
-            message: "Great engagement — student is very attentive right now!", timestamp: now };
+            message: "Student is engaged and following along — nice work!", timestamp: now };
         }
       }
 
@@ -843,6 +850,24 @@ function AnalysisPanelInner({
           </select>
         )}
       </div>
+
+      {/* Collapsed: show engagement spectrum bar */}
+      {collapsed && status === "ready" && (
+        <div className="collapsed-engagement">
+          <div className="collapsed-eng-bar">
+            <div
+              className="collapsed-eng-fill"
+              style={{
+                width: `${metrics.engagement}%`,
+                background: colorForValue(metrics.engagement),
+              }}
+            />
+          </div>
+          <span className="collapsed-eng-label" style={{ color: colorForValue(metrics.engagement) }}>
+            {metrics.engagement}%
+          </span>
+        </div>
+      )}
 
       {!collapsed && (
         <>

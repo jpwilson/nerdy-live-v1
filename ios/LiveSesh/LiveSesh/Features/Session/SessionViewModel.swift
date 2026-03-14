@@ -29,6 +29,9 @@ final class SessionViewModel: ObservableObject {
     @Published var latestGaze: GazeEstimation?
     @Published var latestExpression: FacialExpression?
 
+    // Forwarded from LiveKitService so SwiftUI observes changes
+    @Published var isMicrophoneEnabled = true
+
     private var session: LiveSession?
     private var cancellables = Set<AnyCancellable>()
     private var sessionTimer: Timer?
@@ -179,6 +182,11 @@ final class SessionViewModel: ObservableObject {
                 self?.handleLiveKitRemoteVideoTrackChange(track)
             }
             .store(in: &cancellables)
+
+        // Forward mic state so SwiftUI can observe it
+        liveKitService.$isMicrophoneEnabled
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$isMicrophoneEnabled)
         #endif
     }
 

@@ -25,6 +25,9 @@ final class StudentSessionViewModel: ObservableObject {
     // Self-metrics from local camera
     @Published var selfEyeContact: Double = 0
 
+    // Forwarded from LiveKitService so SwiftUI observes changes
+    @Published var isMicrophoneEnabled = true
+
     private var cancellables = Set<AnyCancellable>()
 
     #if canImport(LiveKit)
@@ -77,6 +80,19 @@ final class StudentSessionViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        // Force SwiftUI re-render when remote video track changes
+        liveKitService.$remoteVideoTrack
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
+        // Forward mic state so SwiftUI can observe it
+        liveKitService.$isMicrophoneEnabled
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$isMicrophoneEnabled)
         #elseif canImport(WebRTC)
         webRTCService.connectionStatePublisher
             .receive(on: DispatchQueue.main)

@@ -638,8 +638,8 @@ function RoomClient({
             />
           )}
 
-          <section className="sidebar-card">
-            <h3>Room state</h3>
+          <details className="sidebar-card details-card">
+            <summary className="details-summary">Room info</summary>
             <ul className="detail-list">
               <li>
                 <span>Status</span>
@@ -650,38 +650,25 @@ function RoomClient({
                 <strong>{participants.length}</strong>
               </li>
               <li>
-                <span>Current role</span>
+                <span>Role</span>
                 <strong>{roleLabel(role)}</strong>
               </li>
-              <li>
-                <span>Peer id</span>
-                <strong className="mono">{localPeerId.slice(0, 8)}</strong>
-              </li>
             </ul>
-          </section>
-
-          <section className="sidebar-card">
-            <h3>Presence</h3>
-            <ul className="participant-list">
-              {participants.length === 0 ? (
-                <li>
-                  <span>No one is in the room yet.</span>
-                </li>
-              ) : (
-                participants.map((participant) => (
+            {participants.length > 0 && (
+              <ul className="participant-list" style={{ marginTop: 8 }}>
+                {participants.map((participant) => (
                   <li key={participant.peerId}>
                     <div>
                       <strong>{participant.displayName}</strong>
                     </div>
                     <div className="participant-meta">
                       <span>{roleLabel(participant.role)}</span>
-                      <span>{formatJoinedAt(participant.joinedAt)}</span>
                     </div>
                   </li>
-                ))
-              )}
-            </ul>
-          </section>
+                ))}
+              </ul>
+            )}
+          </details>
 
           {extraPeerCount > 0 ? (
             <section className="message warning">
