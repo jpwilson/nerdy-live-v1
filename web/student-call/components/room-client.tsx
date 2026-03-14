@@ -14,22 +14,17 @@ import {
 } from "@/lib/room-utils";
 import { useLiveKitRoom } from "@/lib/use-livekit-room";
 import { StudentAnalysisCard, type FacePositionData, type OverlayMode } from "@/components/analysis-panel";
-
-// ── MediaPipe face mesh connectivity (Tesselation subset for wireframe) ──
-// These are the standard MediaPipe FACEMESH_TESSELATION connections
-const FACE_OVAL = [
-  10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
-  397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
-  172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10,
-];
-const LEFT_EYE = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246, 33];
-const RIGHT_EYE = [362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398, 362];
-const LEFT_EYEBROW = [70, 63, 105, 66, 107, 55, 65, 52, 53, 46];
-const RIGHT_EYEBROW = [300, 293, 334, 296, 336, 285, 295, 282, 283, 276];
-const LIPS_OUTER = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 409, 270, 269, 267, 0, 37, 39, 40, 185, 61];
-const LIPS_INNER = [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308, 415, 310, 311, 312, 13, 82, 81, 80, 191, 78];
-const NOSE_BRIDGE = [168, 6, 197, 195, 5, 4, 1, 19];
-// Left iris center = 468, Right iris center = 473
+import {
+  FACEMESH_TESSELATION,
+  FACE_OVAL,
+  LEFT_EYE,
+  RIGHT_EYE,
+  LEFT_EYEBROW,
+  RIGHT_EYEBROW,
+  LIPS_OUTER,
+  LIPS_INNER,
+  NOSE_BRIDGE,
+} from "@/lib/face-mesh-data";
 
 function drawFaceMesh(
   ctx: CanvasRenderingContext2D,
@@ -45,8 +40,28 @@ function drawFaceMesh(
   const toX = (i: number) => lm[i].x * w;
   const toY = (i: number) => lm[i].y * h;
 
-  // Draw wireframe connections
-  const drawPath = (indices: number[], color: string, lineWidth: number, close = false) => {
+  // 1. Draw full tessellation wireframe (low opacity, thin lines)
+  ctx.strokeStyle = "rgba(0, 212, 170, 0.12)";
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  for (const [a, b] of FACEMESH_TESSELATION) {
+    if (a < lm.length && b < lm.length) {
+      ctx.moveTo(lm[a].x * w, lm[a].y * h);
+      ctx.lineTo(lm[b].x * w, lm[b].y * h);
+    }
+  }
+  ctx.stroke();
+
+  // 2. Draw all landmark dots (small, low opacity)
+  ctx.fillStyle = "rgba(0, 212, 170, 0.15)";
+  for (let i = 0; i < Math.min(lm.length, 468); i++) {
+    ctx.beginPath();
+    ctx.arc(lm[i].x * w, lm[i].y * h, 0.7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 3. Draw feature paths on top with higher visibility
+  const drawPath = (indices: number[], color: string, lineWidth: number) => {
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.beginPath();
@@ -54,43 +69,27 @@ function drawFaceMesh(
     for (let i = 1; i < indices.length; i++) {
       ctx.lineTo(toX(indices[i]), toY(indices[i]));
     }
-    if (close) ctx.closePath();
     ctx.stroke();
   };
 
-  // Face oval
-  drawPath(FACE_OVAL, "rgba(0, 212, 170, 0.5)", 1.5);
-  // Eyes
-  drawPath(LEFT_EYE, "rgba(0, 212, 170, 0.7)", 1.5);
-  drawPath(RIGHT_EYE, "rgba(0, 212, 170, 0.7)", 1.5);
-  // Eyebrows
+  drawPath(FACE_OVAL, "rgba(0, 212, 170, 0.45)", 1.2);
+  drawPath(LEFT_EYE, "rgba(0, 212, 170, 0.65)", 1.3);
+  drawPath(RIGHT_EYE, "rgba(0, 212, 170, 0.65)", 1.3);
   drawPath(LEFT_EYEBROW, "rgba(0, 212, 170, 0.4)", 1);
   drawPath(RIGHT_EYEBROW, "rgba(0, 212, 170, 0.4)", 1);
-  // Lips
   drawPath(LIPS_OUTER, "rgba(0, 212, 170, 0.5)", 1.2);
   drawPath(LIPS_INNER, "rgba(0, 212, 170, 0.4)", 1);
-  // Nose
-  drawPath(NOSE_BRIDGE, "rgba(0, 212, 170, 0.4)", 1);
+  drawPath(NOSE_BRIDGE, "rgba(0, 212, 170, 0.35)", 0.8);
 
-  // Draw landmark dots (sparse — every 5th point for performance)
-  ctx.fillStyle = "rgba(0, 212, 170, 0.3)";
-  for (let i = 0; i < lm.length; i += 5) {
-    ctx.beginPath();
-    ctx.arc(lm[i].x * w, lm[i].y * h, 1, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Draw iris centers with bigger dots
+  // 4. Iris centers + gaze arrows
   if (lm.length > 473) {
     ctx.fillStyle = "rgba(0, 212, 170, 0.9)";
     for (const idx of [468, 473]) {
       ctx.beginPath();
-      ctx.arc(toX(idx), toY(idx), 3, 0, Math.PI * 2);
+      ctx.arc(toX(idx), toY(idx), 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Gaze direction arrows from iris centers
-    // Use eye look blendshapes to determine gaze direction
     if (blendshapes) {
       const gazeX =
         -(blendshapes.eyeLookInLeft ?? 0) +
@@ -99,9 +98,9 @@ function drawFaceMesh(
         -(blendshapes.eyeLookUpLeft ?? 0) +
         (blendshapes.eyeLookDownLeft ?? 0);
 
-      const arrowLen = 30;
-      ctx.strokeStyle = "rgba(0, 212, 170, 0.85)";
-      ctx.lineWidth = 2;
+      const arrowLen = 25;
+      ctx.strokeStyle = "rgba(0, 212, 170, 0.8)";
+      ctx.lineWidth = 1.5;
 
       for (const irisIdx of [468, 473]) {
         const ix = toX(irisIdx);
@@ -116,9 +115,8 @@ function drawFaceMesh(
         ctx.lineTo(ex, ey);
         ctx.stroke();
 
-        // Arrowhead
         const angle = Math.atan2(dy, dx);
-        const headLen = 6;
+        const headLen = 5;
         ctx.beginPath();
         ctx.moveTo(ex, ey);
         ctx.lineTo(
@@ -132,37 +130,6 @@ function drawFaceMesh(
         );
         ctx.stroke();
       }
-    }
-  }
-
-  // Expression labels from blendshapes
-  if (blendshapes) {
-    const expressions: Array<{ name: string; label: string }> = [
-      { name: "mouthSmileLeft", label: "Smiling" },
-      { name: "browInnerUp", label: "Surprised" },
-      { name: "browDownLeft", label: "Frowning" },
-      { name: "mouthOpen", label: "Mouth open" },
-      { name: "eyeSquintLeft", label: "Squinting" },
-    ];
-
-    const active = expressions.filter(
-      (e) => (blendshapes[e.name] ?? 0) > 0.4,
-    );
-
-    if (active.length > 0) {
-      ctx.font = "bold 13px 'Avenir Next', sans-serif";
-      ctx.textAlign = "left";
-      const labelX = Math.min(toX(234), w - 120);
-      const labelY = Math.max(toY(152) + 20, 30);
-
-      active.forEach((expr, i) => {
-        const y = labelY + i * 20;
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        const textW = ctx.measureText(expr.label).width;
-        ctx.fillRect(labelX - 4, y - 12, textW + 8, 18);
-        ctx.fillStyle = "rgba(0, 212, 170, 0.95)";
-        ctx.fillText(expr.label, labelX, y);
-      });
     }
   }
 }

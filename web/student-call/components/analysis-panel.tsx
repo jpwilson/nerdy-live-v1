@@ -21,13 +21,29 @@ interface StudentMetrics {
   engagement: number;
   headPose: { yaw: number; pitch: number };
   coachingNudge: string | null;
-  // New metrics
   expressions: FacialExpression[];
   attentionDrift: number; // 0-100, higher = more drifting
   interruptionCount: number;
   energyLevel: number; // 0-100
   facePosY: number; // normalized face Y position (for posture tracking)
+  gazeDirection: string; // "center" | "left" | "right" | "up" | "down"
+  localSpeaking: boolean; // tutor speaking
 }
+
+/** Structured coaching nudge */
+interface CoachingNudge {
+  id: string;
+  priority: "high" | "medium" | "low";
+  category: "engagement" | "talk_balance" | "positive" | "technique" | "attention";
+  message: string;
+  timestamp: number;
+}
+
+/** All 9 tracked expression types */
+const ALL_EXPRESSIONS = [
+  "Smiling", "Frowning", "Surprised", "Squinting", "Yawning",
+  "Lip pressing", "Mouth puckered", "Frustrated", "Focused",
+] as const;
 
 /** Face position data exposed to parent for centering + overlay */
 export interface FacePositionData {
@@ -59,7 +75,14 @@ const INITIAL_METRICS: StudentMetrics = {
   interruptionCount: 0,
   energyLevel: 50,
   facePosY: 0.5,
+  gazeDirection: "center",
+  localSpeaking: false,
 };
+
+// EMA helper
+function ema(prev: number, next: number, alpha: number): number {
+  return prev + alpha * (next - prev);
+}
 
 // ── Expression Detection from Blendshapes ───────────────────────
 function detectExpressions(bs: Record<string, number>): FacialExpression[] {
@@ -261,6 +284,24 @@ function AnalysisPanelInner({
 }) {
   const [metrics, setMetrics] = useState<StudentMetrics>(INITIAL_METRICS);
   const [status, setStatus] = useState("Initializing…");
+  const [activeTab, setActiveTab] = useState<"live" | "trends">("live");
+  const [collapsed, setCollapsed] = useState(false);
+  const [nudges, setNudges] = useState<CoachingNudge[]>([]);
+  const [toastNudge, setToastNudge] = useState<CoachingNudge | null>(null);
+
+  // EMA-smoothed values for Trends tab (alpha=0.1 for slow smoothing)
+  const emaEngagementRef = useRef(50);
+  const emaEyeContactRef = useRef(50);
+  const emaEnergyRef = useRef(50);
+  const emaDriftRef = useRef(0);
+  const emaSpeakingRef = useRef(30);
+  const emaMoodRef = useRef<string>("Neutral");
+
+  // Coaching nudge system state
+  const lastNudgeTimeRef = useRef(0);
+  const nudgeCountRef = useRef(0);
+  const lastNudgeCategoryRef = useRef<Record<string, number>>({});
+  const sessionStartRef = useRef(Date.now());
 
   const landmarkerRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -612,34 +653,89 @@ function AnalysisPanelInner({
           ))
         : 0;
 
-      // Richer coaching nudges with priority
+      // Gaze direction from head pose
+      let gazeDirection = "center";
+      if (Math.abs(yaw) > 15) gazeDirection = yaw > 0 ? "right" : "left";
+      else if (Math.abs(pitch) > 12) gazeDirection = pitch > 0 ? "down" : "up";
+
+      // Update EMA-smoothed values for trends (alpha=0.1)
+      emaEngagementRef.current = ema(emaEngagementRef.current, engagement, 0.1);
+      emaEyeContactRef.current = ema(emaEyeContactRef.current, ecSmoothed, 0.1);
+      emaEnergyRef.current = ema(emaEnergyRef.current, energyLevel, 0.1);
+      emaDriftRef.current = ema(emaDriftRef.current, attentionDrift, 0.1);
+      emaSpeakingRef.current = ema(emaSpeakingRef.current, spk, 0.1);
+
+      // Determine mood from dominant expression
+      if (expressions.length > 0) {
+        const dominant = expressions.reduce((a, b) => a.confidence > b.confidence ? a : b);
+        const moodMap: Record<string, string> = {
+          "Smiling": "Positive", "Focused": "Attentive", "Surprised": "Curious",
+          "Frowning": "Concentrating", "Frustrated": "Struggling", "Yawning": "Tired",
+          "Squinting": "Uncertain", "Lip pressing": "Thoughtful", "Mouth puckered": "Thinking",
+        };
+        emaMoodRef.current = moodMap[dominant.name] || "Neutral";
+      } else if (!faceDetected) {
+        emaMoodRef.current = "Unknown";
+      }
+
+      // Structured coaching nudge system with cooldowns
+      const now = Date.now();
+      const timeSinceLastNudge = now - lastNudgeTimeRef.current;
+      const canNudge = timeSinceLastNudge > 120_000 && nudgeCountRef.current < 5; // 2 min cooldown, max 5
+      const canHighPriority = timeSinceLastNudge > 60_000 && nudgeCountRef.current < 5; // 1 min for high priority
+
       let coachingNudge: string | null = null;
-      if (!faceDetected && lm) {
-        coachingNudge = noFaceCountRef.current > 10
-          ? "Student has been off-camera for a while — check if they're still there."
-          : "No face detected — student may have stepped away.";
-      } else if (attentionDrift > 70 && eh.length > 10) {
-        coachingNudge = "High attention drift — try engaging with a direct question or activity change.";
-      } else if (ecSmoothed < 25 && eh.length > 10) {
-        coachingNudge = "Very low eye contact — student may be distracted. Try calling their name.";
-      } else if (ecSmoothed < 40 && eh.length > 10) {
-        coachingNudge = "Low eye contact — try asking what they're looking at or if they need help.";
-      } else if (expressions.some(e => e.name === "Yawning")) {
-        coachingNudge = "Student appears tired — consider a short break or activity change.";
-      } else if (expressions.some(e => e.name === "Frowning" && e.interpretation === "Possibly confused")) {
-        coachingNudge = "Student looks confused — try rephrasing or asking what's unclear.";
-      } else if (spk < 10 && sh.length > 20) {
-        coachingNudge = "Student hasn't spoken much — try asking an open-ended question.";
-      } else if (interruptCountRef.current > 3) {
-        coachingNudge = `${interruptCountRef.current} speaking overlaps detected — try pausing more before responding.`;
-      } else if (fph.length > 15) {
-        const recentPos = fph.slice(-10);
-        const earlyPos = fph.slice(0, 10);
-        const recentAvg = recentPos.reduce((a, b) => a + b, 0) / recentPos.length;
-        const earlyAvg = earlyPos.reduce((a, b) => a + b, 0) / earlyPos.length;
-        if (recentAvg - earlyAvg > 0.08) {
-          coachingNudge = "Student appears to be slouching — posture has shifted downward.";
+      let pendingNudge: CoachingNudge | null = null;
+
+      const categoryNotRecent = (cat: string) => {
+        const last = lastNudgeCategoryRef.current[cat] || 0;
+        return now - last > 300_000; // 5 min suppress per category
+      };
+
+      // HIGH priority nudges
+      if (canHighPriority) {
+        if (!faceDetected && lm && noFaceCountRef.current > 10 && categoryNotRecent("engagement")) {
+          pendingNudge = { id: `nudge-${now}`, priority: "high", category: "engagement",
+            message: "Student has been off-camera — check if they're still there.", timestamp: now };
+        } else if (engagement < 20 && eh.length > 10 && categoryNotRecent("engagement")) {
+          pendingNudge = { id: `nudge-${now}`, priority: "high", category: "engagement",
+            message: "Very low engagement — try a direct question or activity change.", timestamp: now };
         }
+      }
+
+      // MEDIUM priority nudges
+      if (!pendingNudge && canNudge) {
+        if (ecSmoothed < 30 && eh.length > 10 && categoryNotRecent("attention")) {
+          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "attention",
+            message: "Low eye contact (30s avg) — student may be distracted.", timestamp: now };
+        } else if (spk < 10 && sh.length > 20 && categoryNotRecent("talk_balance")) {
+          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "talk_balance",
+            message: "Student hasn't spoken much — try an open-ended question.", timestamp: now };
+        } else if (expressions.some(e => e.name === "Yawning") && categoryNotRecent("engagement")) {
+          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "engagement",
+            message: "Student appears tired — consider a short break.", timestamp: now };
+        } else if (expressions.some(e => e.name === "Frowning" && e.interpretation === "Possibly confused") && categoryNotRecent("technique")) {
+          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "technique",
+            message: "Student looks confused — try rephrasing or asking what's unclear.", timestamp: now };
+        }
+      }
+
+      // LOW priority — positive reinforcement
+      if (!pendingNudge && canNudge && now - sessionStartRef.current > 180_000) {
+        if (ecSmoothed > 70 && engagement > 65 && categoryNotRecent("positive")) {
+          pendingNudge = { id: `nudge-${now}`, priority: "low", category: "positive",
+            message: "Great engagement — student is very attentive right now!", timestamp: now };
+        }
+      }
+
+      if (pendingNudge) {
+        coachingNudge = pendingNudge.message;
+        lastNudgeTimeRef.current = now;
+        nudgeCountRef.current++;
+        lastNudgeCategoryRef.current[pendingNudge.category] = now;
+        setNudges(prev => [...prev.slice(-9), pendingNudge!]);
+        setToastNudge(pendingNudge);
+        setTimeout(() => setToastNudge(prev => prev?.id === pendingNudge!.id ? null : prev), 5000);
       }
 
       setMetrics({
@@ -656,6 +752,8 @@ function AnalysisPanelInner({
         interruptionCount: interruptCountRef.current,
         energyLevel,
         facePosY: faceCenterY,
+        gazeDirection,
+        localSpeaking,
       });
 
       // Pass face position data to parent
@@ -673,42 +771,66 @@ function AnalysisPanelInner({
   }, []);
 
   // ── Render ──────────────────────────────────────────────────
-  const ecColor =
-    metrics.eyeContactSmoothed >= 60
-      ? "var(--success)"
-      : metrics.eyeContactSmoothed >= 30
-        ? "var(--warn)"
-        : "var(--danger)";
 
-  const engColor =
-    metrics.engagement >= 60
-      ? "var(--success)"
-      : metrics.engagement >= 30
-        ? "var(--warn)"
-        : "var(--danger)";
+  // Build the fixed expression list — all 9 always visible
+  const activeExprMap = new Map(metrics.expressions.map(e => [e.name, e]));
 
-  const driftColor =
-    metrics.attentionDrift <= 30
-      ? "var(--success)"
-      : metrics.attentionDrift <= 60
-        ? "var(--warn)"
-        : "var(--danger)";
-
-  const energyColor =
-    metrics.energyLevel >= 50
-      ? "var(--success)"
-      : metrics.energyLevel >= 25
-        ? "var(--warn)"
-        : "var(--danger)";
+  const colorForValue = (v: number, invert = false) => {
+    const good = invert ? v <= 30 : v >= 60;
+    const ok = invert ? v <= 60 : v >= 30;
+    return good ? "var(--success)" : ok ? "var(--warn)" : "var(--danger)";
+  };
 
   const expressionCategoryColor = (cat: string) =>
     cat === "positive" ? "var(--success)" : cat === "concern" ? "var(--warn)" : "var(--muted)";
 
+  // EMA rounded values for trends
+  const trendEngagement = Math.round(emaEngagementRef.current);
+  const trendEyeContact = Math.round(emaEyeContactRef.current);
+  const trendEnergy = Math.round(emaEnergyRef.current);
+  const trendDrift = Math.round(emaDriftRef.current);
+  const trendSpeaking = Math.round(emaSpeakingRef.current);
+
+  // Interpretation text
+  const engInterp = trendEngagement >= 65 ? "Attentive and participating well"
+    : trendEngagement >= 40 ? "Moderate — could use more interaction"
+    : "Low — consider changing approach";
+
+  const attentionInterp = trendDrift <= 25 ? "Low drift" : trendDrift <= 50 ? "Some drift" : "Distracted";
+  const attentionCheck = trendDrift <= 30 ? "\u2713" : trendDrift <= 50 ? "~" : "\u2717";
+
+  const energyInterp = trendEnergy >= 50 ? "Active and expressive"
+    : trendEnergy >= 25 ? "Moderate activity" : "Very quiet or still";
+
+  const talkTutor = 100 - trendSpeaking;
+  const talkInterp = talkTutor > 70 ? "Tutor talking too much"
+    : talkTutor > 55 ? "Tutor slightly dominant" : "Good balance";
+
+  const postureOk = metrics.facePosY < 0.6;
+
+  // Posture check
+  const postureFph = facePosHistRef.current;
+  let postureInterp = "Normal";
+  if (postureFph.length > 15) {
+    const recentPos = postureFph.slice(-10);
+    const earlyPos = postureFph.slice(0, 10);
+    const recentAvg = recentPos.reduce((a: number, b: number) => a + b, 0) / recentPos.length;
+    const earlyAvg = earlyPos.reduce((a: number, b: number) => a + b, 0) / earlyPos.length;
+    if (recentAvg - earlyAvg > 0.08) postureInterp = "Slouching detected";
+  }
+
+  // Latest nudge for trends
+  const latestNudge = nudges.length > 0 ? nudges[nudges.length - 1] : null;
+
   return (
-    <section className="sidebar-card analysis-card">
+    <section className={`sidebar-card analysis-card ${collapsed ? "analysis-collapsed" : ""}`}>
+      {/* Header with collapse toggle */}
       <div className="analysis-header">
-        <h3>Student Analysis</h3>
-        {onOverlayModeChange && (
+        <button className="analysis-collapse-btn" onClick={() => setCollapsed(c => !c)}>
+          <span className={`collapse-chevron ${collapsed ? "collapsed" : ""}`}>&#9660;</span>
+          <h3>Student Analysis</h3>
+        </button>
+        {onOverlayModeChange && !collapsed && (
           <select
             className="overlay-mode-select"
             value={overlayMode}
@@ -722,108 +844,228 @@ function AnalysisPanelInner({
         )}
       </div>
 
-      {status !== "ready" && (
-        <p className="analysis-loading">{status}</p>
-      )}
+      {!collapsed && (
+        <>
+          {status !== "ready" && (
+            <p className="analysis-loading">{status}</p>
+          )}
 
-      <div className="analysis-status">
-        <span
-          className={`analysis-dot ${metrics.faceDetected ? "detected" : "missing"}`}
-        />
-        <span>
-          {metrics.faceDetected ? "Face detected" : "No face detected"}
-        </span>
-      </div>
+          {/* Face status */}
+          <div className="analysis-status">
+            <span className={`analysis-dot ${metrics.faceDetected ? "detected" : "missing"}`} />
+            <span>{metrics.faceDetected ? "Face detected" : "No face detected"}</span>
+          </div>
 
-      {/* Core Engagement Metrics */}
-      <div className="metrics-grid">
-        <MetricBar
-          label="Engagement"
-          value={metrics.engagement}
-          color={engColor}
-        />
-        <MetricBar
-          label="Eye Contact"
-          value={metrics.eyeContactSmoothed}
-          color={ecColor}
-        />
-        <MetricBar
-          label="Attention Drift"
-          value={metrics.attentionDrift}
-          color={driftColor}
-          inverted
-        />
-        <MetricBar
-          label="Energy Level"
-          value={metrics.energyLevel}
-          color={energyColor}
-        />
-        <MetricBar
-          label="Speaking Time"
-          value={metrics.speakingTime}
-          color="var(--blue)"
-        />
-      </div>
+          {/* Tab switcher */}
+          <div className="analysis-tabs">
+            <button
+              className={`analysis-tab ${activeTab === "live" ? "active" : ""}`}
+              onClick={() => setActiveTab("live")}
+            >
+              Live
+            </button>
+            <button
+              className={`analysis-tab ${activeTab === "trends" ? "active" : ""}`}
+              onClick={() => setActiveTab("trends")}
+            >
+              Trends
+            </button>
+          </div>
 
-      {/* Detail rows */}
-      <div className="metric-details">
-        <div className="metric-detail-row">
-          <span>Speaking now</span>
-          <strong
-            style={{
-              color: metrics.isSpeaking ? "var(--success)" : "var(--muted)",
-            }}
-          >
-            {metrics.isSpeaking ? "Yes" : "No"}
-          </strong>
-        </div>
-        <div className="metric-detail-row">
-          <span>Interruptions</span>
-          <strong style={{ color: metrics.interruptionCount > 3 ? "var(--warn)" : "var(--ink)" }}>
-            {metrics.interruptionCount}
-          </strong>
-        </div>
-        <div className="metric-detail-row">
-          <span>Head yaw / pitch</span>
-          <strong>{metrics.headPose.yaw}° / {metrics.headPose.pitch}°</strong>
-        </div>
-      </div>
-
-      {/* Facial Expressions */}
-      {metrics.expressions.length > 0 && (
-        <div className="expressions-section">
-          <h4 className="expressions-title">Expressions</h4>
-          <div className="expressions-list">
-            {metrics.expressions.map((expr) => (
-              <div key={expr.name} className="expression-row">
-                <div className="expression-name">
-                  <span
-                    className="expression-dot"
-                    style={{ background: expressionCategoryColor(expr.category) }}
-                  />
-                  <span>{expr.name}</span>
-                </div>
-                <span className="expression-interp">{expr.interpretation}</span>
-                <div className="expression-bar-track">
-                  <div
-                    className="expression-bar-fill"
-                    style={{
-                      width: `${Math.round(expr.confidence * 100)}%`,
-                      background: expressionCategoryColor(expr.category),
-                    }}
-                  />
+          {/* ═══ LIVE TAB ═══ */}
+          {activeTab === "live" && (
+            <div className="tab-content">
+              {/* Expressions — all 9 always visible */}
+              <div className="live-section">
+                <h4 className="live-section-title">Expressions</h4>
+                <div className="expressions-grid">
+                  {ALL_EXPRESSIONS.map(name => {
+                    const active = activeExprMap.get(name);
+                    return (
+                      <div key={name} className={`expr-item ${active ? "expr-active" : "expr-inactive"}`}>
+                        <span
+                          className="expression-dot"
+                          style={{ background: active ? expressionCategoryColor(active.category) : "var(--text-muted)" }}
+                        />
+                        <span className="expr-label">{name}</span>
+                        <div className="expr-bar-track">
+                          <div
+                            className="expr-bar-fill"
+                            style={{
+                              width: active ? `${Math.round(active.confidence * 100)}%` : "0%",
+                              background: active ? expressionCategoryColor(active.category) : "transparent",
+                            }}
+                          />
+                        </div>
+                        <span className="expr-value">
+                          {active ? `${Math.round(active.confidence * 100)}%` : "\u2014"}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+
+              {/* Gaze & Attention */}
+              <div className="live-section">
+                <h4 className="live-section-title">Gaze & Attention</h4>
+                <div className="live-metrics">
+                  <div className="live-metric-row">
+                    <span>Eye contact</span>
+                    <span className="live-metric-val" style={{ color: colorForValue(metrics.eyeContactSmoothed) }}>
+                      {metrics.eyeContactSmoothed}%
+                    </span>
+                  </div>
+                  <div className="live-metric-row">
+                    <span>Gaze direction</span>
+                    <span className="live-metric-val">{metrics.gazeDirection}</span>
+                  </div>
+                  <div className="live-metric-row">
+                    <span>Head yaw / pitch</span>
+                    <span className="live-metric-val">{metrics.headPose.yaw}&deg; / {metrics.headPose.pitch}&deg;</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Voice */}
+              <div className="live-section">
+                <h4 className="live-section-title">Voice</h4>
+                <div className="live-metrics">
+                  <div className="live-metric-row">
+                    <span>Speaking now</span>
+                    <span className="live-metric-val" style={{ color: metrics.isSpeaking ? "var(--success)" : "var(--muted)" }}>
+                      {metrics.isSpeaking ? "Yes" : "No"}
+                    </span>
+                  </div>
+                  <div className="live-metric-row">
+                    <span>Talk ratio (student)</span>
+                    <span className="live-metric-val">{metrics.speakingTime}%</span>
+                  </div>
+                  <div className="live-metric-row">
+                    <span>Interruptions</span>
+                    <span className="live-metric-val" style={{ color: metrics.interruptionCount > 3 ? "var(--warn)" : "var(--ink)" }}>
+                      {metrics.interruptionCount}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Posture */}
+              <div className="live-section">
+                <h4 className="live-section-title">Posture</h4>
+                <div className="live-metrics">
+                  <div className="live-metric-row">
+                    <span>Face position</span>
+                    <span className="live-metric-val">{postureOk ? "\u2195 normal" : "\u2193 low"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══ TRENDS TAB ═══ */}
+          {activeTab === "trends" && (
+            <div className="tab-content">
+              {/* Engagement */}
+              <div className="trend-block">
+                <div className="trend-header">
+                  <span className="trend-label">Engagement</span>
+                  <span className="trend-value" style={{ color: colorForValue(trendEngagement) }}>
+                    {trendEngagement}%
+                  </span>
+                </div>
+                <div className="metric-track"><div className="metric-fill" style={{ width: `${trendEngagement}%`, background: colorForValue(trendEngagement) }} /></div>
+                <span className="trend-interp">{engInterp}</span>
+              </div>
+
+              {/* Attention */}
+              <div className="trend-block">
+                <div className="trend-header">
+                  <span className="trend-label">Attention</span>
+                  <span className="trend-value" style={{ color: colorForValue(trendDrift, true) }}>
+                    {attentionInterp} {attentionCheck}
+                  </span>
+                </div>
+                <div className="trend-sub">Eye contact: {trendEyeContact}% (30s avg)</div>
+                <div className="trend-sub">Head stability: {trendDrift <= 30 ? "Good" : trendDrift <= 50 ? "Fair" : "Poor"}</div>
+                <div className="trend-sub">Face presence: {metrics.faceDetected ? "100%" : "0%"}</div>
+              </div>
+
+              {/* Energy */}
+              <div className="trend-block">
+                <div className="trend-header">
+                  <span className="trend-label">Energy</span>
+                  <span className="trend-value" style={{ color: colorForValue(trendEnergy) }}>
+                    {trendEnergy}%
+                  </span>
+                </div>
+                <div className="metric-track"><div className="metric-fill" style={{ width: `${trendEnergy}%`, background: colorForValue(trendEnergy) }} /></div>
+                <span className="trend-interp">{energyInterp}</span>
+              </div>
+
+              {/* Talk Balance */}
+              <div className="trend-block">
+                <div className="trend-header">
+                  <span className="trend-label">Talk Balance</span>
+                  <span className="trend-value">
+                    {trendSpeaking}% / {talkTutor}%
+                  </span>
+                </div>
+                <div className="talk-balance-bar">
+                  <div className="talk-student" style={{ width: `${trendSpeaking}%` }} />
+                  <div className="talk-tutor" style={{ width: `${talkTutor}%` }} />
+                </div>
+                <div className="talk-balance-labels">
+                  <span>Student</span>
+                  <span>Tutor</span>
+                </div>
+                <span className="trend-interp" style={{ color: talkTutor > 70 ? "var(--warn)" : "var(--muted)" }}>
+                  {talkInterp}
+                </span>
+              </div>
+
+              {/* Mood */}
+              <div className="trend-block">
+                <div className="trend-header">
+                  <span className="trend-label">Mood</span>
+                  <span className="trend-value">{emaMoodRef.current}</span>
+                </div>
+                {metrics.expressions.length > 0 && (
+                  <div className="trend-sub">
+                    {metrics.expressions.map(e => e.name).join(", ")} (dominant)
+                  </div>
+                )}
+              </div>
+
+              {/* Posture */}
+              <div className="trend-block">
+                <div className="trend-header">
+                  <span className="trend-label">Posture</span>
+                  <span className="trend-value" style={{ color: postureInterp === "Normal" ? "var(--success)" : "var(--warn)" }}>
+                    {postureInterp}
+                  </span>
+                </div>
+              </div>
+
+              {/* Latest coaching nudge */}
+              {latestNudge && (
+                <div className={`trend-nudge priority-${latestNudge.priority}`}>
+                  <div className="trend-nudge-header">Coaching Nudge</div>
+                  <div className="trend-nudge-message">{latestNudge.message}</div>
+                  <div className="trend-nudge-meta">
+                    {new Date(latestNudge.timestamp).toLocaleTimeString()} &middot; {latestNudge.priority} priority
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Coaching Nudge */}
-      {metrics.coachingNudge && (
-        <div className="coaching-nudge">
-          <span className="nudge-icon">💡</span>
-          <span>{metrics.coachingNudge}</span>
+      {/* Toast nudge — slides in from bottom */}
+      {toastNudge && (
+        <div className={`nudge-toast priority-${toastNudge.priority}`}>
+          <span className="nudge-toast-msg">{toastNudge.message}</span>
         </div>
       )}
     </section>

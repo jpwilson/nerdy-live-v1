@@ -894,38 +894,7 @@ h3 {
   color: var(--text-muted);
 }
 
-/* Expression section */
-.expressions-section {
-  display: grid;
-  gap: 6px;
-}
-
-.expressions-title {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--muted);
-  margin: 0;
-}
-
-.expressions-list {
-  display: grid;
-  gap: 6px;
-}
-
-.expression-row {
-  display: grid;
-  gap: 3px;
-}
-
-.expression-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--ink);
-}
-
+/* Expression dot (shared) */
 .expression-dot {
   width: 6px;
   height: 6px;
@@ -933,23 +902,341 @@ h3 {
   flex-shrink: 0;
 }
 
-.expression-interp {
-  font-size: 0.75rem;
-  color: var(--muted);
-  padding-left: 12px;
+/* ── Collapsible analysis panel ──────────── */
+.analysis-collapsed {
+  gap: 0 !important;
 }
 
-.expression-bar-track {
+.analysis-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+
+.analysis-collapse-btn h3 {
+  margin: 0;
+}
+
+.collapse-chevron {
+  font-size: 0.6rem;
+  color: var(--muted);
+  transition: transform 200ms ease;
+  display: inline-block;
+}
+
+.collapse-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+
+/* ── Tab switcher ───────────────────────── */
+.analysis-tabs {
+  display: flex;
+  gap: 0;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  padding: 2px;
+}
+
+.analysis-tab {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.analysis-tab:hover {
+  color: var(--ink);
+}
+
+.analysis-tab.active {
+  background: rgba(0, 212, 170, 0.15);
+  color: var(--cyan);
+}
+
+.tab-content {
+  display: grid;
+  gap: 12px;
+}
+
+/* ── Live tab sections ──────────────────── */
+.live-section {
+  display: grid;
+  gap: 4px;
+}
+
+.live-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 0;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Fixed expression grid — all 9 always visible */
+.expressions-grid {
+  display: grid;
+  gap: 3px;
+}
+
+.expr-item {
+  display: grid;
+  grid-template-columns: 6px 1fr 50px 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  transition: opacity 300ms ease;
+}
+
+.expr-item.expr-inactive {
+  opacity: 0.35;
+}
+
+.expr-item.expr-active {
+  opacity: 1;
+}
+
+.expr-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.expr-inactive .expr-label {
+  color: var(--text-muted);
+}
+
+.expr-bar-track {
   height: 3px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
 
-.expression-bar-fill {
+.expr-bar-fill {
   height: 100%;
   border-radius: 2px;
   transition: width 300ms ease;
+}
+
+.expr-value {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.expr-inactive .expr-value {
+  color: var(--text-muted);
+}
+
+/* Live metric rows */
+.live-metrics {
+  display: grid;
+  gap: 3px;
+}
+
+.live-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  padding: 1px 0;
+}
+
+.live-metric-row span:first-child {
+  color: var(--muted);
+}
+
+.live-metric-val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* ── Trends tab ─────────────────────────── */
+.trend-block {
+  display: grid;
+  gap: 3px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.trend-block:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.trend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.trend-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trend-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-interp {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.trend-sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding-left: 8px;
+}
+
+.trend-sub::before {
+  content: "\2514\00a0";
+  color: var(--text-muted);
+}
+
+/* Talk balance bar */
+.talk-balance-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.talk-student {
+  background: var(--cyan);
+  transition: width 300ms ease;
+}
+
+.talk-tutor {
+  background: var(--magenta);
+  opacity: 0.6;
+  transition: width 300ms ease;
+}
+
+.talk-balance-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+/* Trend nudge block */
+.trend-nudge {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.trend-nudge.priority-high {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.trend-nudge.priority-low {
+  border-color: rgba(0, 212, 170, 0.2);
+  background: rgba(0, 212, 170, 0.06);
+}
+
+.trend-nudge-header {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--warn);
+}
+
+.trend-nudge.priority-high .trend-nudge-header {
+  color: var(--danger);
+}
+
+.trend-nudge.priority-low .trend-nudge-header {
+  color: var(--success);
+}
+
+.trend-nudge-message {
+  font-size: 0.82rem;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.trend-nudge-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* ── Toast nudge ────────────────────────── */
+.nudge-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  max-width: 320px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(26, 27, 46, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  animation: toast-slide-in 300ms ease-out, toast-fade-out 300ms ease-in 4.7s forwards;
+}
+
+.nudge-toast.priority-high {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.nudge-toast.priority-low {
+  border-color: rgba(0, 212, 170, 0.3);
+}
+
+.nudge-toast-msg {
+  font-size: 0.84rem;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 .analysis-loading {
