@@ -685,13 +685,16 @@ h3 {
   background: rgba(239, 68, 68, 0.25);
 }
 
-/* Floating hangup button on video stage */
+/* Floating call controls on video stage */
 .stage-hangup {
   position: absolute;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .hangup-fab {
@@ -716,6 +719,36 @@ h3 {
 
 .hangup-fab:active {
   transform: scale(0.95);
+}
+
+.mute-fab {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.15s, border-color 0.15s;
+}
+
+.mute-fab:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.08);
+}
+
+.mute-fab:active {
+  transform: scale(0.95);
+}
+
+.mute-fab.muted {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
 }
 
 /* ── Face mesh overlay canvas ────────────────── */
@@ -1483,6 +1516,11 @@ h3 {
   .hangup-fab {
     width: 56px;
     height: 56px;
+  }
+
+  .mute-fab {
+    width: 44px;
+    height: 44px;
   }
 
   .stage-hangup {

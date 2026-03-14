@@ -403,6 +403,31 @@ struct SessionView: View {
 
                         Spacer()
 
+                        // Mute button
+                        #if canImport(LiveKit)
+                        Button(action: { viewModel.liveKitService.toggleMicrophone() }) {
+                            Image(systemName: viewModel.liveKitService.isMicrophoneEnabled ? "mic.fill" : "mic.slash.fill")
+                                .font(.title3)
+                                .foregroundColor(viewModel.liveKitService.isMicrophoneEnabled ? .white : Color.red)
+                                .frame(width: 48, height: 48)
+                                .background(
+                                    Circle().fill(
+                                        viewModel.liveKitService.isMicrophoneEnabled
+                                            ? Color.white.opacity(0.15)
+                                            : Color.red.opacity(0.25)
+                                    )
+                                )
+                                .overlay(
+                                    Circle().stroke(
+                                        viewModel.liveKitService.isMicrophoneEnabled
+                                            ? Color.white.opacity(0.2)
+                                            : Color.red.opacity(0.4),
+                                        lineWidth: 1
+                                    )
+                                )
+                        }
+                        #endif
+
                         // End call button (red circle like FaceTime)
                         Button(action: { viewModel.endSession() }) {
                             Image(systemName: "phone.down.fill")

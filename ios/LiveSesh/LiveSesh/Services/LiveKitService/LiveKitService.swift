@@ -17,6 +17,7 @@ final class LiveKitService: NSObject, ObservableObject {
     @Published private(set) var remotePeerDisplayName: String?
     @Published private(set) var remoteVideoTrack: VideoTrack?
     @Published private(set) var localVideoTrack: VideoTrack?
+    @Published var isMicrophoneEnabled = true
 
     var connectionStatePublisher: AnyPublisher<WebRTCConnectionState, Never> {
         $connectionState.eraseToAnyPublisher()
@@ -70,6 +71,14 @@ final class LiveKitService: NSObject, ObservableObject {
         } catch {
             print("[LiveKitService] Connection failed: \(error)")
             connectionState = .disconnected
+        }
+    }
+
+    func toggleMicrophone() {
+        let next = !isMicrophoneEnabled
+        isMicrophoneEnabled = next
+        Task {
+            try? await room?.localParticipant.setMicrophone(enabled: next)
         }
     }
 
