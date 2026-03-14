@@ -132,10 +132,15 @@ export function useLiveKitRoom({
   useEffect(() => {
     let active = true;
     const room = new Room({
-      adaptiveStream: true,
+      adaptiveStream: false,  // disable — causes low quality without LiveKit's own VideoView
       dynacast: true,
       videoCaptureDefaults: {
         resolution: VideoPresets.h720.resolution,
+      },
+      publishDefaults: {
+        videoEncoding: VideoPresets.h720.encoding,
+        screenShareEncoding: VideoPresets.h1080.encoding,
+        videoCodec: 'vp8',
       },
     });
     roomRef.current = room;

@@ -303,44 +303,18 @@ function RoomClient({
     setFacePosition(data);
   }, []);
 
-  // Compute dynamic video transform for face centering
+  // Face centering via CSS transform disabled — was causing mesh misalignment
+  // and pushing the face out of frame. Using static object-position instead.
   const videoTransformStyle = useMemo((): React.CSSProperties => {
-    if (!isTutor || !facePosition?.faceDetected || !facePosition.boundingBox) {
-      return {};
-    }
-    const bb = facePosition.boundingBox;
-    const faceCenterX = bb.x + bb.width / 2;
-    const faceCenterY = bb.y + bb.height / 2;
-
-    // Scale so face fills ~40% of the frame height
-    const targetFaceRatio = 0.4;
-    const scale = Math.min(
-      Math.max(targetFaceRatio / bb.height, 1.0),
-      2.0,
-    );
-
-    // Translate to center the face — values are in % of the video dimensions
-    // At scale=1, center is at (0.5, 0.5). We need to shift so faceCenterX,Y maps to 0.5,0.5
-    const translateX = (0.5 - faceCenterX) * 100 * scale;
-    const translateY = (0.5 - faceCenterY) * 100 * scale;
-
-    // Clamp translations so we don't pan too far beyond the video edges
-    const maxTranslateX = (scale - 1) * 50;
-    const maxTranslateY = (scale - 1) * 50;
-    const clampedTX = Math.max(-maxTranslateX, Math.min(maxTranslateX, translateX));
-    const clampedTY = Math.max(-maxTranslateY, Math.min(maxTranslateY, translateY));
-
-    return {
-      transform: `translate(${clampedTX}%, ${clampedTY}%) scale(${scale})`,
-      transition: "transform 0.5s ease",
-      transformOrigin: "center center",
-    };
+    return {};
   }, [isTutor, facePosition]);
 
-  // Draw face mesh overlay on canvas
+  // Draw face mesh overlay on canvas, mapping landmarks from the hidden
+  // analysis video's coordinate space to the displayed video's object-fit:cover space.
   useEffect(() => {
     const canvas = canvasRef.current;
     const videoFrame = videoFrameRef.current;
+    const remoteVideo = remoteVideoRef.current;
     if (!canvas || !videoFrame) return;
 
     const ctx = canvas.getContext("2d");
@@ -362,11 +336,47 @@ function RoomClient({
       canvas.height = rect.height;
     }
 
+    // Compute object-fit:cover mapping.
+    // Landmarks are in normalized [0,1] coords relative to the video's intrinsic dimensions
+    // (the hidden analysis video uses default object-fit:fill, so [0,1] maps to the full
+    // intrinsic content). The displayed video uses object-fit:cover with object-position:center 30%.
+    const videoW = remoteVideo?.videoWidth || 1;
+    const videoH = remoteVideo?.videoHeight || 1;
+    const containerW = rect.width;
+    const containerH = rect.height;
+    const videoAR = videoW / videoH;
+    const containerAR = containerW / containerH;
+
+    let scaledW: number, scaledH: number, offsetX: number, offsetY: number;
+
+    if (videoAR > containerAR) {
+      // Video is wider than container — cropped horizontally
+      scaledH = containerH;
+      scaledW = containerH * videoAR;
+      offsetX = (scaledW - containerW) / 2; // center horizontally
+      // object-position: center 30% — vertical position is 30%
+      offsetY = (scaledH - containerH) * 0.3;
+    } else {
+      // Video is taller than container — cropped vertically
+      scaledW = containerW;
+      scaledH = containerW / videoAR;
+      offsetX = (scaledW - containerW) / 2;
+      // object-position: center 30%
+      offsetY = (scaledH - containerH) * 0.3;
+    }
+
+    // Transform landmarks from normalized [0,1] to canvas pixel coords
+    const transformedLandmarks = facePosition.landmarks.map((lm) => ({
+      x: (lm.x * scaledW - offsetX) / containerW,
+      y: (lm.y * scaledH - offsetY) / containerH,
+      z: lm.z,
+    }));
+
     drawFaceMesh(
       ctx,
       canvas.width,
       canvas.height,
-      facePosition.landmarks,
+      transformedLandmarks,
       facePosition.blendshapes,
       facePosition.headPose,
     );
