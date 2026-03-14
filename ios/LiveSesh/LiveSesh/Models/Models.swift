@@ -7,6 +7,13 @@ enum SupabaseConfig {
     static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtcHFicnZxeWh2cmpwcnludnNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjc2MzgsImV4cCI6MjA4ODg0MzYzOH0.Asl68-9BJkahQErCBA3VXI4LQdmuEuKJN5E4lE13Thc"
 }
 
+// MARK: - LiveKit Configuration
+
+enum LiveKitConfig {
+    static let url = "wss://nerdytutor-tlre1v26.livekit.cloud"
+    static let tokenEndpoint = "https://student-call.vercel.app/api/livekit-token"
+}
+
 // MARK: - User Role
 
 enum UserRole: String, Codable, CaseIterable {

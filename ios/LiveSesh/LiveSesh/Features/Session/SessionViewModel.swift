@@ -3,6 +3,9 @@ import Combine
 #if canImport(WebRTC)
 @preconcurrency import WebRTC
 #endif
+#if canImport(LiveKit)
+import LiveKit
+#endif
 #if os(iOS)
 import UIKit
 #endif
@@ -52,6 +55,15 @@ final class SessionViewModel: ObservableObject {
     private var studentVideoProcessor: VideoProcessor?
     private var studentFrameExtractor: WebRTCFrameExtractor?
     private var studentVideoCancellables = Set<AnyCancellable>()
+    #endif
+
+    #if canImport(LiveKit)
+    let liveKitService = LiveKitService()
+
+    // Student video analysis via LiveKit remote track
+    private var lkStudentVideoProcessor: VideoProcessor?
+    private var lkStudentFrameExtractor: LiveKitFrameExtractor?
+    private var lkStudentVideoCancellables = Set<AnyCancellable>()
     #endif
 
     init(metricsEngine: MetricsEngineProtocol? = nil,
@@ -143,6 +155,31 @@ final class SessionViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         #endif
+
+        #if canImport(LiveKit)
+        liveKitService.connectionStatePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                self?.webRTCConnectionState = state
+                self?.studentDisplayName = self?.liveKitService.studentDisplayName
+                if state == .studentConnected,
+                   let name = self?.liveKitService.studentDisplayName,
+                   self?.session?.studentName == nil {
+                    self?.session?.studentName = name
+                    if let session = self?.session {
+                        self?.sessionStore.saveSession(session)
+                    }
+                }
+            }
+            .store(in: &cancellables)
+
+        liveKitService.$remoteVideoTrack
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] track in
+                self?.handleLiveKitRemoteVideoTrackChange(track)
+            }
+            .store(in: &cancellables)
+        #endif
     }
 
     func startSession(testModeEnabled: Bool = false, roomCode: String = "", accessToken: String? = nil) {
@@ -187,9 +224,17 @@ final class SessionViewModel: ObservableObject {
             await self?.startLiveCapture()
         }
 
-        // Connect to WebRTC signaling channel when not in test mode and a room code is set
-        #if canImport(WebRTC)
+        // Connect to video service when not in test mode and a room code is set
         if !testModeEnabled && !roomCode.isEmpty {
+            #if canImport(LiveKit)
+            Task { [weak self] in
+                await self?.liveKitService.connect(
+                    roomId: roomCode,
+                    displayName: "Tutor",
+                    accessToken: accessToken
+                )
+            }
+            #elseif canImport(WebRTC)
             Task { [weak self] in
                 await self?.webRTCService.connect(
                     roomId: roomCode,
@@ -197,11 +242,15 @@ final class SessionViewModel: ObservableObject {
                     accessToken: accessToken
                 )
             }
+            #endif
         }
-        #endif
     }
 
     func endSession() {
+        #if canImport(LiveKit)
+        detachLiveKitStudentVideoAnalysis()
+        liveKitService.disconnect()
+        #endif
         #if canImport(WebRTC)
         detachStudentVideoAnalysis()
         webRTCService.disconnect()
@@ -292,6 +341,58 @@ final class SessionViewModel: ObservableObject {
         studentVideoProcessor?.stopProcessing()
         studentVideoProcessor = nil
         studentVideoCancellables.removeAll()
+    }
+    #endif
+
+    // MARK: - Student Video Analysis (LiveKit Remote Track)
+
+    #if canImport(LiveKit)
+    private func handleLiveKitRemoteVideoTrackChange(_ track: VideoTrack?) {
+        if let track {
+            attachLiveKitStudentVideoAnalysis(to: track)
+        } else {
+            detachLiveKitStudentVideoAnalysis()
+        }
+    }
+
+    private func attachLiveKitStudentVideoAnalysis(to track: VideoTrack) {
+        detachLiveKitStudentVideoAnalysis()
+
+        let processor = VideoProcessor(analyzeEveryNFrames: 1)
+        processor.startProcessing()
+
+        processor.gazeEstimationPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] gaze in
+                self?.metricsEngine.processGaze(gaze, for: .student)
+            }
+            .store(in: &lkStudentVideoCancellables)
+
+        processor.expressionPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] expression in
+                self?.metricsEngine.processExpression(expression, for: .student)
+            }
+            .store(in: &lkStudentVideoCancellables)
+
+        let extractor = LiveKitFrameExtractor(deliverEveryNFrames: 6)
+        extractor.onFrame = { [weak processor] pixelBuffer in
+            processor?.processPixelBuffer(pixelBuffer)
+        }
+        extractor.attach(to: track)
+
+        lkStudentVideoProcessor = processor
+        lkStudentFrameExtractor = extractor
+
+        print("[SessionViewModel] LiveKit student video analysis pipeline attached")
+    }
+
+    private func detachLiveKitStudentVideoAnalysis() {
+        lkStudentFrameExtractor?.detach()
+        lkStudentFrameExtractor = nil
+        lkStudentVideoProcessor?.stopProcessing()
+        lkStudentVideoProcessor = nil
+        lkStudentVideoCancellables.removeAll()
     }
     #endif
 

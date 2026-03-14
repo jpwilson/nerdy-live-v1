@@ -20,6 +20,9 @@ packages:
   WebRTC:
     url: https://github.com/stasel/WebRTC.git
     from: "114.0.0"
+  LiveKit:
+    url: https://github.com/livekit/client-sdk-swift.git
+    from: "2.0.0"
 
 targets:
   LiveSesh:
@@ -31,6 +34,8 @@ targets:
           - "**/.DS_Store"
     dependencies:
       - package: WebRTC
+      - package: LiveKit
+        product: LiveKit
     settings:
       base:
         INFOPLIST_GENERATION_MODE: GeneratedFile

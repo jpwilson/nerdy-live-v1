@@ -3,6 +3,9 @@ import AVFoundation
 #if canImport(WebRTC)
 import WebRTC
 #endif
+#if canImport(LiveKit)
+import LiveKit
+#endif
 #if os(iOS)
 import UIKit
 #endif
@@ -255,7 +258,36 @@ struct SessionView: View {
     private var liveCallActiveSessionView: some View {
         ZStack {
             // Full-screen student video (remote) — aspectFill to use all screen space
-            #if os(iOS) && canImport(WebRTC)
+            #if os(iOS) && canImport(LiveKit)
+            if let remoteTrack = viewModel.liveKitService.remoteVideoTrack {
+                Color.black.ignoresSafeArea()
+                GeometryReader { geo in
+                    LiveKitVideoViewRepresentable(videoTrack: remoteTrack, fill: true)
+                        .frame(height: geo.size.height * 1.25)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                }
+                .clipped()
+                .ignoresSafeArea()
+            } else {
+                // Waiting state — dark background with status
+                NerdyTheme.backgroundGradient
+                    .ignoresSafeArea()
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .tint(NerdyTheme.cyan)
+                    Text(viewModel.webRTCConnectionState == .waitingForStudent
+                         ? "Waiting for student to join..."
+                         : viewModel.webRTCConnectionState == .studentConnected
+                            ? "Connecting video..."
+                            : "Connecting to room...")
+                        .font(.headline)
+                        .foregroundColor(NerdyTheme.textSecondary)
+                    Text("Room: \(roomCode)")
+                        .font(.caption)
+                        .foregroundColor(NerdyTheme.textMuted)
+                }
+            }
+            #elseif os(iOS) && canImport(WebRTC)
             if let remoteTrack = viewModel.webRTCService.remoteVideoTrack {
                 Color.black.ignoresSafeArea()
                 GeometryReader { geo in
@@ -266,7 +298,6 @@ struct SessionView: View {
                 .clipped()
                 .ignoresSafeArea()
             } else {
-                // Waiting state — dark background with status
                 NerdyTheme.backgroundGradient
                     .ignoresSafeArea()
                 VStack(spacing: 16) {
@@ -387,7 +418,26 @@ struct SessionView: View {
             }
 
             // PiP: Tutor's own camera (top-right) — aspectFill for compact framing
-            #if os(iOS) && canImport(WebRTC)
+            #if os(iOS) && canImport(LiveKit)
+            VStack {
+                HStack {
+                    Spacer()
+                    if let localTrack = viewModel.liveKitService.localVideoTrack {
+                        LiveKitVideoViewRepresentable(videoTrack: localTrack, fill: true, mirrored: true)
+                            .frame(width: 90, height: 120)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            )
+                            .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 3)
+                            .padding(.top, 8)
+                            .padding(.trailing, 12)
+                    }
+                }
+                Spacer()
+            }
+            #elseif os(iOS) && canImport(WebRTC)
             VStack {
                 HStack {
                     Spacer()

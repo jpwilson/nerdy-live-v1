@@ -2,6 +2,9 @@ import SwiftUI
 #if canImport(WebRTC)
 import WebRTC
 #endif
+#if canImport(LiveKit)
+import LiveKit
+#endif
 
 struct StudentRoomView: View {
     @EnvironmentObject var appState: AppState
@@ -186,7 +189,26 @@ struct StudentRoomView: View {
     private var inCallView: some View {
         ZStack {
             // Full-screen tutor video (remote) — biased toward bottom to center face
-            #if os(iOS) && canImport(WebRTC)
+            #if os(iOS) && canImport(LiveKit)
+            if let remoteTrack = viewModel.liveKitService.remoteVideoTrack {
+                Color.black.ignoresSafeArea()
+                GeometryReader { geo in
+                    LiveKitVideoViewRepresentable(videoTrack: remoteTrack, fill: true)
+                        .frame(height: geo.size.height * 1.25)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                }
+                .clipped()
+                .ignoresSafeArea()
+            } else {
+                NerdyTheme.backgroundGradient.ignoresSafeArea()
+                VStack(spacing: 16) {
+                    ProgressView().tint(NerdyTheme.cyan)
+                    Text("Connecting video...")
+                        .font(.headline)
+                        .foregroundColor(NerdyTheme.textSecondary)
+                }
+            }
+            #elseif os(iOS) && canImport(WebRTC)
             if let remoteTrack = viewModel.webRTCService.remoteVideoTrack {
                 Color.black.ignoresSafeArea()
                 GeometryReader { geo in
@@ -262,7 +284,26 @@ struct StudentRoomView: View {
             }
 
             // PiP: Student's own camera (top-right)
-            #if os(iOS) && canImport(WebRTC)
+            #if os(iOS) && canImport(LiveKit)
+            VStack {
+                HStack {
+                    Spacer()
+                    if let localTrack = viewModel.liveKitService.localVideoTrack {
+                        LiveKitVideoViewRepresentable(videoTrack: localTrack, fill: true, mirrored: true)
+                            .frame(width: 90, height: 120)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            )
+                            .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 3)
+                            .padding(.top, 8)
+                            .padding(.trailing, 12)
+                    }
+                }
+                Spacer()
+            }
+            #elseif os(iOS) && canImport(WebRTC)
             VStack {
                 HStack {
                     Spacer()
