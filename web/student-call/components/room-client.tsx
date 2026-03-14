@@ -13,7 +13,7 @@ import {
   roleLabel,
 } from "@/lib/room-utils";
 import { useLiveKitRoom } from "@/lib/use-livekit-room";
-import { StudentAnalysisCard, type FacePositionData } from "@/components/analysis-panel";
+import { StudentAnalysisCard, type FacePositionData, type OverlayMode } from "@/components/analysis-panel";
 
 // ── MediaPipe face mesh connectivity (Tesselation subset for wireframe) ──
 // These are the standard MediaPipe FACEMESH_TESSELATION connections
@@ -240,7 +240,7 @@ function RoomClient({
   const router = useRouter();
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [showMeshOverlay, setShowMeshOverlay] = useState(false);
+  const [overlayMode, setOverlayMode] = useState<OverlayMode>("all");
   const [facePosition, setFacePosition] = useState<FacePositionData | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -303,10 +303,35 @@ function RoomClient({
     setFacePosition(data);
   }, []);
 
-  // Face centering via CSS transform disabled — was causing mesh misalignment
-  // and pushing the face out of frame. Using static object-position instead.
+  // Dynamic face centering via object-position
+  // Maps the face bounding box center to object-position so the face stays centered.
+  // Uses gentle smoothing to avoid jitter.
+  const smoothedFacePos = useRef({ x: 50, y: 30 });
   const videoTransformStyle = useMemo((): React.CSSProperties => {
-    return {};
+    if (!isTutor || !facePosition?.faceDetected || !facePosition.boundingBox) {
+      return { objectPosition: `${smoothedFacePos.current.x}% ${smoothedFacePos.current.y}%` };
+    }
+
+    const bb = facePosition.boundingBox;
+    // Face center in normalized coords [0..1]
+    const faceCX = bb.x + bb.width / 2;
+    const faceCY = bb.y + bb.height / 2;
+
+    // Convert to percentage for object-position
+    // object-position maps: 0% = face at left edge, 100% = face at right edge
+    const targetX = faceCX * 100;
+    const targetY = faceCY * 100;
+
+    // Smooth towards target (exponential moving average)
+    const alpha = 0.15;
+    smoothedFacePos.current.x += (targetX - smoothedFacePos.current.x) * alpha;
+    smoothedFacePos.current.y += (targetY - smoothedFacePos.current.y) * alpha;
+
+    // Clamp to reasonable range to avoid extreme positions
+    const x = Math.max(20, Math.min(80, smoothedFacePos.current.x));
+    const y = Math.max(15, Math.min(65, smoothedFacePos.current.y));
+
+    return { objectPosition: `${x}% ${y}%` };
   }, [isTutor, facePosition]);
 
   // Draw face mesh overlay on canvas, mapping landmarks from the hidden
@@ -320,8 +345,9 @@ function RoomClient({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const showMesh = overlayMode === "all" || overlayMode === "expressions";
     if (
-      !showMeshOverlay ||
+      !showMesh ||
       !facePosition?.faceDetected ||
       !facePosition.landmarks
     ) {
@@ -349,20 +375,22 @@ function RoomClient({
 
     let scaledW: number, scaledH: number, offsetX: number, offsetY: number;
 
+    // Get the current object-position percentages for coordinate mapping
+    const objPosX = smoothedFacePos.current.x / 100;
+    const objPosY = smoothedFacePos.current.y / 100;
+
     if (videoAR > containerAR) {
       // Video is wider than container — cropped horizontally
       scaledH = containerH;
       scaledW = containerH * videoAR;
-      offsetX = (scaledW - containerW) / 2; // center horizontally
-      // object-position: center 30% — vertical position is 30%
-      offsetY = (scaledH - containerH) * 0.3;
+      offsetX = (scaledW - containerW) * objPosX;
+      offsetY = (scaledH - containerH) * objPosY;
     } else {
       // Video is taller than container — cropped vertically
       scaledW = containerW;
       scaledH = containerW / videoAR;
-      offsetX = (scaledW - containerW) / 2;
-      // object-position: center 30%
-      offsetY = (scaledH - containerH) * 0.3;
+      offsetX = (scaledW - containerW) * objPosX;
+      offsetY = (scaledH - containerH) * objPosY;
     }
 
     // Transform landmarks from normalized [0,1] to canvas pixel coords
@@ -380,7 +408,7 @@ function RoomClient({
       facePosition.blendshapes,
       facePosition.headPose,
     );
-  }, [showMeshOverlay, facePosition]);
+  }, [overlayMode, facePosition]);
 
   // Resize canvas when window resizes
   useEffect(() => {
@@ -395,6 +423,19 @@ function RoomClient({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Determine engagement level for overlay
+  const engagementLevel = useMemo(() => {
+    if (!isTutor || !remoteStream || !facePosition?.faceDetected) return null;
+    // We don't have direct access to engagement score here, so derive from face data
+    if (!facePosition.blendshapes) return null;
+    const bs = facePosition.blendshapes;
+    const hDev = ((bs.eyeLookInLeft ?? 0) + (bs.eyeLookOutLeft ?? 0) + (bs.eyeLookInRight ?? 0) + (bs.eyeLookOutRight ?? 0)) / 4;
+    const ec = Math.max(0, Math.min(1, 1 - Math.max(hDev) * 3)) * 100;
+    if (ec >= 60) return "high";
+    if (ec >= 30) return "medium";
+    return "low";
+  }, [isTutor, remoteStream, facePosition]);
 
   // Determine face warning badge
   const faceBadge = useMemo(() => {
@@ -438,7 +479,14 @@ function RoomClient({
 
       <section className="content-grid">
         <article className="stage">
-          <div className="video-frame" ref={videoFrameRef}>
+          <div
+            className={`video-frame${
+              isTutor && (overlayMode === "engagement" || overlayMode === "all") && engagementLevel
+                ? ` engagement-${engagementLevel}`
+                : ""
+            }`}
+            ref={videoFrameRef}
+          >
             <VideoSurface
               title={remoteTitle}
               stream={remoteStream}
@@ -468,16 +516,27 @@ function RoomClient({
               </div>
             )}
 
-            {/* Face mesh toggle button */}
+            {/* Engagement level badge */}
+            {isTutor && (overlayMode === "engagement" || overlayMode === "all") && engagementLevel && (
+              <div className={`engagement-badge ${engagementLevel}`}>
+                <span>{engagementLevel === "high" ? "Engaged" : engagementLevel === "medium" ? "Moderate" : "Low engagement"}</span>
+              </div>
+            )}
+
+            {/* Overlay mode cycle button */}
             {isTutor && remoteStream && (
               <button
-                className={`mesh-toggle-btn ${showMeshOverlay ? "active" : ""}`}
+                className={`mesh-toggle-btn ${overlayMode !== "none" ? "active" : ""}`}
                 type="button"
-                onClick={() => setShowMeshOverlay((v) => !v)}
-                title={showMeshOverlay ? "Hide face mesh" : "Show face mesh"}
+                onClick={() => {
+                  const modes: OverlayMode[] = ["all", "expressions", "engagement", "none"];
+                  const idx = modes.indexOf(overlayMode);
+                  setOverlayMode(modes[(idx + 1) % modes.length]);
+                }}
+                title={`Overlay: ${overlayMode}`}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  {showMeshOverlay ? (
+                  {overlayMode !== "none" ? (
                     <>
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                       <circle cx="12" cy="12" r="3"/>
@@ -490,6 +549,9 @@ function RoomClient({
                     </>
                   )}
                 </svg>
+                {overlayMode !== "none" && (
+                  <span className="overlay-mode-label">{overlayMode}</span>
+                )}
               </button>
             )}
 
@@ -581,7 +643,10 @@ function RoomClient({
           {isTutor && (
             <StudentAnalysisCard
               remoteStream={remoteStream}
+              localStream={localStream}
               onFacePosition={handleFacePosition}
+              overlayMode={overlayMode}
+              onOverlayModeChange={setOverlayMode}
             />
           )}
 
