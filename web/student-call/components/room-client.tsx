@@ -297,8 +297,13 @@ function VideoSurface({
           style={videoStyle}
         />
       ) : (
-        <div className="video-placeholder">
-          <div>
+        <div className="video-placeholder waiting-screen">
+          <div className="waiting-brands">
+            <img src="/nerdy-logo.png" alt="Nerdy" className="waiting-logo waiting-logo-nerdy pulse-slow" />
+            <span className="waiting-x">×</span>
+            <img src="/liveai-logo.png" alt="Live+AI" className="waiting-logo waiting-logo-liveai pulse-slow pulse-delay" />
+          </div>
+          <div className="waiting-text">
             <h3>{emptyTitle}</h3>
             <p>{emptyCopy}</p>
           </div>
