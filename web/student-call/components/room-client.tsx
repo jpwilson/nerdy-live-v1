@@ -574,7 +574,7 @@ function RoomClient({
                 className="stage-btn hangup"
                 type="button"
                 onClick={() => {
-                  void hangUp().then(() => window.location.href = "/");
+                  void hangUp().then(() => window.location.href = "/dashboard");
                 }}
                 title="End call"
               >

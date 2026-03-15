@@ -1,51 +1,67 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { JoinForm } from "@/components/join-form";
-import { TutorDashboard } from "@/components/tutor-dashboard";
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 export default function HomePage() {
+  const router = useRouter();
   const [signedIn, setSignedIn] = useState(false);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        setSignedIn(true);
+      }
+      setChecked(true);
+    });
+  }, []);
 
   const handleAuthChange = useCallback((isSignedIn: boolean) => {
     setSignedIn(isSignedIn);
-  }, []);
+    if (isSignedIn) {
+      router.push("/dashboard");
+    }
+  }, [router]);
+
+  if (!checked) return null;
 
   return (
     <main className="shell">
       <section className="hero">
-        {signedIn ? (
-          <div className="hero-copy">
-            <TutorDashboard />
+        <div className="hero-copy">
+          <p className="eyebrow">LiveSesh AI</p>
+          <h1>Master skills with real-time clarity.</h1>
+          <p className="lede">
+            AI-powered engagement analysis for live tutoring sessions.
+            Real-time coaching nudges, eye contact tracking, and session
+            analytics — wrapped in a friendly interface.
+          </p>
+          <div className="hero-grid">
+            <article className="info-card">
+              <h2>For tutors</h2>
+              <p>
+                See real-time engagement metrics, receive contextual coaching
+                nudges, and review session analytics to improve over time.
+              </p>
+            </article>
+            <article className="info-card">
+              <h2>For students</h2>
+              <p>
+                Just join the call normally. Your camera and audio are shared
+                with the tutor. Engagement analysis runs on the tutor side.
+              </p>
+            </article>
           </div>
-        ) : (
-          <div className="hero-copy">
-            <p className="eyebrow">LiveSesh</p>
-            <h1>Join your tutoring session.</h1>
-            <p className="lede">
-              Sign in and join the room to connect with your tutor. Your video
-              and audio are shared over a peer-to-peer WebRTC connection while
-              the tutor&apos;s app analyzes engagement in real time.
-            </p>
-            <div className="hero-grid">
-              <article className="info-card">
-                <h2>For students</h2>
-                <p>
-                  Camera and microphone are shared with the tutor. Engagement
-                  analysis runs on the tutor side — you just have a normal call.
-                </p>
-              </article>
-              <article className="info-card">
-                <h2>For evaluators</h2>
-                <p>
-                  Use the <strong>Demo Student</strong> or{" "}
-                  <strong>Demo Tutor</strong> buttons to instantly join the demo
-                  room and test the full call flow.
-                </p>
-              </article>
-            </div>
-          </div>
-        )}
+          {signedIn && (
+            <button className="primary-button" style={{ marginTop: 16 }} onClick={() => router.push("/dashboard")}>
+              Go to Dashboard →
+            </button>
+          )}
+        </div>
         <JoinForm onAuthChange={handleAuthChange} />
       </section>
     </main>
