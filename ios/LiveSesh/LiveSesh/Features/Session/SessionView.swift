@@ -98,7 +98,7 @@ struct SessionView: View {
                     .foregroundStyle(NerdyTheme.gradientLiveAI)
                 + Text("+AI")
                     .font(.system(size: 48, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(NerdyTheme.textPrimary)
 
                 Text("Session Analysis")
                     .font(.title3)
@@ -628,7 +628,7 @@ struct SessionView: View {
                     Text("Room: \(roomCode)")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                        .foregroundColor(NerdyTheme.textPrimary)
                     Text("Student can join from the web app with this room code.")
                         .font(.caption2)
                         .foregroundColor(NerdyTheme.textSecondary)
@@ -751,7 +751,7 @@ struct LiveMetricsDashboardView: View {
                 HStack {
                     Text("Live Metrics")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(NerdyTheme.textPrimary)
                     Spacer()
                     TrendBadge(trend: metrics.session.engagementTrend)
                 }
@@ -1026,7 +1026,7 @@ struct SpeakingIndicatorView: View {
                 .animation(.easeInOut(duration: 0.3).repeatWhile(isSpeaking), value: isSpeaking)
             Text(label)
                 .font(.subheadline)
-                .foregroundColor(isSpeaking ? .white : NerdyTheme.textSecondary)
+                .foregroundColor(isSpeaking ? NerdyTheme.textPrimary : NerdyTheme.textSecondary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

@@ -105,7 +105,7 @@ struct LoginView: View {
                     } label: {
                         Text("Sign In")
                             .font(.headline)
-                            .foregroundColor(isSignUp ? NerdyTheme.textMuted : .white)
+                            .foregroundColor(isSignUp ? NerdyTheme.textMuted : NerdyTheme.textPrimary)
                     }
 
                     Text("/")
@@ -117,7 +117,7 @@ struct LoginView: View {
                     } label: {
                         Text("Sign Up")
                             .font(.headline)
-                            .foregroundColor(isSignUp ? .white : NerdyTheme.textMuted)
+                            .foregroundColor(isSignUp ? NerdyTheme.textPrimary : NerdyTheme.textMuted)
                     }
 
                     Spacer()
@@ -183,7 +183,7 @@ struct LoginView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(isAwaitingCode ? "Enter Code" : "Sign In with Code")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(NerdyTheme.textPrimary)
 
                 if isAwaitingCode {
                     Text("Check your email for a 6-digit code.")
@@ -290,7 +290,7 @@ struct LoginView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Quick Demo Login", systemImage: "play.circle.fill")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(NerdyTheme.textPrimary)
 
                 Text("Select a name to sign in instantly.")
                     .font(.caption2)

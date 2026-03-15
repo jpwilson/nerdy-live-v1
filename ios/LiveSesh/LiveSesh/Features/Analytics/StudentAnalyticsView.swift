@@ -78,7 +78,7 @@ struct StudentRowCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(name)
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(NerdyTheme.textPrimary)
                     HStack(spacing: 12) {
                         Label("\(sessionCount) sessions", systemImage: "video.fill")
                             .font(.caption)
@@ -123,7 +123,7 @@ struct StudentDetailView: View {
                     VStack(spacing: 8) {
                         Text(studentName)
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(NerdyTheme.textPrimary)
                         Text("\(totalSessions) session\(totalSessions == 1 ? "" : "s")")
                             .foregroundColor(NerdyTheme.textSecondary)
                     }
@@ -154,7 +154,7 @@ struct StudentDetailView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Session History")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(NerdyTheme.textPrimary)
 
                         ForEach(summaries) { summary in
                             NavigationLink(destination: SessionDetailView(summary: summary)) {
@@ -178,7 +178,7 @@ struct StudentDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Engagement Over Time")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(NerdyTheme.textPrimary)
 
                 Chart(summaries) { summary in
                     LineMark(
