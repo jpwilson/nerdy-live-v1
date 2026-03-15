@@ -29,9 +29,15 @@ type AuthState = "signed_out" | "otp_sent" | "signed_in";
 
 export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) => void } = {}) {
   const router = useRouter();
-  const [displayName, setDisplayName] = useState("");
-  const [roomId, setRoomId] = useState(createRoomId);
-  const [role, setRole] = useState<RoomRole>("student");
+  const [displayName, setDisplayName] = useState(() =>
+    typeof window !== "undefined" ? localStorage.getItem("livesesh_displayName") ?? "" : ""
+  );
+  const [roomId, setRoomId] = useState(() =>
+    typeof window !== "undefined" ? localStorage.getItem("livesesh_roomId") ?? DEMO_ROOM : DEMO_ROOM
+  );
+  const [role, setRole] = useState<RoomRole>(() =>
+    (typeof window !== "undefined" ? localStorage.getItem("livesesh_role") as RoomRole : null) ?? "student"
+  );
 
   // Session setup (tutor-only)
   const [subject, setSubject] = useState("");
@@ -52,12 +58,27 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) {
         setSignedInEmail(session.user.email);
-        const isStudent = session.user.email.toLowerCase().includes("student");
-        setRole(isStudent ? "student" : "tutor_preview");
+        // Only set role from email if no stored role exists
+        const storedRole = localStorage.getItem("livesesh_role") as RoomRole | null;
+        if (!storedRole) {
+          const isStudent = session.user.email.toLowerCase().includes("student");
+          setRole(isStudent ? "student" : "tutor_preview");
+        }
         setAuthState("signed_in");
       }
     });
   }, []);
+
+  // Persist display name, room code, and role to localStorage
+  useEffect(() => {
+    if (displayName) localStorage.setItem("livesesh_displayName", displayName);
+  }, [displayName]);
+  useEffect(() => {
+    if (roomId) localStorage.setItem("livesesh_roomId", roomId);
+  }, [roomId]);
+  useEffect(() => {
+    localStorage.setItem("livesesh_role", role);
+  }, [role]);
 
   // Notify parent of auth changes
   useEffect(() => {
@@ -146,11 +167,15 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
   const signOut = async () => {
     const supabase = getSupabaseBrowserClient();
     await supabase.auth.signOut();
+    localStorage.removeItem("livesesh_displayName");
+    localStorage.removeItem("livesesh_roomId");
+    localStorage.removeItem("livesesh_role");
     setAuthState("signed_out");
     setSignedInEmail(null);
     setEmail("");
     setOtpCode("");
     setDisplayName("");
+    setRoomId(DEMO_ROOM);
   };
 
   // --- Auth screen ---
