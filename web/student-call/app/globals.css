@@ -354,6 +354,39 @@ h3 {
   padding: 16px;
 }
 
+/* ── Segmented control ────────────────────── */
+.segment-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.segment-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.segment-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+}
+
+.segment-btn.active {
+  background: rgba(0, 212, 170, 0.15);
+  color: var(--success);
+  border-color: rgba(0, 212, 170, 0.3);
+}
+
 .choice-grid {
   display: grid;
   gap: 12px;

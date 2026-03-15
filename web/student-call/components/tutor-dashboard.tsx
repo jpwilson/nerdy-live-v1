@@ -71,6 +71,14 @@ export function TutorDashboard() {
     0
   );
 
+  // Trend: compare recent 5 vs older sessions
+  const recentScores = completedSessions.slice(0, 5).map((s) => s.engagement_score ?? 0);
+  const olderScores = completedSessions.slice(5, 10).map((s) => s.engagement_score ?? 0);
+  const recentAvg = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : 0;
+  const olderAvg = olderScores.length > 0 ? olderScores.reduce((a, b) => a + b, 0) / olderScores.length : 0;
+  const trend = olderScores.length === 0 ? "—" : recentAvg > olderAvg + 3 ? "Improving" : recentAvg < olderAvg - 3 ? "Declining" : "Stable";
+  const trendColor = trend === "Improving" ? "var(--success)" : trend === "Declining" ? "var(--danger)" : "var(--muted)";
+
   const formatDate = (iso: string) => {
     const d = new Date(iso);
     const now = new Date();
@@ -112,6 +120,12 @@ export function TutorDashboard() {
             {avgEngagement != null ? `${avgEngagement}%` : "—"}
           </span>
           <span className="dash-stat-label">Avg engagement</span>
+        </div>
+        <div className="dash-stat">
+          <span className="dash-stat-value" style={{ color: trendColor, fontSize: "1rem" }}>
+            {trend}
+          </span>
+          <span className="dash-stat-label">Trend</span>
         </div>
       </div>
 

@@ -33,6 +33,11 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
   const [roomId, setRoomId] = useState(createRoomId);
   const [role, setRole] = useState<RoomRole>("student");
 
+  // Session setup (tutor-only)
+  const [subject, setSubject] = useState("");
+  const [studentLevel, setStudentLevel] = useState("High School");
+  const [coachingSensitivity, setCoachingSensitivity] = useState("medium");
+
   // Auth state
   const [authState, setAuthState] = useState<AuthState>("signed_out");
   const [email, setEmail] = useState("");
@@ -71,6 +76,8 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
     const params = new URLSearchParams({
       name: inferredName,
       role,
+      ...(role === "tutor_preview" && subject ? { subject } : {}),
+      ...(role === "tutor_preview" ? { level: studentLevel, sensitivity: coachingSensitivity } : {}),
     });
 
     router.push(`/room/${encodeURIComponent(normalizedRoomId)}?${params.toString()}`);
@@ -301,9 +308,60 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
         </datalist>
       </div>
 
-      <p className="field-hint" style={{ marginTop: 4 }}>
-        Joining as <strong>{role === "tutor_preview" ? "Tutor" : "Student"}</strong> — {role === "tutor_preview" ? "you'll see engagement analysis" : "your camera is shared with the tutor"}.
-      </p>
+      {role === "tutor_preview" && (
+        <fieldset className="fieldset">
+          <legend>Session setup</legend>
+          <div className="field" style={{ marginBottom: 12 }}>
+            <label htmlFor="subject">Subject</label>
+            <input
+              id="subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="e.g., Algebra, Biology"
+            />
+          </div>
+          <div className="field" style={{ marginBottom: 12 }}>
+            <label>Student level</label>
+            <div className="segment-row">
+              {["Elementary", "Middle School", "High School", "College", "Graduate", "Professional"].map((lvl) => (
+                <button
+                  key={lvl}
+                  type="button"
+                  className={`segment-btn ${studentLevel === lvl ? "active" : ""}`}
+                  onClick={() => setStudentLevel(lvl)}
+                >
+                  {lvl.length > 8 ? lvl.slice(0, 6) + "…" : lvl}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <label>Coaching sensitivity</label>
+            <div className="segment-row">
+              {[
+                { value: "low", label: "Low" },
+                { value: "medium", label: "Medium" },
+                { value: "high", label: "High" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`segment-btn ${coachingSensitivity === opt.value ? "active" : ""}`}
+                  onClick={() => setCoachingSensitivity(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </fieldset>
+      )}
+
+      {role !== "tutor_preview" && (
+        <p className="field-hint" style={{ marginTop: 4 }}>
+          Joining as <strong>Student</strong> — your camera is shared with the tutor.
+        </p>
+      )}
 
       <div className="actions">
         <button className="primary-button" type="submit">
