@@ -10,10 +10,6 @@ export function GlobalNav() {
   const router = useRouter();
   const [signedIn, setSignedIn] = useState(false);
 
-  // Don't show nav on the room/call page
-  if (pathname.startsWith("/room/")) return null;
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -21,7 +17,10 @@ export function GlobalNav() {
     });
   }, []);
 
-  const joinRoom = () => {
+  // Don't show nav on the room/call page
+  if (pathname.startsWith("/room/")) return null;
+
+  const startSession = () => {
     const name = localStorage.getItem("livesesh_displayName") || "Tutor";
     const room = localStorage.getItem("livesesh_roomId") || "demo-room";
     const role = localStorage.getItem("livesesh_role") || "tutor_preview";
@@ -46,7 +45,7 @@ export function GlobalNav() {
             Docs
           </Link>
           {signedIn ? (
-            <button className="nav-btn" onClick={joinRoom}>Join Room</button>
+            <button className="nav-btn" onClick={startSession}>Start Session</button>
           ) : (
             <Link href="/" className="nav-btn">Sign In</Link>
           )}
