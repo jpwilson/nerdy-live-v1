@@ -17,6 +17,8 @@ interface SummaryRow {
   duration_minutes: number;
   engagement_score: number;
   total_interruptions: number;
+  avg_eye_contact: Record<string, number> | null;
+  talk_time_ratio: Record<string, number> | null;
   recommendations: string[];
 }
 
@@ -28,7 +30,6 @@ export function TutorDashboard() {
   useEffect(() => {
     const load = async () => {
       const supabase = getSupabaseBrowserClient();
-
       const { data: sessionData } = await supabase
         .from("sessions")
         .select("id, subject, student_level, started_at, ended_at, engagement_score")
@@ -37,135 +38,131 @@ export function TutorDashboard() {
 
       if (sessionData && sessionData.length > 0) {
         setSessions(sessionData);
-
         const ids = sessionData.map((s: SessionRow) => s.id);
         const { data: summaryData } = await supabase
           .from("session_summaries")
-          .select("session_id, duration_minutes, engagement_score, total_interruptions, recommendations")
+          .select("session_id, duration_minutes, engagement_score, total_interruptions, avg_eye_contact, talk_time_ratio, recommendations")
           .in("session_id", ids);
-
         if (summaryData) {
           const map: Record<string, SummaryRow> = {};
           for (const s of summaryData) map[s.session_id] = s;
           setSummaries(map);
         }
       }
-
       setLoading(false);
     };
-
     void load();
   }, []);
 
-  // Compute aggregate stats
-  const completedSessions = sessions.filter((s) => s.ended_at);
-  const avgEngagement =
-    completedSessions.length > 0
-      ? Math.round(
-          completedSessions.reduce((sum, s) => sum + (s.engagement_score ?? 0), 0) /
-            completedSessions.length
-        )
-      : null;
-  const totalMinutes = Object.values(summaries).reduce(
-    (sum, s) => sum + s.duration_minutes,
-    0
-  );
+  const completed = sessions.filter((s) => s.ended_at);
+  const avgEng = completed.length > 0
+    ? Math.round(completed.reduce((sum, s) => sum + (s.engagement_score ?? 0), 0) / completed.length)
+    : null;
+  const totalMin = Object.values(summaries).reduce((sum, s) => sum + s.duration_minutes, 0);
 
-  // Trend: compare recent 5 vs older sessions
-  const recentScores = completedSessions.slice(0, 5).map((s) => s.engagement_score ?? 0);
-  const olderScores = completedSessions.slice(5, 10).map((s) => s.engagement_score ?? 0);
-  const recentAvg = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : 0;
-  const olderAvg = olderScores.length > 0 ? olderScores.reduce((a, b) => a + b, 0) / olderScores.length : 0;
-  const trend = olderScores.length === 0 ? "—" : recentAvg > olderAvg + 3 ? "Improving" : recentAvg < olderAvg - 3 ? "Declining" : "Stable";
-  const trendColor = trend === "Improving" ? "var(--success)" : trend === "Declining" ? "var(--danger)" : "var(--muted)";
+  // Trend
+  const recent = completed.slice(0, 5).map((s) => s.engagement_score ?? 0);
+  const older = completed.slice(5, 10).map((s) => s.engagement_score ?? 0);
+  const rAvg = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+  const oAvg = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : 0;
+  const trend = older.length === 0 ? "—" : rAvg > oAvg + 3 ? "Improving" : rAvg < oAvg - 3 ? "Declining" : "Stable";
 
-  const formatDate = (iso: string) => {
+  const fmt = (iso: string) => {
     const d = new Date(iso);
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffMin = Math.floor(diffMs / 60_000);
-    if (diffMin < 1) return "Just now";
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffHrs = Math.floor(diffMin / 60);
-    if (diffHrs < 24) return `${diffHrs}h ago`;
-    const diffDays = Math.floor(diffHrs / 24);
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
+      " at " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   };
 
-  const scoreColor = (score: number | null) => {
-    if (score == null) return "var(--muted)";
-    if (score >= 70) return "var(--success)";
-    if (score >= 40) return "var(--warn)";
-    return "var(--danger)";
-  };
+  const engColor = (s: number | null) =>
+    s == null ? "var(--muted)" : s >= 70 ? "var(--success)" : s >= 40 ? "var(--warn)" : "var(--danger)";
+  const engBg = (s: number | null) =>
+    s == null ? "rgba(139,140,160,0.15)" : s >= 70 ? "rgba(0,212,170,0.15)" : s >= 40 ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)";
+  const trendColor = trend === "Improving" ? "var(--success)" : trend === "Declining" ? "var(--danger)" : "var(--muted)";
 
   return (
     <div className="dashboard">
-      <p className="eyebrow">Dashboard</p>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: 16 }}>Your Sessions</h1>
+      <h1 className="dash-title">Analytics</h1>
 
-      {/* Stats row */}
-      <div className="dash-stats">
-        <div className="dash-stat">
-          <span className="dash-stat-value">{sessions.length}</span>
-          <span className="dash-stat-label">Sessions</span>
+      {/* 2x2 stat grid like iOS */}
+      <div className="dash-grid">
+        <div className="dash-card">
+          <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <span className="dash-card-value">{sessions.length}</span>
+          <span className="dash-card-label">Sessions</span>
         </div>
-        <div className="dash-stat">
-          <span className="dash-stat-value">{totalMinutes > 0 ? `${totalMinutes}m` : "—"}</span>
-          <span className="dash-stat-label">Total time</span>
-        </div>
-        <div className="dash-stat">
-          <span className="dash-stat-value" style={{ color: scoreColor(avgEngagement) }}>
-            {avgEngagement != null ? `${avgEngagement}%` : "—"}
+        <div className="dash-card">
+          <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span className="dash-card-value" style={{ color: engColor(avgEng) }}>
+            {avgEng != null ? `${avgEng}%` : "—"}
           </span>
-          <span className="dash-stat-label">Avg engagement</span>
+          <span className="dash-card-label">Avg. Score</span>
         </div>
-        <div className="dash-stat">
-          <span className="dash-stat-value" style={{ color: trendColor, fontSize: "1rem" }}>
-            {trend}
-          </span>
-          <span className="dash-stat-label">Trend</span>
+        <div className="dash-card">
+          <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <span className="dash-card-value">{totalMin > 0 ? `${totalMin}m` : "—"}</span>
+          <span className="dash-card-label">Total Time</span>
+        </div>
+        <div className="dash-card">
+          <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={trendColor} strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          <span className="dash-card-value" style={{ color: trendColor }}>{trend}</span>
+          <span className="dash-card-label">Trend</span>
         </div>
       </div>
 
-      {/* Session list */}
+      {/* Recent sessions */}
+      <h2 className="dash-section-title">Recent Sessions</h2>
+
       {loading ? (
-        <p className="dash-empty">Loading sessions...</p>
+        <p className="dash-empty">Loading...</p>
       ) : sessions.length === 0 ? (
         <div className="dash-empty-card">
           <p className="dash-empty">No sessions yet.</p>
-          <p className="dash-empty-sub">
-            Join a room to start your first tutoring session. Your session history and engagement stats will appear here.
-          </p>
+          <p className="dash-empty-sub">Start a session to see analytics here.</p>
         </div>
       ) : (
         <div className="dash-sessions">
           {sessions.map((s) => {
-            const summary = summaries[s.id];
+            const sm = summaries[s.id];
+            const score = s.engagement_score ?? sm?.engagement_score ?? null;
+            const eyeContact = sm?.avg_eye_contact
+              ? Math.round(((sm.avg_eye_contact as Record<string, number>).student ?? 0) * 100)
+              : null;
+            const talkBalance = sm?.talk_time_ratio
+              ? Math.round(((sm.talk_time_ratio as Record<string, number>).student ?? 0) * 100)
+              : null;
             return (
               <div key={s.id} className="dash-session-card">
                 <div className="dash-session-top">
                   <div>
-                    <strong className="dash-session-subject">{s.subject || "Session"}</strong>
-                    <span className="dash-session-level">{s.student_level}</span>
+                    <span className="dash-session-date">{fmt(s.started_at)}</span>
+                    <span className="dash-session-duration">{sm ? `${sm.duration_minutes} min` : ""}</span>
                   </div>
-                  <span className="dash-session-time">{formatDate(s.started_at)}</span>
-                </div>
-                <div className="dash-session-meta">
-                  {summary && (
-                    <span className="dash-session-duration">{summary.duration_minutes}m</span>
+                  {score != null && (
+                    <div className="dash-score-badge" style={{ background: engBg(score), color: engColor(score) }}>
+                      {Math.round(score)}
+                    </div>
                   )}
-                  <span
-                    className="dash-session-score"
-                    style={{ color: scoreColor(s.engagement_score ?? summary?.engagement_score ?? null) }}
-                  >
-                    {s.engagement_score ?? summary?.engagement_score
-                      ? `${Math.round(s.engagement_score ?? summary?.engagement_score ?? 0)}%`
-                      : "—"}
-                  </span>
                   {!s.ended_at && <span className="dash-session-live">LIVE</span>}
                 </div>
+                {sm && (
+                  <div className="dash-session-metrics">
+                    <div className="dash-mini-metric">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <span className="dash-mini-value">{eyeContact ?? 0}%</span>
+                      <span className="dash-mini-label">Eye Contact</span>
+                    </div>
+                    <div className="dash-mini-metric">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2"><rect x="4" y="4" width="4" height="16" rx="1"/><rect x="10" y="8" width="4" height="12" rx="1"/><rect x="16" y="2" width="4" height="18" rx="1"/></svg>
+                      <span className="dash-mini-value">{talkBalance ?? 0}%</span>
+                      <span className="dash-mini-label">Talk Balance</span>
+                    </div>
+                    <div className="dash-mini-metric">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                      <span className="dash-mini-value">{sm.total_interruptions}</span>
+                      <span className="dash-mini-label">Interrupts</span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

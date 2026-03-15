@@ -321,19 +321,16 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
             />
           </div>
           <div className="field" style={{ marginBottom: 12 }}>
-            <label>Student level</label>
-            <div className="segment-row">
+            <label htmlFor="student-level">Student level</label>
+            <select
+              id="student-level"
+              value={studentLevel}
+              onChange={(e) => setStudentLevel(e.target.value)}
+            >
               {["Elementary", "Middle School", "High School", "College", "Graduate", "Professional"].map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  className={`segment-btn ${studentLevel === lvl ? "active" : ""}`}
-                  onClick={() => setStudentLevel(lvl)}
-                >
-                  {lvl.length > 8 ? lvl.slice(0, 6) + "…" : lvl}
-                </button>
+                <option key={lvl} value={lvl}>{lvl}</option>
               ))}
-            </div>
+            </select>
           </div>
           <div className="field">
             <label>Coaching sensitivity</label>

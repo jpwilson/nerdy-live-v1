@@ -164,42 +164,57 @@ h3 {
   margin: 12px 0 0;
 }
 
-/* ── Tutor Dashboard ──────────────────────── */
+/* ── Tutor Dashboard (matches iOS Analytics) ── */
 .dashboard {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
-.dash-stats {
-  display: flex;
-  gap: 12px;
+.dash-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0;
 }
 
-.dash-stat {
-  flex: 1;
+.dash-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 4px 0 0;
+}
+
+/* 2x2 stat grid like iOS */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.dash-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 14px 8px;
+  gap: 6px;
+  padding: 16px;
   background: var(--bg-elevated);
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid var(--line);
 }
 
-.dash-stat-value {
-  font-size: 1.4rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
+.dash-card-icon {
+  opacity: 0.9;
 }
 
-.dash-stat-label {
+.dash-card-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.dash-card-label {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .dash-empty {
@@ -223,22 +238,23 @@ h3 {
   margin: 8px 0 0;
 }
 
+/* Session list */
 .dash-sessions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 340px;
+  gap: 10px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
 .dash-session-card {
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--bg-elevated);
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   transition: border-color 0.15s;
 }
 
@@ -249,41 +265,32 @@ h3 {
 .dash-session-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.dash-session-subject {
-  font-size: 0.88rem;
-  font-weight: 700;
-}
-
-.dash-session-level {
-  font-size: 0.72rem;
-  color: var(--muted);
-  margin-left: 8px;
-}
-
-.dash-session-time {
-  font-size: 0.72rem;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.dash-session-meta {
-  display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 0.78rem;
+}
+
+.dash-session-date {
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: block;
 }
 
 .dash-session-duration {
+  font-size: 0.72rem;
   color: var(--muted);
 }
 
-.dash-session-score {
-  font-weight: 700;
+.dash-score-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 .dash-session-live {
@@ -291,9 +298,40 @@ h3 {
   font-weight: 800;
   color: var(--success);
   background: rgba(0, 212, 170, 0.12);
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 6px;
   letter-spacing: 0.05em;
+}
+
+/* Mini metrics row inside session card */
+.dash-session-metrics {
+  display: flex;
+  gap: 8px;
+}
+
+.dash-mini-metric {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.dash-mini-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-mini-label {
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .form-card {
