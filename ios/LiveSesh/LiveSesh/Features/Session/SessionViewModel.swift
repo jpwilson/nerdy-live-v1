@@ -228,8 +228,16 @@ final class SessionViewModel: ObservableObject {
         startTimer()
         startBatteryMonitoring()
 
-        Task { [weak self] in
-            await self?.startLiveCapture()
+        // Only start LiveCaptureController's own camera in test mode.
+        // In call mode, LiveKit owns the front camera — starting a second
+        // AVCaptureSession on the same camera causes hardware conflicts
+        // (camera flips to rear, intermittent freezes, etc.).
+        // In call mode, analysis uses LiveKitFrameExtractor on the remote
+        // student's video track instead.
+        if testModeEnabled || roomCode.isEmpty {
+            Task { [weak self] in
+                await self?.startLiveCapture()
+            }
         }
 
         // Connect to video service when not in test mode and a room code is set
