@@ -182,8 +182,8 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
     return (
       <div className="form-card stack">
         <div>
-          <p className="eyebrow">Sign In</p>
-          <h2>Authenticate to join a session.</h2>
+          <p className="eyebrow">Get Started</p>
+          <h2>Sign up or sign in to begin.</h2>
         </div>
 
         {authState === "signed_out" ? (

@@ -51,9 +51,9 @@ export function GlobalNav() {
           )}
           {signedIn ? (
             <button className="nav-btn" onClick={startSession}>Start Session</button>
-          ) : (
-            <Link href="/" className="nav-btn nav-btn-signin">Sign In</Link>
-          )}
+          ) : pathname !== "/" ? (
+            <Link href="/" className="nav-btn nav-btn-signin">Sign Up</Link>
+          ) : null}
         </div>
       </div>
     </nav>
