@@ -1,9 +1,44 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
+const SECTIONS = [
+  { id: "architecture", label: "System Architecture" },
+  { id: "pipeline", label: "Analysis Pipeline" },
+  { id: "nudge-engine", label: "Coaching Nudge Engine" },
+  { id: "costs", label: "Cost Analysis & Scaling" },
+  { id: "validation", label: "Validation & Accuracy" },
+  { id: "privacy", label: "Privacy & Security" },
+  { id: "limitations", label: "Known Limitations" },
+];
 
 export default function DocsPage() {
+  const [activeSection, setActiveSection] = useState("architecture");
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: "-120px 0px -60% 0px", threshold: 0 }
+    );
+
+    SECTIONS.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <main className="shell docs-page">
-      <Link href="/" className="docs-back">← Back to LiveSesh</Link>
+      <Link href="/dashboard" className="docs-back">← Back to Dashboard</Link>
 
       <h1 className="docs-title">LiveSesh AI — Technical Documentation</h1>
       <p className="docs-subtitle">Architecture, pipeline, cost analysis, and validation for the AI-Powered Live Session Analysis system.</p>
@@ -11,13 +46,11 @@ export default function DocsPage() {
       <nav className="docs-toc">
         <h2>Contents</h2>
         <ul>
-          <li><a href="#architecture">System Architecture</a></li>
-          <li><a href="#pipeline">Analysis Pipeline</a></li>
-          <li><a href="#nudge-engine">Coaching Nudge Engine</a></li>
-          <li><a href="#costs">Cost Analysis & Scaling</a></li>
-          <li><a href="#validation">Validation & Accuracy</a></li>
-          <li><a href="#privacy">Privacy & Security</a></li>
-          <li><a href="#limitations">Known Limitations</a></li>
+          {SECTIONS.map(({ id, label }) => (
+            <li key={id}>
+              <a href={`#${id}`} className={activeSection === id ? "toc-active" : ""}>{label}</a>
+            </li>
+          ))}
         </ul>
       </nav>
 
