@@ -57,8 +57,14 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
   const edgesRef = useRef<GraphEdge[]>([]);
   const animRef = useRef<number>(0);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
+  const [clickedNode, setClickedNode] = useState<GraphNode | null>(null);
   const [dimensions, setDimensions] = useState({ w: 800, h: 500 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef(1);
+  const panRef = useRef({ x: 0, y: 0 });
+  const dragRef = useRef<{ nodeId: string; offsetX: number; offsetY: number } | null>(null);
+  const isPanningRef = useRef(false);
+  const lastPanRef = useRef({ x: 0, y: 0 });
 
   // Build graph data from sessions
   useEffect(() => {
@@ -119,15 +125,29 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
         edges.push({ source: s.id, target: mId, color: metricColor(m.key) });
       });
 
-      // Connect sequential sessions
-      if (i > 0) {
+      // Connect sequential sessions by same student
+      const prevSameStudent = sessions.slice(0, i).reverse().find(ps => ps.student === s.student);
+      if (prevSameStudent) {
         edges.push({
-          source: sessions[i - 1].id,
+          source: prevSameStudent.id,
           target: s.id,
-          color: "rgba(0,0,0,0.08)",
+          color: "rgba(0,0,0,0.12)",
         });
       }
     });
+
+    // Connect same-type metric nodes across sessions with faint lines
+    const metricTypes = ["eye", "talk", "int", "dur"];
+    for (const mType of metricTypes) {
+      const metricNodes = nodes.filter(n => n.type === "metric" && n.id.endsWith(`-${mType}`));
+      for (let i = 1; i < metricNodes.length; i++) {
+        edges.push({
+          source: metricNodes[i - 1].id,
+          target: metricNodes[i].id,
+          color: metricColor(mType) + "30", // very faint
+        });
+      }
+    }
 
     nodesRef.current = nodes;
     edgesRef.current = edges;
@@ -197,8 +217,11 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
         a.y = Math.max(a.radius, Math.min(h - a.radius, a.y));
       }
 
-      // Draw
+      // Draw with zoom/pan
       ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      ctx.translate(panRef.current.x, panRef.current.y);
+      ctx.scale(zoomRef.current, zoomRef.current);
 
       // Edges
       for (const e of edges) {
@@ -269,6 +292,7 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
         }
       }
 
+      ctx.restore();
       animRef.current = requestAnimationFrame(tick);
     };
 
@@ -280,24 +304,84 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
     };
   }, [dimensions]);
 
-  // Mouse hover
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const nodes = nodesRef.current;
-    let found: GraphNode | null = null;
-    for (const n of nodes) {
+  // Convert screen coords to graph coords
+  const screenToGraph = (sx: number, sy: number) => ({
+    x: (sx - panRef.current.x) / zoomRef.current,
+    y: (sy - panRef.current.y) / zoomRef.current,
+  });
+
+  const findNodeAt = (sx: number, sy: number) => {
+    const { x, y } = screenToGraph(sx, sy);
+    for (const n of nodesRef.current) {
       const dx = n.x - x;
       const dy = n.y - y;
-      if (Math.sqrt(dx * dx + dy * dy) < n.radius + 4) {
-        found = n;
-        break;
-      }
+      if (Math.sqrt(dx * dx + dy * dy) < n.radius + 4) return n;
     }
-    setHoveredNode(found);
+    return null;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+
+    // Drag node
+    if (dragRef.current) {
+      const { x, y } = screenToGraph(sx, sy);
+      const node = nodesRef.current.find(n => n.id === dragRef.current!.nodeId);
+      if (node) { node.x = x; node.y = y; node.vx = 0; node.vy = 0; }
+      return;
+    }
+
+    // Pan
+    if (isPanningRef.current) {
+      panRef.current.x += e.clientX - lastPanRef.current.x;
+      panRef.current.y += e.clientY - lastPanRef.current.y;
+      lastPanRef.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
+    setHoveredNode(findNodeAt(sx, sy));
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const node = findNodeAt(sx, sy);
+
+    if (node) {
+      dragRef.current = { nodeId: node.id, offsetX: 0, offsetY: 0 };
+    } else {
+      isPanningRef.current = true;
+      lastPanRef.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (dragRef.current) {
+      const node = nodesRef.current.find(n => n.id === dragRef.current!.nodeId);
+      if (node) setClickedNode(node);
+      dragRef.current = null;
+    }
+    isPanningRef.current = false;
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.max(0.3, Math.min(3, zoomRef.current * delta));
+    // Zoom toward mouse position
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect) {
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      panRef.current.x = mx - (mx - panRef.current.x) * (newZoom / zoomRef.current);
+      panRef.current.y = my - (my - panRef.current.y) * (newZoom / zoomRef.current);
+    }
+    zoomRef.current = newZoom;
   };
 
   return (
@@ -305,19 +389,26 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
       <canvas
         ref={canvasRef}
         className="graph-canvas"
-        style={{ width: dimensions.w, height: dimensions.h }}
+        style={{ width: dimensions.w, height: dimensions.h, cursor: dragRef.current ? "grabbing" : "grab" }}
         onMouseMove={handleMouseMove}
-        onMouseLeave={() => setHoveredNode(null)}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={() => { setHoveredNode(null); handleMouseUp(); }}
+        onWheel={handleWheel}
       />
-      {hoveredNode && (
-        <div className="graph-tooltip" style={{
-          left: Math.min(dimensions.w - 160, hoveredNode.x + 12),
-          top: hoveredNode.y - 40,
-        }}>
-          <strong>{hoveredNode.label}</strong>
-          {hoveredNode.value != null && <span>{hoveredNode.value}{hoveredNode.type === "session" ? "% engagement" : "%"}</span>}
-        </div>
-      )}
+      {(hoveredNode || clickedNode) && (() => {
+        const node = hoveredNode || clickedNode;
+        if (!node) return null;
+        const sx = node.x * zoomRef.current + panRef.current.x;
+        const sy = node.y * zoomRef.current + panRef.current.y;
+        return (
+          <div className="graph-tooltip" style={{ left: Math.min(dimensions.w - 180, sx + 12), top: sy - 50 }}>
+            <strong>{node.label}</strong>
+            {node.value != null && <span>{node.value}{node.type === "session" ? "% engagement" : "%"}</span>}
+            {node.type === "metric" && <span style={{ fontSize: "0.65rem", color: "#999" }}>Click to highlight all {node.label} nodes</span>}
+          </div>
+        );
+      })()}
       <div className="graph-legend">
         <span><span className="legend-dot" style={{ background: "#2D9D5E" }} /> High engagement</span>
         <span><span className="legend-dot" style={{ background: "#E8873A" }} /> Moderate</span>
