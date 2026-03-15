@@ -22,7 +22,7 @@ interface SummaryRow {
   recommendations: string[];
 }
 
-function RadarChart({ data, size = 200 }: { data: { label: string; value: number; max: number }[]; size?: number }) {
+function RadarChart({ data, size = 260 }: { data: { label: string; value: number; max: number; color?: string }[]; size?: number }) {
   const cx = size / 2;
   const cy = size / 2;
   const r = size * 0.38;
@@ -34,6 +34,14 @@ function RadarChart({ data, size = 200 }: { data: { label: string; value: number
     return {
       x: cx + Math.cos(angle) * r * ratio,
       y: cy + Math.sin(angle) * r * ratio,
+    };
+  };
+
+  const getLabelPoint = (i: number) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    return {
+      x: cx + Math.cos(angle) * 130,
+      y: cy + Math.sin(angle) * 130,
     };
   };
 
@@ -65,20 +73,28 @@ function RadarChart({ data, size = 200 }: { data: { label: string; value: number
           const p = getPoint(i, d.value, d.max);
           return `${p.x},${p.y}`;
         }).join(" ")}
-        fill="rgba(196, 64, 47, 0.15)"
-        stroke="#C4402F"
-        strokeWidth="2"
+        fill="rgba(196, 64, 47, 0.1)"
+        stroke="none"
       />
+      {/* Colored line segments from center to each point */}
+      {data.map((d, i) => {
+        const p = getPoint(i, d.value, d.max);
+        const nextIdx = (i + 1) % n;
+        const pNext = getPoint(nextIdx, data[nextIdx].value, data[nextIdx].max);
+        return (
+          <line key={`seg-${i}`} x1={p.x} y1={p.y} x2={pNext.x} y2={pNext.y} stroke={d.color || "#C4402F"} strokeWidth="2" strokeLinecap="round" />
+        );
+      })}
       {/* Data points */}
       {data.map((d, i) => {
         const p = getPoint(i, d.value, d.max);
-        return <circle key={i} cx={p.x} cy={p.y} r="3" fill="#C4402F" />;
+        return <circle key={i} cx={p.x} cy={p.y} r="3" fill={d.color || "#C4402F"} />;
       })}
       {/* Labels */}
       {data.map((d, i) => {
-        const p = getPoint(i, 120, 100);
+        const p = getLabelPoint(i);
         return (
-          <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="#5A5A5A" fontWeight="600">
+          <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill={d.color || "#5A5A5A"} fontWeight="600">
             {d.label}
           </text>
         );
@@ -92,7 +108,8 @@ interface EnrichedSession extends SessionRow {
   subject: string;
   demoMetrics: {
     eyeContact: number;
-    talkBalance: number;
+    studentTalk: number;
+    tutorTalk: number;
     energy: number;
     attentionDrift: number;
     interruptions: number;
@@ -106,6 +123,26 @@ export function TutorDashboard() {
   const [summaries, setSummaries] = useState<Record<string, SummaryRow>>({});
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"date" | "student" | "score" | "duration" | "eyeContact">("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [expandedTile, setExpandedTile] = useState<string | null>(null);
+
+  const toggleSort = (col: typeof sortBy) => {
+    if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortBy(col); setSortDir("desc"); }
+  };
+
+  const sortedSessions = [...enrichedSessions].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    switch (sortBy) {
+      case "date": return dir * (new Date(a.started_at).getTime() - new Date(b.started_at).getTime());
+      case "student": return dir * a.studentName.localeCompare(b.studentName);
+      case "score": return dir * ((a.engagement_score ?? a.demoMetrics.eyeContact) - (b.engagement_score ?? b.demoMetrics.eyeContact));
+      case "duration": return dir * (a.demoMetrics.duration - b.demoMetrics.duration);
+      case "eyeContact": return dir * (a.demoMetrics.eyeContact - b.demoMetrics.eyeContact);
+      default: return 0;
+    }
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -133,19 +170,23 @@ export function TutorDashboard() {
         const demoStudents = ["Sarah Chen", "Alex Rivera", "Jordan Patel", "Casey Kim", "Morgan Davis"];
         const demoSubjects = ["Algebra", "Calculus", "Geometry", "Physics", "Biology", "Chemistry", "English", "History"];
 
-        const enriched = sessionData.map((s: SessionRow, i: number) => ({
-          ...s,
-          studentName: demoStudents[i % demoStudents.length],
-          subject: s.subject || demoSubjects[i % demoSubjects.length],
-          demoMetrics: {
-            eyeContact: 40 + Math.round(Math.sin(i * 1.5) * 25 + Math.random() * 15),
-            talkBalance: 30 + Math.round(Math.cos(i * 0.8) * 15 + Math.random() * 10),
-            energy: 35 + Math.round(Math.sin(i * 2.1) * 20 + Math.random() * 15),
-            attentionDrift: 10 + Math.round(Math.abs(Math.sin(i * 1.2)) * 30),
-            interruptions: Math.round(Math.abs(Math.sin(i * 3)) * 5),
-            duration: 10 + Math.round(Math.random() * 30),
-          }
-        }));
+        const enriched = sessionData.map((s: SessionRow, i: number) => {
+          const studentTalk = 25 + Math.round(Math.cos(i * 0.8) * 15 + Math.random() * 10);
+          return {
+            ...s,
+            studentName: demoStudents[i % demoStudents.length],
+            subject: s.subject || demoSubjects[i % demoSubjects.length],
+            demoMetrics: {
+              eyeContact: 40 + Math.round(Math.sin(i * 1.5) * 25 + Math.random() * 15),
+              studentTalk,
+              tutorTalk: 100 - studentTalk,
+              energy: 35 + Math.round(Math.sin(i * 2.1) * 20 + Math.random() * 15),
+              attentionDrift: 10 + Math.round(Math.abs(Math.sin(i * 1.2)) * 30),
+              interruptions: Math.round(Math.abs(Math.sin(i * 3)) * 5),
+              duration: 10 + Math.round(Math.random() * 30),
+            }
+          };
+        });
         setEnrichedSessions(enriched);
       }
       setLoading(false);
@@ -164,7 +205,7 @@ export function TutorDashboard() {
   const older = completed.slice(5, 10).map((s) => s.engagement_score ?? 0);
   const rAvg = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
   const oAvg = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : 0;
-  const trend = older.length === 0 ? "—" : rAvg > oAvg + 3 ? "Improving" : rAvg < oAvg - 3 ? "Declining" : "Stable";
+  const trend = older.length === 0 ? "\u2014" : rAvg > oAvg + 3 ? "Improving" : rAvg < oAvg - 3 ? "Declining" : "Stable";
 
   const fmt = (iso: string) => {
     const d = new Date(iso);
@@ -195,98 +236,188 @@ export function TutorDashboard() {
         <h1 className="dash-title">Session Detail</h1>
         <p className="detail-date">{fmt(session.started_at)} &middot; {enriched.studentName} &middot; {enriched.subject}</p>
 
-        {/* Score badge */}
-        <div className="detail-score-section">
-          <div className="detail-score-badge" style={{ background: engBg(score), color: engColor(score) }}>
-            {score != null ? Math.round(score) : "\u2014"}
+        <div className="detail-tiles">
+          {/* Score badge tile */}
+          <div
+            className={`detail-tile ${expandedTile === "score" ? "expanded" : ""}`}
+            onClick={() => setExpandedTile(expandedTile === "score" ? null : "score")}
+          >
+            <div className="detail-score-section">
+              <div className="detail-score-badge" style={{ background: engBg(score), color: engColor(score) }}>
+                {score != null ? Math.round(score) : "\u2014"}
+              </div>
+              <div>
+                <span className="detail-score-label">Engagement Score</span>
+                <span className="detail-score-interp">
+                  {score != null ? (score >= 70 ? "Good session" : score >= 40 ? "Moderate engagement" : "Low engagement \u2014 review recommendations") : "No data"}
+                </span>
+              </div>
+            </div>
+
+            {/* Metrics grid */}
+            <div className="dash-grid">
+              <div className="dash-card">
+                <span className="dash-card-label">Duration</span>
+                <span className="dash-card-value">{sm?.duration_minutes ?? enriched.demoMetrics.duration}m</span>
+              </div>
+              <div className="dash-card">
+                <span className="dash-card-label">Eye Contact</span>
+                <span className="dash-card-value">{eyeContact ?? enriched.demoMetrics.eyeContact}%</span>
+              </div>
+              <div className="dash-card">
+                <span className="dash-card-label">Student Talk</span>
+                <span className="dash-card-value">{talkStudent ?? enriched.demoMetrics.studentTalk}%</span>
+              </div>
+              <div className="dash-card">
+                <span className="dash-card-label">Tutor Talk</span>
+                <span className="dash-card-value">{talkTutor ?? enriched.demoMetrics.tutorTalk}%</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="detail-score-label">Engagement Score</span>
-            <span className="detail-score-interp">
-              {score != null ? (score >= 70 ? "Good session" : score >= 40 ? "Moderate engagement" : "Low engagement \u2014 review recommendations") : "No data"}
-            </span>
+
+          {/* Radar chart tile */}
+          <div
+            className={`detail-tile ${expandedTile === "radar" ? "expanded" : ""}`}
+            onClick={() => setExpandedTile(expandedTile === "radar" ? null : "radar")}
+          >
+            <h2 className="dash-section-title">Session Metrics</h2>
+            <RadarChart data={[
+              { label: "Eye Contact", value: eyeContact ?? enriched.demoMetrics.eyeContact, max: 100, color: "#2B86C5" },
+              { label: "Student Talk", value: talkStudent ?? enriched.demoMetrics.studentTalk, max: 100, color: "#8B5CF6" },
+              { label: "Tutor Talk", value: talkTutor ?? enriched.demoMetrics.tutorTalk, max: 100, color: "#E8573A" },
+              { label: "Energy", value: enriched.demoMetrics.energy, max: 100, color: "#2D9D5E" },
+              { label: "Attention", value: 100 - enriched.demoMetrics.attentionDrift, max: 100, color: "#E8873A" },
+              { label: "Duration", value: Math.min(100, (sm?.duration_minutes ?? enriched.demoMetrics.duration) * 2), max: 100, color: "#6366F1" },
+              { label: "Engagement", value: score ?? enriched.demoMetrics.eyeContact, max: 100, color: "#C4402F" },
+            ]} />
+          </div>
+
+          {/* Session Summary tile */}
+          <div
+            className={`detail-tile ${expandedTile === "summary" ? "expanded" : ""}`}
+            onClick={() => setExpandedTile(expandedTile === "summary" ? null : "summary")}
+          >
+            <h2 className="dash-section-title">Session Summary</h2>
+            <p className="detail-summary-text">
+              {score != null && score >= 70
+                ? `${enriched.studentName} showed strong engagement throughout this ${enriched.subject} session. Eye contact was consistently above average and participation was active. Consider maintaining the current teaching approach.`
+                : score != null && score >= 40
+                ? `${enriched.studentName} showed moderate engagement during ${enriched.subject}. There were periods of disengagement, particularly around the midpoint. Try incorporating more interactive elements or checking for understanding more frequently.`
+                : `${enriched.studentName} showed lower engagement in this ${enriched.subject} session. Consider shorter focused segments with breaks, more direct questions, and varying the activity type. Compare with previous sessions to identify what approaches work best.`}
+            </p>
+            <div className="detail-comparison">
+              <span className="detail-comp-label">vs. last session with {enriched.studentName}</span>
+              <span className="detail-comp-value" style={{ color: Math.random() > 0.5 ? "#2D9D5E" : "#C4402F" }}>
+                {Math.random() > 0.5 ? "\u2191" : "\u2193"} {Math.round(Math.random() * 15 + 2)}% engagement
+              </span>
+            </div>
+          </div>
+
+          {/* Engagement timeline tile */}
+          <div
+            className={`detail-tile ${expandedTile === "timeline" ? "expanded" : ""}`}
+            onClick={() => setExpandedTile(expandedTile === "timeline" ? null : "timeline")}
+          >
+            <div className="detail-timeline">
+              <h2 className="dash-section-title">Engagement Timeline</h2>
+              <svg viewBox="0 0 400 120" className="timeline-chart">
+                {/* Y-axis labels */}
+                <text x="8" y="15" fontSize="8" fill="#999">100%</text>
+                <text x="8" y="58" fontSize="8" fill="#999">50%</text>
+                <text x="8" y="100" fontSize="8" fill="#999">0%</text>
+                {/* Grid lines */}
+                {[0, 1, 2, 3, 4].map(i => (
+                  <line key={i} x1="30" y1={10 + i * 22} x2="390" y2={10 + i * 22} stroke="rgba(0,0,0,0.06)" strokeWidth="1" />
+                ))}
+                {/* X-axis labels */}
+                {["0m", "5m", "10m", "15m", "20m", "25m", "30m"].map((label, i) => (
+                  <text key={i} x={30 + i * 60} y="115" fontSize="8" fill="#999" textAnchor="middle">{label}</text>
+                ))}
+                {/* Fake engagement line */}
+                <polyline
+                  fill="none"
+                  stroke="#C4402F"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points={(() => {
+                    const pts = [];
+                    const seed = enriched.studentName.charCodeAt(0);
+                    for (let i = 0; i <= 12; i++) {
+                      const x = 30 + (i / 12) * 360;
+                      const base = (score ?? 50);
+                      const noise = Math.sin(i * 1.3 + seed) * 15 + Math.cos(i * 0.7) * 10;
+                      const y = 100 - (Math.max(10, Math.min(95, base + noise)) / 100) * 88;
+                      pts.push(`${x},${y}`);
+                    }
+                    return pts.join(" ");
+                  })()}
+                />
+                {/* Eye contact line */}
+                <polyline
+                  fill="none"
+                  stroke="#2B86C5"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 2"
+                  strokeLinecap="round"
+                  points={(() => {
+                    const pts = [];
+                    const seed = enriched.studentName.charCodeAt(1) || 65;
+                    for (let i = 0; i <= 12; i++) {
+                      const x = 30 + (i / 12) * 360;
+                      const base = (eyeContact ?? enriched.demoMetrics.eyeContact);
+                      const noise = Math.sin(i * 1.7 + seed) * 12 + Math.cos(i * 0.5) * 8;
+                      const y = 100 - (Math.max(10, Math.min(95, base + noise)) / 100) * 88;
+                      pts.push(`${x},${y}`);
+                    }
+                    return pts.join(" ");
+                  })()}
+                />
+              </svg>
+              <div className="timeline-legend">
+                <span><span className="legend-dot" style={{ background: "#C4402F" }} /> Engagement</span>
+                <span><span className="legend-dot" style={{ background: "#2B86C5" }} /> Eye Contact</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Recommendations tile */}
+          <div
+            className={`detail-tile ${expandedTile === "recommendations" ? "expanded" : ""}`}
+            onClick={() => setExpandedTile(expandedTile === "recommendations" ? null : "recommendations")}
+          >
+            <div className="detail-recommendations">
+              <h2 className="dash-section-title">Recommendations</h2>
+              <ul className="detail-rec-list">
+                {(eyeContact ?? enriched.demoMetrics.eyeContact) < 50 && (
+                  <li>Eye contact was low ({eyeContact ?? enriched.demoMetrics.eyeContact}%). Try repositioning the camera to be at eye level, and use more direct questions to draw {enriched.studentName}&apos;s gaze back to screen.</li>
+                )}
+                {enriched.demoMetrics.studentTalk < 30 && (
+                  <li>{enriched.studentName} spoke for only {enriched.demoMetrics.studentTalk}% of the session. Increase student talk time by asking open-ended questions and waiting at least 5 seconds for responses.</li>
+                )}
+                {enriched.demoMetrics.energy < 40 && (
+                  <li>Energy level was low ({enriched.demoMetrics.energy}%). Consider adding interactive exercises, whiteboard activities, or short breaks to boost engagement.</li>
+                )}
+                {enriched.demoMetrics.attentionDrift > 30 && (
+                  <li>Attention drift was elevated ({enriched.demoMetrics.attentionDrift}%). This often indicates the material pace is too fast or too slow. Check for understanding at 5-minute intervals.</li>
+                )}
+                {(enriched.demoMetrics.interruptions ?? 0) > 3 && (
+                  <li>There were {enriched.demoMetrics.interruptions} interruptions. Establish turn-taking norms at the start of the session — &quot;I&apos;ll pause after each concept for questions.&quot;</li>
+                )}
+                {(score ?? enriched.demoMetrics.eyeContact) >= 70 && (
+                  <li>Strong session overall. {enriched.studentName} was engaged and participatory. Continue with this approach for {enriched.subject}.</li>
+                )}
+              </ul>
+            </div>
           </div>
         </div>
-
-        {/* Metrics grid */}
-        <div className="dash-grid">
-          <div className="dash-card">
-            <span className="dash-card-label">Duration</span>
-            <span className="dash-card-value">{sm?.duration_minutes ?? enriched.demoMetrics.duration}m</span>
-          </div>
-          <div className="dash-card">
-            <span className="dash-card-label">Eye Contact</span>
-            <span className="dash-card-value">{eyeContact ?? enriched.demoMetrics.eyeContact}%</span>
-          </div>
-          <div className="dash-card">
-            <span className="dash-card-label">Talk Balance</span>
-            <span className="dash-card-value">{talkStudent ?? enriched.demoMetrics.talkBalance}% / {talkTutor ?? (100 - enriched.demoMetrics.talkBalance)}%</span>
-          </div>
-          <div className="dash-card">
-            <span className="dash-card-label">Interruptions</span>
-            <span className="dash-card-value">{sm?.total_interruptions ?? enriched.demoMetrics.interruptions}</span>
-          </div>
-        </div>
-
-        {/* Radar chart */}
-        <div className="detail-radar">
-          <h2 className="dash-section-title">Session Metrics</h2>
-          <RadarChart data={[
-            { label: "Eye Contact", value: eyeContact ?? enriched.demoMetrics.eyeContact, max: 100 },
-            { label: "Talk Balance", value: talkStudent ?? enriched.demoMetrics.talkBalance, max: 100 },
-            { label: "Energy", value: enriched.demoMetrics.energy, max: 100 },
-            { label: "Attention", value: 100 - enriched.demoMetrics.attentionDrift, max: 100 },
-            { label: "Duration", value: Math.min(100, (sm?.duration_minutes ?? enriched.demoMetrics.duration) * 2), max: 100 },
-            { label: "Engagement", value: score ?? enriched.demoMetrics.eyeContact, max: 100 },
-          ]} />
-        </div>
-
-        {/* Session Summary */}
-        <div className="detail-summary-card">
-          <h2 className="dash-section-title">Session Summary</h2>
-          <p className="detail-summary-text">
-            {score != null && score >= 70
-              ? `${enriched.studentName} showed strong engagement throughout this ${enriched.subject} session. Eye contact was consistently above average and participation was active. Consider maintaining the current teaching approach.`
-              : score != null && score >= 40
-              ? `${enriched.studentName} showed moderate engagement during ${enriched.subject}. There were periods of disengagement, particularly around the midpoint. Try incorporating more interactive elements or checking for understanding more frequently.`
-              : `${enriched.studentName} showed lower engagement in this ${enriched.subject} session. Consider shorter focused segments with breaks, more direct questions, and varying the activity type. Compare with previous sessions to identify what approaches work best.`}
-          </p>
-          <div className="detail-comparison">
-            <span className="detail-comp-label">vs. last session with {enriched.studentName}</span>
-            <span className="detail-comp-value" style={{ color: Math.random() > 0.5 ? "#2D9D5E" : "#C4402F" }}>
-              {Math.random() > 0.5 ? "\u2191" : "\u2193"} {Math.round(Math.random() * 15 + 2)}% engagement
-            </span>
-          </div>
-        </div>
-
-        {/* Engagement timeline placeholder */}
-        <div className="detail-timeline">
-          <h2 className="dash-section-title">Engagement Timeline</h2>
-          <div className="detail-timeline-placeholder">
-            Timeline visualization &mdash; coming soon
-          </div>
-        </div>
-
-        {/* Recommendations */}
-        {sm?.recommendations && sm.recommendations.length > 0 && (
-          <div className="detail-recommendations">
-            <h2 className="dash-section-title">Recommendations</h2>
-            <ul className="detail-rec-list">
-              {sm.recommendations.map((rec: string, i: number) => (
-                <li key={i}>{rec}</li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
     );
   }
 
   return (
     <div className="dashboard">
-      <h1 className="dash-title">Analytics</h1>
-
-      {/* 2x2 stat grid like iOS */}
+      {/* Stat row */}
       <div className="dash-grid">
         <div className="dash-card">
           <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
@@ -296,13 +427,13 @@ export function TutorDashboard() {
         <div className="dash-card">
           <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span className="dash-card-value" style={{ color: engColor(avgEng) }}>
-            {avgEng != null ? `${avgEng}%` : "—"}
+            {avgEng != null ? `${avgEng}%` : "\u2014"}
           </span>
           <span className="dash-card-label">Avg. Score</span>
         </div>
         <div className="dash-card">
           <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          <span className="dash-card-value">{totalMin > 0 ? `${totalMin}m` : "—"}</span>
+          <span className="dash-card-value">{totalMin > 0 ? `${totalMin}m` : "\u2014"}</span>
           <span className="dash-card-label">Total Time</span>
         </div>
         <div className="dash-card">
@@ -323,55 +454,39 @@ export function TutorDashboard() {
           <p className="dash-empty-sub">Start a session to see analytics here.</p>
         </div>
       ) : (
-        <div className="dash-sessions">
-          {enrichedSessions.map((s) => {
-            const sm = summaries[s.id];
-            const score = s.engagement_score ?? sm?.engagement_score ?? null;
-            const eyeContact = sm?.avg_eye_contact
-              ? Math.round(((sm.avg_eye_contact as Record<string, number>).student ?? 0) * 100)
-              : null;
-            const talkBalance = sm?.talk_time_ratio
-              ? Math.round(((sm.talk_time_ratio as Record<string, number>).student ?? 0) * 100)
-              : null;
-            return (
-              <div key={s.id} className="dash-session-card" onClick={() => setSelectedId(s.id)}>
-                <div className="dash-session-top">
-                  <div>
-                    <span className="dash-session-student">{s.studentName}</span>
-                    <span className="dash-session-date">{fmt(s.started_at)}</span>
-                    <span className="dash-session-duration">{sm ? `${sm.duration_minutes} min` : `${s.demoMetrics.duration} min`}</span>
-                  </div>
-                  {score != null ? (
-                    <div className="dash-score-badge" style={{ background: engBg(score), color: engColor(score) }}>
-                      {Math.round(score)}
-                    </div>
-                  ) : (
-                    <div className="dash-score-badge" style={{ background: engBg(s.demoMetrics.eyeContact), color: engColor(s.demoMetrics.eyeContact) }}>
-                      {s.demoMetrics.eyeContact}
-                    </div>
-                  )}
-                  {!s.ended_at && <span className="dash-session-live">LIVE</span>}
-                </div>
-                <div className="dash-session-metrics">
-                  <div className="dash-mini-metric">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <span className="dash-mini-value">{eyeContact ?? s.demoMetrics.eyeContact}%</span>
-                    <span className="dash-mini-label">Eye Contact</span>
-                  </div>
-                  <div className="dash-mini-metric">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2"><rect x="4" y="4" width="4" height="16" rx="1"/><rect x="10" y="8" width="4" height="12" rx="1"/><rect x="16" y="2" width="4" height="18" rx="1"/></svg>
-                    <span className="dash-mini-value">{talkBalance ?? s.demoMetrics.talkBalance}%</span>
-                    <span className="dash-mini-label">Talk Balance</span>
-                  </div>
-                  <div className="dash-mini-metric">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    <span className="dash-mini-value">{sm?.total_interruptions ?? s.demoMetrics.interruptions}</span>
-                    <span className="dash-mini-label">Interrupts</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="session-table-wrap">
+          <table className="session-table">
+            <thead>
+              <tr>
+                <th onClick={() => toggleSort("student")} className="sortable">Student {sortBy === "student" ? (sortDir === "asc" ? "\u2191" : "\u2193") : ""}</th>
+                <th onClick={() => toggleSort("date")} className="sortable">Date {sortBy === "date" ? (sortDir === "asc" ? "\u2191" : "\u2193") : ""}</th>
+                <th>Subject</th>
+                <th onClick={() => toggleSort("duration")} className="sortable">Duration {sortBy === "duration" ? (sortDir === "asc" ? "\u2191" : "\u2193") : ""}</th>
+                <th onClick={() => toggleSort("eyeContact")} className="sortable">Eye Contact {sortBy === "eyeContact" ? (sortDir === "asc" ? "\u2191" : "\u2193") : ""}</th>
+                <th onClick={() => toggleSort("score")} className="sortable">Score {sortBy === "score" ? (sortDir === "asc" ? "\u2191" : "\u2193") : ""}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedSessions.map((s) => {
+                const sm = summaries[s.id];
+                const score = s.engagement_score ?? sm?.engagement_score ?? s.demoMetrics.eyeContact;
+                return (
+                  <tr key={s.id} onClick={() => setSelectedId(s.id)} className="session-row">
+                    <td className="session-student-cell">{s.studentName}</td>
+                    <td>{fmt(s.started_at)}</td>
+                    <td>{s.subject}</td>
+                    <td>{sm?.duration_minutes ?? s.demoMetrics.duration}m</td>
+                    <td>{s.demoMetrics.eyeContact}%</td>
+                    <td>
+                      <span className="table-score" style={{ background: engBg(score), color: engColor(score) }}>
+                        {Math.round(score)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
