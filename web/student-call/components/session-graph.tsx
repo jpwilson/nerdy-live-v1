@@ -11,6 +11,7 @@ interface SessionNode {
   talkBalance: number;
   interruptions: number;
   duration: number;
+  student: string;
 }
 
 interface GraphNode {
@@ -82,7 +83,7 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
 
       nodes.push({
         id: s.id,
-        label: s.subject || "Session",
+        label: s.student?.split(" ")[0] || s.subject || "Session",
         x, y, vx: 0, vy: 0,
         radius: size,
         color: engColor(s.engagement),
@@ -216,25 +217,47 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
 
       // Nodes
       for (const n of nodes) {
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-        ctx.fillStyle = n.color;
-        ctx.globalAlpha = n.type === "session" ? 0.85 : 0.6;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // Border
-        ctx.strokeStyle = n.type === "session" ? "rgba(0,0,0,0.15)" : "rgba(0,0,0,0.08)";
-        ctx.lineWidth = n.type === "session" ? 2 : 1;
-        ctx.stroke();
-
-        // Label for session nodes
         if (n.type === "session") {
+          // Draw hexagon for session nodes
+          ctx.beginPath();
+          for (let hi = 0; hi < 6; hi++) {
+            const hAngle = (hi / 6) * Math.PI * 2 - Math.PI / 6;
+            const hx = n.x + Math.cos(hAngle) * n.radius;
+            const hy = n.y + Math.sin(hAngle) * n.radius;
+            if (hi === 0) ctx.moveTo(hx, hy);
+            else ctx.lineTo(hx, hy);
+          }
+          ctx.closePath();
+          ctx.fillStyle = n.color;
+          ctx.globalAlpha = 0.88;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = "rgba(0,0,0,0.15)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Student name (primary label)
           ctx.fillStyle = "#fff";
-          ctx.font = `bold ${Math.max(9, n.radius * 0.55)}px Inter, sans-serif`;
+          ctx.font = `bold ${Math.max(8, n.radius * 0.42)}px Inter, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(`${n.value}%`, n.x, n.y);
+          ctx.fillText(n.label, n.x, n.y - 3);
+          // Engagement % (secondary)
+          ctx.font = `${Math.max(7, n.radius * 0.35)}px Inter, sans-serif`;
+          ctx.globalAlpha = 0.8;
+          ctx.fillText(`${n.value}%`, n.x, n.y + n.radius * 0.35);
+          ctx.globalAlpha = 1;
+        } else {
+          // Circle for metric nodes
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+          ctx.fillStyle = n.color;
+          ctx.globalAlpha = 0.6;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = "rgba(0,0,0,0.08)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
         }
 
         // Icon for metric nodes

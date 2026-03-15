@@ -2191,6 +2191,31 @@ h3 {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
+/* ── Session graph experimental badge ────── */
+.graph-experimental {
+  margin-bottom: 14px;
+}
+
+.graph-exp-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent);
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.graph-exp-desc {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
 /* ── Session graph ───────────────────────── */
 .graph-container {
   position: relative;
@@ -2399,7 +2424,7 @@ h3 {
 
 .docs-section {
   margin-bottom: 48px;
-  scroll-margin-top: 120px;
+  scroll-margin-top: 160px;
 }
 
 .docs-section h2 {

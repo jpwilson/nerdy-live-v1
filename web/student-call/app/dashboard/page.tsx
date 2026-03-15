@@ -121,7 +121,18 @@ export default function DashboardPage() {
             )}
 
             {analyticsSubTab === "graph" && (
-              <SessionGraph sessions={demoSessions} />
+              <div>
+                <div className="graph-experimental">
+                  <span className="graph-exp-badge">Experimental</span>
+                  <p className="graph-exp-desc">
+                    Interactive relationship graph exploring connections between students, subjects, and engagement patterns.
+                    Each node represents a tutoring session — size indicates duration, color shows engagement level.
+                    Connected nodes share attributes (same student, similar subject, comparable metrics).
+                    Drag nodes to explore clusters and uncover patterns in attentiveness.
+                  </p>
+                </div>
+                <SessionGraph sessions={demoSessions} />
+              </div>
             )}
 
             {analyticsSubTab === "trends" && (
