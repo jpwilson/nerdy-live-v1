@@ -249,16 +249,26 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Coaching Engine - configurable */}
+            {/* Coaching Engine & Demo Mode */}
             <div className="settings-card">
-              <h2 className="settings-card-title">Coaching Engine</h2>
+              <h2 className="settings-card-title">Coaching Engine & Demo Mode</h2>
               <div className="settings-row">
-                <span className="settings-label">Grace period (observation before first nudge)</span>
-                <span className="settings-value">5 minutes</span>
+                <span className="settings-label">Grace period</span>
+                <select className="settings-select" defaultValue="300">
+                  <option value="30">30 seconds (demo)</option>
+                  <option value="120">2 minutes</option>
+                  <option value="300">5 minutes (default)</option>
+                  <option value="600">10 minutes</option>
+                </select>
               </div>
               <div className="settings-row">
                 <span className="settings-label">Assessment window</span>
-                <span className="settings-value">3 minutes</span>
+                <select className="settings-select" defaultValue="180">
+                  <option value="15">15 seconds (demo)</option>
+                  <option value="60">1 minute</option>
+                  <option value="180">3 minutes (default)</option>
+                  <option value="300">5 minutes</option>
+                </select>
               </div>
               <div className="settings-row">
                 <span className="settings-label">Escalation levels</span>
@@ -268,20 +278,9 @@ export default function DashboardPage() {
                 <span className="settings-label">De-escalation on improvement</span>
                 <span className="settings-value" style={{ color: "var(--success)" }}>Enabled</span>
               </div>
-              <p style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 8 }}>
-                Nudges are based on window-over-window engagement trends vs. per-session baseline. The engine waits for the grace period, then assesses every window. If engagement drops 15+ points below baseline, a nudge fires and escalates on consecutive low windows.
-              </p>
-            </div>
-
-            {/* Demo Mode */}
-            <div className="settings-card">
-              <h2 className="settings-card-title">Demo Mode</h2>
-              <p style={{ fontSize: "0.82rem", color: "var(--muted)", marginBottom: 12 }}>
-                Demo mode compresses the coaching timeline for evaluation. Grace period becomes 30 seconds, assessment windows become 15 seconds. Nudges will fire quickly so evaluators can see the full coaching flow without waiting 5+ minutes.
-              </p>
               <div className="settings-row">
                 <span className="settings-label">Demo mode</span>
-                <span className="settings-value" style={{ color: "var(--warn)" }}>Available via URL: ?demo=true</span>
+                <span className="settings-value" style={{ color: "var(--warn)" }}>Add ?demo=true to room URL</span>
               </div>
               <div className="settings-row">
                 <span className="settings-label">Face mesh overlay</span>
@@ -289,7 +288,87 @@ export default function DashboardPage() {
               </div>
               <div className="settings-row">
                 <span className="settings-label">Expression detection</span>
-                <span className="settings-value" style={{ color: "var(--success)" }}>Active (smiling, squinting, yawning, etc.)</span>
+                <span className="settings-value" style={{ color: "var(--success)" }}>Active</span>
+              </div>
+              <p style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 8 }}>
+                The coaching engine observes for the grace period, then assesses engagement every window. Nudges escalate on consecutive low windows and de-escalate when engagement recovers. Demo mode compresses timing for evaluation.
+              </p>
+            </div>
+
+            {/* AI Model Configuration */}
+            <div className="settings-card">
+              <h2 className="settings-card-title">AI Model Configuration</h2>
+              <p style={{ fontSize: "0.82rem", color: "var(--muted)", marginBottom: 12 }}>
+                Configure which AI models are used for transcript analysis and session summaries. Models are accessed via OpenRouter for flexibility and cost optimization.
+              </p>
+              <div className="settings-row">
+                <span className="settings-label">Real-time transcript analysis</span>
+                <select className="settings-select" defaultValue="haiku">
+                  <option value="haiku">Claude Haiku 4.5 (fast, $0.25/1M tokens)</option>
+                  <option value="sonnet">Claude Sonnet 4.6 (balanced, $3/1M tokens)</option>
+                  <option value="opus">Claude Opus 4.6 (thorough, $15/1M tokens)</option>
+                </select>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">Post-session summary</span>
+                <select className="settings-select" defaultValue="sonnet">
+                  <option value="haiku">Claude Haiku 4.5 (fast, $0.25/1M tokens)</option>
+                  <option value="sonnet">Claude Sonnet 4.6 (balanced, $3/1M tokens)</option>
+                  <option value="opus">Claude Opus 4.6 (thorough, $15/1M tokens)</option>
+                </select>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">Insight generation</span>
+                <select className="settings-select" defaultValue="opus">
+                  <option value="haiku">Claude Haiku 4.5 (fast, $0.25/1M tokens)</option>
+                  <option value="sonnet">Claude Sonnet 4.6 (balanced, $3/1M tokens)</option>
+                  <option value="opus">Claude Opus 4.6 (thorough, $15/1M tokens)</option>
+                </select>
+              </div>
+              <p style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 8 }}>
+                Cost optimization: Use Haiku for high-frequency real-time tasks, Sonnet for per-session summaries, and Opus for deep cross-session analysis. All models accessed via OpenRouter API.
+              </p>
+            </div>
+
+            {/* Evaluation & Validation */}
+            <div className="settings-card">
+              <h2 className="settings-card-title">Evaluation & Validation</h2>
+              <p style={{ fontSize: "0.82rem", color: "var(--muted)", marginBottom: 12 }}>
+                Upload baseline videos to validate engagement detection accuracy. Videos are processed through the analysis pipeline and results compared against known ground truth.
+              </p>
+              <div className="eval-upload-section">
+                <div className="settings-row">
+                  <span className="settings-label">Max file size</span>
+                  <span className="settings-value">800 MB</span>
+                </div>
+                <div className="settings-row">
+                  <span className="settings-label">Uploaded videos</span>
+                  <span className="settings-value">0 / 3</span>
+                </div>
+                <div className="settings-row">
+                  <span className="settings-label">Access password</span>
+                  <span className="settings-value" style={{ fontFamily: "monospace" }}>Required for upload</span>
+                </div>
+                <div className="eval-upload-form" style={{ marginTop: 12 }}>
+                  <input
+                    type="password"
+                    placeholder="Enter upload password"
+                    className="eval-password-input"
+                    style={{ marginBottom: 8, width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid var(--line)", background: "#F8F5F2", fontSize: "0.84rem" }}
+                  />
+                  <input
+                    type="file"
+                    accept="video/*"
+                    className="eval-file-input"
+                    style={{ fontSize: "0.82rem", color: "var(--muted)" }}
+                  />
+                  <button className="primary-button" style={{ marginTop: 8, padding: "10px 18px", fontSize: "0.82rem" }} disabled>
+                    Upload Validation Video
+                  </button>
+                  <p style={{ fontSize: "0.72rem", color: "var(--muted)", marginTop: 6 }}>
+                    Recommended format: 3 min video with alternating 15s screen-looking / 5s away segments. Upload processes through the analysis pipeline and compares detected engagement against expected values.
+                  </p>
+                </div>
               </div>
             </div>
 
