@@ -193,18 +193,7 @@ function drawFaceMesh(
 
   // 5. Text overlay labels (shown in "all" or "expressions" modes)
   if (overlayMode === "all" || overlayMode === "expressions") {
-    const margin = 12;
-
-    // Top-left: dominant expression + confidence
-    if (blendshapes) {
-      const expr = getDominantExpression(blendshapes);
-      if (expr) {
-        const pct = Math.round(expr.confidence * 100);
-        drawPill(ctx, margin, margin, `${expr.label} ${pct}%`, 13, "rgba(0,0,0,0.55)", "#fff", "left");
-      }
-    }
-
-    // Top-right: engagement level
+    // Top-right: engagement level (avoid top-left — "All overlays" dropdown lives there)
     if (engagementLevel) {
       const engagementConfig = {
         high:   { color: "#22c55e", label: "High" },
@@ -212,22 +201,22 @@ function drawFaceMesh(
         low:    { color: "#ef4444", label: "Low" },
       } as const;
       const cfg = engagementConfig[engagementLevel];
-      drawPill(ctx, w - margin, margin, `${cfg.label} \u25CF`, 13, "rgba(0,0,0,0.55)", cfg.color, "right");
+      drawPill(ctx, w - 12, 12, `${cfg.label} \u25CF`, 13, "rgba(0,0,0,0.6)", cfg.color, "right");
     }
 
-    // Near forehead: head yaw/pitch
+    // Head yaw/pitch — above forehead
     if (lm.length > 10) {
-      // Use landmark 10 (forehead center) as anchor
       const foreheadX = toX(10);
-      const foreheadY = toY(10) - 20;
+      const foreheadY = toY(10) - 24;
       const yawDeg = Math.round(headPose.yaw);
       const pitchDeg = Math.round(headPose.pitch);
-      const poseText = `Yaw: ${yawDeg}\u00B0  Pitch: ${pitchDeg}\u00B0`;
+      const tiltLabel = Math.abs(yawDeg) > 15 ? " (tilted)" : "";
+      const poseText = `Yaw: ${yawDeg}\u00B0  Pitch: ${pitchDeg}\u00B0${tiltLabel}`;
       ctx.font = "500 11px -apple-system, BlinkMacSystemFont, sans-serif";
       const tw = ctx.measureText(poseText).width;
       const px = Math.max(4, Math.min(w - tw - 12, foreheadX - tw / 2));
-      const py = Math.max(4, foreheadY);
-      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      const py = Math.max(40, foreheadY); // min 40px from top to avoid dropdown
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.beginPath();
       ctx.roundRect(px - 6, py - 10, tw + 12, 18, 4);
       ctx.fill();
@@ -237,7 +226,38 @@ function drawFaceMesh(
       ctx.fillText(poseText, px, py - 1);
     }
 
-    // Near eyes: blink indicator
+    // Expression label — below chin, centered
+    if (blendshapes && lm.length > 152) {
+      const expr = getDominantExpression(blendshapes);
+      if (expr) {
+        const pct = Math.round(expr.confidence * 100);
+        const chinX = toX(152); // chin center landmark
+        const chinY = toY(152) + 16;
+        const text = `${expr.label} ${pct}%`;
+        ctx.font = "600 13px -apple-system, BlinkMacSystemFont, sans-serif";
+        const tw = ctx.measureText(text).width;
+        const px = Math.max(4, Math.min(w - tw - 16, chinX - tw / 2));
+        const py = Math.min(h - 24, chinY);
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.beginPath();
+        ctx.roundRect(px - 8, py - 10, tw + 16, 22, 6);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        ctx.fillText(text, px, py);
+      }
+    }
+
+    // Posture indicator — bottom-left of canvas (face Y position)
+    if (lm.length > 10) {
+      const faceY = lm[10].y; // forehead normalized Y (0=top, 1=bottom)
+      const posture = faceY > 0.55 ? "Slouching \u2193" : "Upright \u2191";
+      const postureColor = faceY > 0.55 ? "#ef4444" : "#22c55e";
+      drawPill(ctx, 12, h - 30, `Posture: ${posture}`, 11, "rgba(0,0,0,0.5)", postureColor, "left");
+    }
+
+    // Blink indicator — between eyes
     if (blendshapes) {
       const blinkL = blendshapes.eyeBlinkLeft ?? 0;
       const blinkR = blendshapes.eyeBlinkRight ?? 0;
