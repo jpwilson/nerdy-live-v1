@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { TutorDashboard } from "@/components/tutor-dashboard";
-import { SessionGraph } from "@/components/session-graph";
+import { SessionGraph3D } from "@/components/session-graph-3d";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -131,7 +131,7 @@ export default function DashboardPage() {
                     Drag nodes to explore clusters and uncover patterns in attentiveness.
                   </p>
                 </div>
-                <SessionGraph sessions={demoSessions} />
+                <SessionGraph3D sessions={demoSessions} />
               </div>
             )}
 

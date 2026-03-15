@@ -2191,6 +2191,19 @@ h3 {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
+/* ── 3D graph container ──────────────────── */
+.graph-3d-container {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.graph-3d-container canvas {
+  border-radius: 16px;
+}
+
 /* ── Session graph experimental badge ────── */
 .graph-experimental {
   margin-bottom: 14px;
