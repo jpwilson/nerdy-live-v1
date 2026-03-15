@@ -29,21 +29,30 @@ import {
 
 /** Derive the dominant expression from blendshapes */
 function getDominantExpression(bs: Record<string, number>): { label: string; confidence: number } | null {
-  const expressionMap: Array<{ key: string; label: string }> = [
-    { key: "mouthSmileLeft", label: "Smiling" },
-    { key: "mouthFrownLeft", label: "Frowning" },
-    { key: "browInnerUp", label: "Surprised" },
-    { key: "browDownLeft", label: "Concentrating" },
-    { key: "jawOpen", label: "Speaking" },
-    { key: "mouthPucker", label: "Thinking" },
-    { key: "eyeSquintLeft", label: "Squinting" },
+  // Combine multiple blendshapes for more robust detection
+  const smile = Math.max(bs.mouthSmileLeft ?? 0, bs.mouthSmileRight ?? 0);
+  const frown = Math.max(
+    Math.max(bs.mouthFrownLeft ?? 0, bs.mouthFrownRight ?? 0),
+    Math.max(bs.browDownLeft ?? 0, bs.browDownRight ?? 0)
+  );
+  const surprised = Math.max(bs.browInnerUp ?? 0, (bs.jawOpen ?? 0) > 0.4 ? (bs.browInnerUp ?? 0) + 0.1 : 0);
+  const squinting = Math.max(bs.eyeSquintLeft ?? 0, bs.eyeSquintRight ?? 0);
+
+  const expressions: Array<{ label: string; value: number }> = [
+    { label: "Smiling", value: smile },
+    { label: "Frowning", value: frown },
+    { label: "Surprised", value: surprised },
+    { label: "Speaking", value: (bs.jawOpen ?? 0) > 0.3 ? bs.jawOpen ?? 0 : 0 },
+    { label: "Thinking", value: bs.mouthPucker ?? 0 },
+    { label: "Squinting", value: squinting },
+    { label: "Focused", value: (bs.browDownLeft ?? 0) > 0.2 && squinting > 0.15
+      ? ((bs.browDownLeft ?? 0) + squinting) / 2 : 0 },
   ];
 
   let best: { label: string; confidence: number } | null = null;
-  for (const { key, label } of expressionMap) {
-    const val = bs[key] ?? 0;
-    if (val > 0.15 && (!best || val > best.confidence)) {
-      best = { label, confidence: val };
+  for (const { label, value } of expressions) {
+    if (value > 0.15 && (!best || value > best.confidence)) {
+      best = { label, confidence: value };
     }
   }
   return best;
@@ -249,11 +258,16 @@ function drawFaceMesh(
       }
     }
 
-    // Posture indicator — bottom-left of canvas (face Y position)
-    if (lm.length > 10) {
-      const faceY = lm[10].y; // forehead normalized Y (0=top, 1=bottom)
-      const posture = faceY > 0.55 ? "Slouching \u2193" : "Upright \u2191";
-      const postureColor = faceY > 0.55 ? "#ef4444" : "#22c55e";
+    // Posture indicator — bottom-left of canvas
+    // Use chin (landmark 152) Y position — more sensitive to slouching than forehead
+    if (lm.length > 152) {
+      const chinY = lm[152].y; // normalized Y (0=top, 1=bottom)
+      const foreheadY = lm[10].y;
+      const faceHeight = chinY - foreheadY; // how much vertical space the face takes
+      // If chin is very low in frame OR face takes up too much vertical space → slouching
+      const isSlouching = chinY > 0.75 || foreheadY > 0.35;
+      const posture = isSlouching ? "Slouching \u2193" : "Upright \u2191";
+      const postureColor = isSlouching ? "#ef4444" : "#22c55e";
       drawPill(ctx, 12, h - 30, `Posture: ${posture}`, 11, "rgba(0,0,0,0.5)", postureColor, "left");
     }
 
