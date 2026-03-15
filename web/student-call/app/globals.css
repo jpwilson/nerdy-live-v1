@@ -45,11 +45,37 @@
   align-items: center;
 }
 
+.nav-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
 .nav-logo {
   font-size: 1.05rem;
   font-weight: 800;
   color: var(--accent);
   text-decoration: none;
+}
+
+.nav-tagline {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.nav-nerdy {
+  font-weight: 800;
+  color: #3D4F6F;
+  font-family: "Avenir Next", "Nunito", sans-serif;
+}
+
+.nav-liveai {
+  font-weight: 800;
+  background: linear-gradient(90deg, #FFD700, #FF69B4, #784BA0, #00BFFF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .nav-links {
@@ -2039,6 +2065,23 @@ h3 {
 
 .dash-sidebar-join:hover {
   background: var(--accent-strong);
+}
+
+.dash-sidebar-signout {
+  padding: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dash-sidebar-signout:hover {
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .dash-main {

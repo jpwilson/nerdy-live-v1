@@ -27,6 +27,22 @@ export default function DashboardPage() {
   if (!email) return null;
 
   const displayName = localStorage.getItem("livesesh_displayName") || email.split("@")[0];
+  const roomCode = localStorage.getItem("livesesh_roomId") || "demo-room";
+  const role = localStorage.getItem("livesesh_role") || "tutor_preview";
+
+  const joinRoom = () => {
+    const params = new URLSearchParams({ name: displayName, role });
+    router.push(`/room/${encodeURIComponent(roomCode)}?${params.toString()}`);
+  };
+
+  const signOut = async () => {
+    const supabase = getSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    localStorage.removeItem("livesesh_displayName");
+    localStorage.removeItem("livesesh_roomId");
+    localStorage.removeItem("livesesh_role");
+    window.location.href = "/";
+  };
 
   return (
     <main className="dash-shell">
@@ -58,8 +74,11 @@ export default function DashboardPage() {
           ))}
         </nav>
 
-        <button className="dash-sidebar-join" onClick={() => router.push("/")}>
+        <button className="dash-sidebar-join" onClick={joinRoom}>
           Start Session →
+        </button>
+        <button className="dash-sidebar-signout" onClick={() => void signOut()}>
+          Sign Out
         </button>
       </aside>
 
