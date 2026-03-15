@@ -269,15 +269,14 @@ export function TutorDashboard() {
     void load();
   }, []);
 
-  const completed = sessions.filter((s) => s.ended_at);
-  const avgEng = completed.length > 0
-    ? Math.round(completed.reduce((sum, s) => sum + (s.engagement_score ?? 0), 0) / completed.length)
+  const avgEng = enrichedSessions.length > 0
+    ? Math.round(enrichedSessions.reduce((sum, s) => sum + (s.engagement_score ?? s.demoMetrics.eyeContact), 0) / enrichedSessions.length)
     : null;
-  const totalMin = Object.values(summaries).reduce((sum, s) => sum + s.duration_minutes, 0);
+  const totalMin = enrichedSessions.reduce((sum, s) => sum + s.demoMetrics.duration, 0);
 
   // Trend
-  const recent = completed.slice(0, 5).map((s) => s.engagement_score ?? 0);
-  const older = completed.slice(5, 10).map((s) => s.engagement_score ?? 0);
+  const recent = enrichedSessions.slice(0, 5).map((s) => s.engagement_score ?? s.demoMetrics.eyeContact);
+  const older = enrichedSessions.slice(5, 10).map((s) => s.engagement_score ?? s.demoMetrics.eyeContact);
   const rAvg = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
   const oAvg = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : 0;
   const trend = older.length === 0 ? "\u2014" : rAvg > oAvg + 3 ? "Improving" : rAvg < oAvg - 3 ? "Declining" : "Stable";
@@ -295,21 +294,19 @@ export function TutorDashboard() {
   const trendColor = trend === "Improving" ? "var(--success)" : trend === "Declining" ? "var(--danger)" : "var(--muted)";
 
   if (selectedId) {
-    const session = sessions.find(s => s.id === selectedId);
     const enriched = enrichedSessions.find(s => s.id === selectedId);
-    const sm = summaries[selectedId];
-    if (!session || !enriched) { setSelectedId(null); return null; }
+    if (!enriched) { setSelectedId(null); return null; }
 
-    const score = session.engagement_score ?? sm?.engagement_score ?? null;
-    const eyeContact = sm?.avg_eye_contact ? Math.round(((sm.avg_eye_contact as Record<string, number>).student ?? 0) * 100) : null;
-    const talkStudent = sm?.talk_time_ratio ? Math.round(((sm.talk_time_ratio as Record<string, number>).student ?? 0) * 100) : null;
-    const talkTutor = talkStudent != null ? 100 - talkStudent : null;
+    const score = enriched.engagement_score ?? enriched.demoMetrics.eyeContact;
+    const eyeContact = enriched.demoMetrics.eyeContact;
+    const talkStudent = enriched.demoMetrics.studentTalk;
+    const talkTutor = enriched.demoMetrics.tutorTalk;
 
     return (
       <div className="dashboard">
         <button className="detail-back" onClick={() => setSelectedId(null)}>&#8592; Back to sessions</button>
         <h1 className="dash-title">Session Detail</h1>
-        <p className="detail-date">{fmt(session.started_at)} &middot; {enriched.studentName} &middot; {enriched.subject}</p>
+        <p className="detail-date">{fmt(enriched.started_at)} &middot; {enriched.studentName} &middot; {enriched.subject}</p>
 
         <div className="detail-tiles">
           {/* Score badge tile */}
@@ -333,19 +330,19 @@ export function TutorDashboard() {
             <div className="dash-grid">
               <div className="dash-card">
                 <span className="dash-card-label">Duration</span>
-                <span className="dash-card-value">{sm?.duration_minutes ?? enriched.demoMetrics.duration}m</span>
+                <span className="dash-card-value">{enriched.demoMetrics.duration}m</span>
               </div>
               <div className="dash-card">
                 <span className="dash-card-label">Eye Contact</span>
-                <span className="dash-card-value">{eyeContact ?? enriched.demoMetrics.eyeContact}%</span>
+                <span className="dash-card-value">{eyeContact}%</span>
               </div>
               <div className="dash-card">
                 <span className="dash-card-label">Student Talk</span>
-                <span className="dash-card-value">{talkStudent ?? enriched.demoMetrics.studentTalk}%</span>
+                <span className="dash-card-value">{talkStudent}%</span>
               </div>
               <div className="dash-card">
                 <span className="dash-card-label">Tutor Talk</span>
-                <span className="dash-card-value">{talkTutor ?? enriched.demoMetrics.tutorTalk}%</span>
+                <span className="dash-card-value">{talkTutor}%</span>
               </div>
             </div>
           </div>
@@ -357,13 +354,13 @@ export function TutorDashboard() {
           >
             <h2 className="dash-section-title">Session Metrics</h2>
             <RadarChart data={[
-              { label: "Eye Contact", value: eyeContact ?? enriched.demoMetrics.eyeContact, max: 100, color: "#2B86C5" },
-              { label: "Student Talk", value: talkStudent ?? enriched.demoMetrics.studentTalk, max: 100, color: "#8B5CF6" },
-              { label: "Tutor Talk", value: talkTutor ?? enriched.demoMetrics.tutorTalk, max: 100, color: "#E8573A" },
+              { label: "Eye Contact", value: eyeContact, max: 100, color: "#2B86C5" },
+              { label: "Student Talk", value: talkStudent, max: 100, color: "#8B5CF6" },
+              { label: "Tutor Talk", value: talkTutor, max: 100, color: "#E8573A" },
               { label: "Energy", value: enriched.demoMetrics.energy, max: 100, color: "#2D9D5E" },
               { label: "Attention", value: 100 - enriched.demoMetrics.attentionDrift, max: 100, color: "#E8873A" },
-              { label: "Duration", value: Math.min(100, (sm?.duration_minutes ?? enriched.demoMetrics.duration) * 2), max: 100, color: "#6366F1" },
-              { label: "Engagement", value: score ?? enriched.demoMetrics.eyeContact, max: 100, color: "#C4402F" },
+              { label: "Duration", value: Math.min(100, enriched.demoMetrics.duration * 2), max: 100, color: "#6366F1" },
+              { label: "Engagement", value: score, max: 100, color: "#C4402F" },
             ]} />
           </div>
 
@@ -440,7 +437,7 @@ export function TutorDashboard() {
                     const seed = enriched.studentName.charCodeAt(1) || 65;
                     for (let i = 0; i <= 12; i++) {
                       const x = 30 + (i / 12) * 360;
-                      const base = (eyeContact ?? enriched.demoMetrics.eyeContact);
+                      const base = eyeContact;
                       const noise = Math.sin(i * 1.7 + seed) * 12 + Math.cos(i * 0.5) * 8;
                       const y = 100 - (Math.max(10, Math.min(95, base + noise)) / 100) * 88;
                       pts.push(`${x},${y}`);
@@ -464,8 +461,8 @@ export function TutorDashboard() {
             <div className="detail-recommendations">
               <h2 className="dash-section-title">Recommendations</h2>
               <ul className="detail-rec-list">
-                {(eyeContact ?? enriched.demoMetrics.eyeContact) < 50 && (
-                  <li>Eye contact was low ({eyeContact ?? enriched.demoMetrics.eyeContact}%). Try repositioning the camera to be at eye level, and use more direct questions to draw {enriched.studentName}&apos;s gaze back to screen.</li>
+                {eyeContact < 50 && (
+                  <li>Eye contact was low ({eyeContact}%). Try repositioning the camera to be at eye level, and use more direct questions to draw {enriched.studentName}&apos;s gaze back to screen.</li>
                 )}
                 {enriched.demoMetrics.studentTalk < 30 && (
                   <li>{enriched.studentName} spoke for only {enriched.demoMetrics.studentTalk}% of the session. Increase student talk time by asking open-ended questions and waiting at least 5 seconds for responses.</li>
@@ -479,7 +476,7 @@ export function TutorDashboard() {
                 {(enriched.demoMetrics.interruptions ?? 0) > 3 && (
                   <li>There were {enriched.demoMetrics.interruptions} interruptions. Establish turn-taking norms at the start of the session — &quot;I&apos;ll pause after each concept for questions.&quot;</li>
                 )}
-                {(score ?? enriched.demoMetrics.eyeContact) >= 70 && (
+                {score >= 70 && (
                   <li>Strong session overall. {enriched.studentName} was engaged and participatory. Continue with this approach for {enriched.subject}.</li>
                 )}
               </ul>
@@ -543,14 +540,13 @@ export function TutorDashboard() {
             </thead>
             <tbody>
               {sortedSessions.map((s) => {
-                const sm = summaries[s.id];
-                const score = s.engagement_score ?? sm?.engagement_score ?? s.demoMetrics.eyeContact;
+                const score = s.engagement_score ?? s.demoMetrics.eyeContact;
                 return (
                   <tr key={s.id} onClick={() => setSelectedId(s.id)} className="session-row">
                     <td className="session-student-cell">{s.studentName}</td>
                     <td>{fmt(s.started_at)}</td>
                     <td>{s.subject}</td>
-                    <td>{sm?.duration_minutes ?? s.demoMetrics.duration}m</td>
+                    <td>{s.demoMetrics.duration}m</td>
                     <td>{s.demoMetrics.eyeContact}%</td>
                     <td>
                       <span className="table-score" style={{ background: engBg(score), color: engColor(score) }}>
