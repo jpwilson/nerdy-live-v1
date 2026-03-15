@@ -528,7 +528,7 @@ function RoomClient({
           )}
 
           {/* Floating call controls on video stage */}
-          {connectionState === "connected" && (
+          {connectionState !== "idle" && connectionState !== "disconnected" && (
             <div className="stage-controls">
               <button
                 className={`stage-btn ${isMicrophoneEnabled ? "" : "off"}`}
