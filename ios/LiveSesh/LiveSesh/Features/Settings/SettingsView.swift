@@ -51,7 +51,7 @@ struct SettingsView: View {
                         Text(appState.tutorProfile?.name ?? "User")
                             .font(.title3)
                             .fontWeight(.bold)
-                            .foregroundColor(NerdyTheme.textPrimary)
+                            .foregroundColor(.white)
 
                         if let email = appState.authService.currentUser?.email {
                             Text(email)
@@ -87,7 +87,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Label("Room Connection", systemImage: "link")
                     .font(.headline)
-                    .foregroundColor(NerdyTheme.textPrimary)
+                    .foregroundColor(.white)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Room Code")
@@ -116,12 +116,12 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Label("Analysis Overlays", systemImage: "eye.trianglebadge.exclamationmark")
                     .font(.headline)
-                    .foregroundColor(NerdyTheme.textPrimary)
+                    .foregroundColor(.white)
 
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Show Overlays")
-                            .foregroundColor(NerdyTheme.textPrimary)
+                            .foregroundColor(.white)
                         Text("Display face detection bounding box, gaze direction, and face mesh wireframe on the camera preview.")
                             .font(.caption2)
                             .foregroundColor(NerdyTheme.textMuted)
@@ -144,12 +144,12 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Label("Developer", systemImage: "wrench.and.screwdriver")
                     .font(.headline)
-                    .foregroundColor(NerdyTheme.textPrimary)
+                    .foregroundColor(.white)
 
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Test Mode")
-                            .foregroundColor(NerdyTheme.textPrimary)
+                            .foregroundColor(.white)
                         Text("Analyze your own camera feed as if it were the student. No WebRTC connection needed.")
                             .font(.caption2)
                             .foregroundColor(NerdyTheme.textMuted)

@@ -17,7 +17,7 @@ struct CoachingSettingsView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Sensitivity Level")
                                     .font(.headline)
-                                    .foregroundColor(NerdyTheme.textPrimary)
+                                    .foregroundColor(.white)
 
                                 Text("Controls how often and how aggressively nudges appear")
                                     .font(.caption)
@@ -37,7 +37,7 @@ struct CoachingSettingsView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Nudge Cooldown")
                                     .font(.headline)
-                                    .foregroundColor(NerdyTheme.textPrimary)
+                                    .foregroundColor(.white)
 
                                 HStack {
                                     Text("\(Int(config.nudgeCooldownSeconds))s")
@@ -58,7 +58,7 @@ struct CoachingSettingsView: View {
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Thresholds")
                                     .font(.headline)
-                                    .foregroundColor(NerdyTheme.textPrimary)
+                                    .foregroundColor(.white)
 
                                 ThresholdSlider(
                                     label: "Silence Alert",
@@ -102,7 +102,7 @@ struct CoachingSettingsView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Enabled Nudges")
                                     .font(.headline)
-                                    .foregroundColor(NerdyTheme.textPrimary)
+                                    .foregroundColor(.white)
 
                                 ForEach(NudgeType.allCases, id: \.self) { type in
                                     Toggle(isOn: Binding(
@@ -116,7 +116,7 @@ struct CoachingSettingsView: View {
                                         }
                                     )) {
                                         Text(nudgeTypeLabel(type))
-                                            .foregroundColor(NerdyTheme.textPrimary)
+                                            .foregroundColor(.white)
                                     }
                                     .tint(NerdyTheme.cyan)
                                 }
@@ -128,7 +128,7 @@ struct CoachingSettingsView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Quick Presets")
                                     .font(.headline)
-                                    .foregroundColor(NerdyTheme.textPrimary)
+                                    .foregroundColor(.white)
 
                                 HStack(spacing: 12) {
                                     PresetButton(label: "Relaxed", isSelected: config == .low) {

@@ -66,7 +66,7 @@ struct StudentRoomView: View {
                 Text("Join a Session")
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(NerdyTheme.textPrimary)
+                    .foregroundColor(.white)
 
                 Text("Enter the room code from your tutor")
                     .font(.subheadline)
@@ -163,7 +163,7 @@ struct StudentRoomView: View {
                 Text(message)
                     .font(.title3)
                     .fontWeight(.semibold)
-                    .foregroundColor(NerdyTheme.textPrimary)
+                    .foregroundColor(.white)
 
                 Text(detail)
                     .font(.caption)
@@ -378,7 +378,7 @@ struct StudentRoomView: View {
             Text("Session Ended")
                 .font(.title3)
                 .fontWeight(.semibold)
-                .foregroundColor(NerdyTheme.textPrimary)
+                .foregroundColor(.white)
 
             Text("The tutor has ended the session or the connection was lost.")
                 .font(.caption)
