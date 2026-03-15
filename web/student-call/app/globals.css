@@ -2646,6 +2646,115 @@ h3 {
   border-left: 3px solid var(--accent);
 }
 
+/* ── Session Summary ───────────────────── */
+.summary-page {
+  max-width: 640px;
+  margin: 40px auto;
+}
+
+.summary-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  margin: 20px 0;
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.summary-subject {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.summary-time {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.summary-text {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+}
+
+.summary-transcript {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.summary-transcript summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.summary-transcript p {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: #555;
+  margin-top: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.summary-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.settings-row-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.trend-metric-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+
+.trend-metric-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.trend-metric-chart {
+  width: 100%;
+  height: auto;
+}
+
+.trend-metric-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.trend-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 @media (max-width: 1040px) {
   .hero {
     grid-template-columns: 1fr;

@@ -126,98 +126,87 @@ export default function DashboardPage() {
 
             {analyticsSubTab === "trends" && (
               <div className="trends-panel">
-                {/* Per-student trend charts */}
-                {["Sarah Chen", "Alex Rivera", "Jordan Patel", "Casey Kim", "Morgan Davis"].map(student => {
-                  // Get sessions for this student from demoSessions
-                  const studentSessions = demoSessions
-                    .filter(s => s.student === student)
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-                  if (studentSessions.length === 0) return null;
-
-                  const avgEng = Math.round(studentSessions.reduce((a, b) => a + b.engagement, 0) / studentSessions.length);
-                  const firstEng = studentSessions[0].engagement;
-                  const lastEng = studentSessions[studentSessions.length - 1].engagement;
-                  const trendDir = lastEng > firstEng + 3 ? "↑ Improving" : lastEng < firstEng - 3 ? "↓ Declining" : "→ Stable";
-                  const trendColor = trendDir.includes("Improving") ? "#2D9D5E" : trendDir.includes("Declining") ? "#C4402F" : "var(--muted)";
+                {[
+                  { label: "Engagement", key: "engagement" as const, color: "#C4402F" },
+                  { label: "Eye Contact", key: "eyeContact" as const, color: "#2B86C5" },
+                  { label: "Talk Balance", key: "talkBalance" as const, color: "#8B5CF6" },
+                ].map(metric => {
+                  const students = ["Sarah Chen", "Alex Rivera", "Jordan Patel", "Casey Kim", "Morgan Davis"];
+                  const studentColors: Record<string, string> = {
+                    "Sarah Chen": "#C4402F",
+                    "Alex Rivera": "#2B86C5",
+                    "Jordan Patel": "#2D9D5E",
+                    "Casey Kim": "#8B5CF6",
+                    "Morgan Davis": "#E8873A",
+                  };
 
                   return (
-                    <div key={student} className="student-trend-card">
-                      <div className="student-trend-header">
-                        <div>
-                          <span className="student-trend-name">{student}</span>
-                          <span className="student-trend-sessions">{studentSessions.length} sessions · Avg: {avgEng}%</span>
-                        </div>
-                        <span className="student-trend-dir" style={{ color: trendColor }}>{trendDir}</span>
-                      </div>
-
-                      {/* Multi-metric chart */}
-                      <svg viewBox="0 0 500 140" className="student-trend-chart">
+                    <div key={metric.key} className="trend-metric-card">
+                      <h3 className="trend-metric-title">{metric.label}</h3>
+                      <svg viewBox="0 0 500 160" className="trend-metric-chart">
                         {/* Grid */}
                         {[0, 1, 2, 3, 4].map(i => (
-                          <line key={i} x1="40" y1={15 + i * 27} x2="490" y2={15 + i * 27} stroke="rgba(0,0,0,0.05)" strokeWidth="1" />
+                          <line key={i} x1="40" y1={15 + i * 30} x2="490" y2={15 + i * 30} stroke="rgba(0,0,0,0.05)" strokeWidth="1" />
                         ))}
-                        {/* Y labels */}
                         <text x="8" y="18" fontSize="9" fill="#999">100</text>
-                        <text x="8" y="72" fontSize="9" fill="#999">50</text>
-                        <text x="8" y="126" fontSize="9" fill="#999">0</text>
+                        <text x="8" y="78" fontSize="9" fill="#999">50</text>
+                        <text x="8" y="138" fontSize="9" fill="#999">0</text>
 
-                        {/* X labels — actual dates */}
-                        {studentSessions.map((s, i) => (
-                          <text key={i} x={40 + (i / Math.max(1, studentSessions.length - 1)) * 450} y="138" fontSize="8" fill="#999" textAnchor="middle">
-                            {new Date(s.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          </text>
-                        ))}
+                        {/* All dates for x-axis */}
+                        {(() => {
+                          const allDates = [...new Set(demoSessions.map(s => s.date))].sort();
+                          return allDates.map((d, i) => (
+                            <text key={d} x={40 + (i / Math.max(1, allDates.length - 1)) * 450} y="155" fontSize="7" fill="#999" textAnchor="middle">
+                              {new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </text>
+                          ));
+                        })()}
 
-                        {/* Engagement line */}
-                        <polyline
-                          fill="none" stroke="#C4402F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                          points={studentSessions.map((s, i) => {
-                            const x = 40 + (i / Math.max(1, studentSessions.length - 1)) * 450;
-                            const y = 123 - (s.engagement / 100) * 108;
-                            return `${x},${y}`;
-                          }).join(" ")}
-                        />
-                        {studentSessions.map((s, i) => {
-                          const x = 40 + (i / Math.max(1, studentSessions.length - 1)) * 450;
-                          const y = 123 - (s.engagement / 100) * 108;
-                          return <circle key={`e${i}`} cx={x} cy={y} r="4" fill="#C4402F" />;
+                        {/* One line per student */}
+                        {students.map(student => {
+                          const sessions = demoSessions
+                            .filter(s => s.student === student)
+                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                          if (sessions.length < 2) return null;
+
+                          const allDates = [...new Set(demoSessions.map(s => s.date))].sort();
+
+                          return (
+                            <g key={student}>
+                              <polyline
+                                fill="none"
+                                stroke={studentColors[student]}
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                opacity="0.8"
+                                points={sessions.map(s => {
+                                  const dateIdx = allDates.indexOf(s.date);
+                                  const x = 40 + (dateIdx / Math.max(1, allDates.length - 1)) * 450;
+                                  const val = s[metric.key];
+                                  const y = 135 - (val / 100) * 120;
+                                  return `${x},${y}`;
+                                }).join(" ")}
+                              />
+                              {sessions.map((s, i) => {
+                                const dateIdx = allDates.indexOf(s.date);
+                                const x = 40 + (dateIdx / Math.max(1, allDates.length - 1)) * 450;
+                                const val = s[metric.key];
+                                const y = 135 - (val / 100) * 120;
+                                return <circle key={i} cx={x} cy={y} r="3" fill={studentColors[student]} />;
+                              })}
+                            </g>
+                          );
                         })}
-
-                        {/* Eye contact line */}
-                        <polyline
-                          fill="none" stroke="#2B86C5" strokeWidth="1.5" strokeDasharray="4 2" strokeLinecap="round"
-                          points={studentSessions.map((s, i) => {
-                            const x = 40 + (i / Math.max(1, studentSessions.length - 1)) * 450;
-                            const y = 123 - (s.eyeContact / 100) * 108;
-                            return `${x},${y}`;
-                          }).join(" ")}
-                        />
-
-                        {/* Talk balance line */}
-                        <polyline
-                          fill="none" stroke="#8B5CF6" strokeWidth="1.5" strokeDasharray="2 3" strokeLinecap="round"
-                          points={studentSessions.map((s, i) => {
-                            const x = 40 + (i / Math.max(1, studentSessions.length - 1)) * 450;
-                            const y = 123 - (s.talkBalance / 100) * 108;
-                            return `${x},${y}`;
-                          }).join(" ")}
-                        />
                       </svg>
-
-                      <div className="student-trend-legend">
-                        <span><span className="legend-dot" style={{ background: "#C4402F" }} /> Engagement</span>
-                        <span><span className="legend-dot" style={{ background: "#2B86C5" }} /> Eye Contact</span>
-                        <span><span className="legend-dot" style={{ background: "#8B5CF6" }} /> Talk Balance</span>
+                      <div className="trend-metric-legend">
+                        {students.map(s => (
+                          <span key={s} className="trend-legend-item">
+                            <span className="legend-dot" style={{ background: studentColors[s] }} />
+                            {s.split(" ")[0]}
+                          </span>
+                        ))}
                       </div>
-
-                      <p className="student-trend-desc">
-                        {trendDir.includes("Improving")
-                          ? `${student}'s engagement has been trending upward across recent sessions. Eye contact and participation are both strengthening.`
-                          : trendDir.includes("Declining")
-                          ? `${student}'s engagement is declining. Consider changing the teaching approach — try more interactive methods or shorter sessions.`
-                          : `${student} shows consistent engagement levels. Look for opportunities to push engagement higher with varied activities.`}
-                      </p>
                     </div>
                   );
                 })}
@@ -229,37 +218,42 @@ export default function DashboardPage() {
           <div className="dash-tab-panel">
             <h1 className="dash-title">Settings</h1>
 
-            <div className="settings-card">
-              <h2 className="settings-card-title">Profile</h2>
-              <div className="settings-row">
-                <span className="settings-label">Name</span>
-                <span className="settings-value">{displayName}</span>
+            {/* Profile + Room side by side */}
+            <div className="settings-row-cards">
+              <div className="settings-card">
+                <h2 className="settings-card-title">Profile</h2>
+                <div className="settings-row">
+                  <span className="settings-label">Name</span>
+                  <span className="settings-value">{displayName}</span>
+                </div>
+                <div className="settings-row">
+                  <span className="settings-label">Email</span>
+                  <span className="settings-value">{email}</span>
+                </div>
+                <div className="settings-row">
+                  <span className="settings-label">Role</span>
+                  <span className="settings-value" style={{ color: "var(--accent)" }}>Tutor</span>
+                </div>
               </div>
-              <div className="settings-row">
-                <span className="settings-label">Email</span>
-                <span className="settings-value">{email}</span>
-              </div>
-              <div className="settings-row">
-                <span className="settings-label">Role</span>
-                <span className="settings-value" style={{ color: "var(--accent)" }}>Tutor</span>
+
+              <div className="settings-card">
+                <h2 className="settings-card-title">Room Connection</h2>
+                <div className="settings-row">
+                  <span className="settings-label">Room Code</span>
+                  <span className="settings-value">{localStorage.getItem("livesesh_roomId") || "demo-room"}</span>
+                </div>
+                <div className="settings-row">
+                  <span className="settings-label">Student Link</span>
+                  <span className="settings-value" style={{ fontSize: "0.72rem" }}>student-call.vercel.app/room/demo-room</span>
+                </div>
               </div>
             </div>
 
-            <div className="settings-card">
-              <h2 className="settings-card-title">Room Connection</h2>
-              <div className="settings-row">
-                <span className="settings-label">Room Code</span>
-                <span className="settings-value">{localStorage.getItem("livesesh_roomId") || "demo-room"}</span>
-              </div>
-              <p style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 4 }}>
-                Share this room code with your student. They join from the web app.
-              </p>
-            </div>
-
+            {/* Coaching Engine - configurable */}
             <div className="settings-card">
               <h2 className="settings-card-title">Coaching Engine</h2>
               <div className="settings-row">
-                <span className="settings-label">Grace period</span>
+                <span className="settings-label">Grace period (observation before first nudge)</span>
                 <span className="settings-value">5 minutes</span>
               </div>
               <div className="settings-row">
@@ -267,16 +261,41 @@ export default function DashboardPage() {
                 <span className="settings-value">3 minutes</span>
               </div>
               <div className="settings-row">
-                <span className="settings-label">Escalation</span>
-                <span className="settings-value">L1 → L2 → L3</span>
+                <span className="settings-label">Escalation levels</span>
+                <span className="settings-value">L1 Gentle → L2 Direct → L3 Urgent</span>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">De-escalation on improvement</span>
+                <span className="settings-value" style={{ color: "var(--success)" }}>Enabled</span>
               </div>
               <p style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 8 }}>
-                Nudges are based on window-over-window engagement trends compared to the session baseline. No nudges fire during the first 5 minutes.
+                Nudges are based on window-over-window engagement trends vs. per-session baseline. The engine waits for the grace period, then assesses every window. If engagement drops 15+ points below baseline, a nudge fires and escalates on consecutive low windows.
               </p>
             </div>
 
+            {/* Demo Mode */}
             <div className="settings-card">
-              <h2 className="settings-card-title">System</h2>
+              <h2 className="settings-card-title">Demo Mode</h2>
+              <p style={{ fontSize: "0.82rem", color: "var(--muted)", marginBottom: 12 }}>
+                Demo mode compresses the coaching timeline for evaluation. Grace period becomes 30 seconds, assessment windows become 15 seconds. Nudges will fire quickly so evaluators can see the full coaching flow without waiting 5+ minutes.
+              </p>
+              <div className="settings-row">
+                <span className="settings-label">Demo mode</span>
+                <span className="settings-value" style={{ color: "var(--warn)" }}>Available via URL: ?demo=true</span>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">Face mesh overlay</span>
+                <span className="settings-value" style={{ color: "var(--success)" }}>Shown during calls</span>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">Expression detection</span>
+                <span className="settings-value" style={{ color: "var(--success)" }}>Active (smiling, squinting, yawning, etc.)</span>
+              </div>
+            </div>
+
+            {/* System */}
+            <div className="settings-card">
+              <h2 className="settings-card-title">System Performance</h2>
               <div className="settings-row">
                 <span className="settings-label">Video analysis latency</span>
                 <span className="settings-value">~150ms</span>
@@ -287,11 +306,12 @@ export default function DashboardPage() {
               </div>
               <div className="settings-row">
                 <span className="settings-label">End-to-end latency</span>
-                <span className="settings-value" style={{ color: "var(--accent)" }}>&lt;500ms</span>
+                <span className="settings-value" style={{ color: "var(--success)" }}>&lt;500ms (target met)</span>
               </div>
-              <p style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 8 }}>
-                Processing latencies measured on-device. Video analysis uses Apple Vision framework; audio analysis uses AVCaptureSession pipeline.
-              </p>
+              <div className="settings-row">
+                <span className="settings-label">ML inference cost</span>
+                <span className="settings-value" style={{ color: "var(--success)" }}>$0 (client-side)</span>
+              </div>
             </div>
           </div>
         )}

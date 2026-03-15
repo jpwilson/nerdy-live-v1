@@ -575,7 +575,7 @@ function RoomClient({
                       }));
                     } catch { /* localStorage full */ }
                     await hangUp();
-                    window.location.href = "/dashboard";
+                    window.location.href = "/session-summary";
                   })();
                 }}
                 title="End call"

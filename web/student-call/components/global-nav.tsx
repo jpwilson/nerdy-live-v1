@@ -8,7 +8,10 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 export function GlobalNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [signedIn, setSignedIn] = useState(false);
+  // Fast sync check from localStorage, then confirm with Supabase
+  const [signedIn, setSignedIn] = useState(() =>
+    typeof window !== "undefined" ? !!localStorage.getItem("livesesh_displayName") : false
+  );
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -49,7 +52,7 @@ export function GlobalNav() {
           {signedIn ? (
             <button className="nav-btn" onClick={startSession}>Start Session</button>
           ) : (
-            <Link href="/" className="nav-btn">Sign In</Link>
+            <Link href="/" className="nav-btn nav-btn-signin">Sign In</Link>
           )}
         </div>
       </div>

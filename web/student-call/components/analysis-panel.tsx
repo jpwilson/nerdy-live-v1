@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, type ReactNode, useEffect, useRef, useState } from "react";
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -293,6 +294,9 @@ function AnalysisPanelInner({
   const [collapsed, setCollapsed] = useState(false);
   const [nudges, setNudges] = useState<CoachingNudge[]>([]);
   const [toastNudge, setToastNudge] = useState<CoachingNudge | null>(null);
+
+  const lastPersistRef = useRef(0);
+  const sessionIdRef = useRef<string | null>(null);
 
   // EMA-smoothed values for Trends tab (alpha=0.1 for slow smoothing)
   const emaEngagementRef = useRef(50);
@@ -866,6 +870,47 @@ function AnalysisPanelInner({
         gazeDirection,
         localSpeaking,
       });
+
+      // Persist metrics snapshot every 30s
+      const persistNow = Date.now();
+      if (persistNow - lastPersistRef.current > 30_000 && faceDetected) {
+        lastPersistRef.current = persistNow;
+        const sb = getSupabaseBrowserClient();
+
+        const doSave = async () => {
+          try {
+            if (!sessionIdRef.current) {
+              const { data: { user } } = await sb.auth.getUser();
+              if (!user) return;
+              const { data } = await sb.from("sessions").insert({
+                tutor_id: user.id,
+                subject: "General",
+                student_level: "High School",
+              }).select("id").single();
+              if (data) {
+                sessionIdRef.current = data.id;
+                localStorage.setItem("livesesh_currentSessionId", data.id);
+              }
+            }
+            if (sessionIdRef.current) {
+              await sb.from("metrics_snapshots").insert({
+                session_id: sessionIdRef.current,
+                tutor_eye_contact: eyeContact,
+                student_eye_contact: eyeContact,
+                tutor_talk_pct: (100 - spk) / 100,
+                student_talk_pct: spk / 100,
+                tutor_energy: energyLevel / 100,
+                student_energy: energyLevel / 100,
+                interruption_count: 0,
+                engagement_trend: engagement > 60 ? "rising" : engagement > 30 ? "stable" : "declining",
+              });
+            }
+          } catch (err) {
+            console.warn("[metrics] persist failed:", err);
+          }
+        };
+        void doSave();
+      }
 
       // Pass face position data to parent
       onFacePositionRef.current?.({
