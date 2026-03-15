@@ -25,7 +25,7 @@ struct AnalyticsDashboardView: View {
                 viewModel.loadData()
             }
             #if os(iOS)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             #endif
         }
     }
@@ -79,7 +79,7 @@ struct AnalyticsDashboardView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Per-Student Analytics")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(NerdyTheme.textPrimary)
                             Text("Track engagement trends for each student over time")
                                 .font(.caption)
                                 .foregroundColor(NerdyTheme.textSecondary)
@@ -99,7 +99,7 @@ struct AnalyticsDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Recent Sessions")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(NerdyTheme.textPrimary)
 
             if viewModel.recentSummaries.isEmpty {
                 NerdyCard {
@@ -148,7 +148,7 @@ struct StatCard: View {
                 }
                 Text(value)
                     .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(NerdyTheme.textPrimary)
                 Text(title)
                     .font(.caption)
                     .foregroundColor(NerdyTheme.textSecondary)
@@ -170,7 +170,7 @@ struct SessionSummaryCard: View {
                         Text(summary.createdAt.formatted(date: .abbreviated, time: .shortened))
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(.white)
+                            .foregroundColor(NerdyTheme.textPrimary)
                         Text("\(summary.durationMinutes) min")
                             .font(.caption)
                             .foregroundColor(NerdyTheme.textSecondary)
@@ -232,7 +232,7 @@ struct MiniMetric: View {
             Text(isCount ? "\(Int(value))" : "\(Int(value * 100))%")
                 .font(.caption)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(NerdyTheme.textPrimary)
             Text(label)
                 .font(.system(size: 9))
                 .foregroundColor(NerdyTheme.textMuted)
@@ -275,7 +275,7 @@ struct SessionDetailView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Session Metrics")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(NerdyTheme.textPrimary)
 
                             MetricRow(label: "Duration", value: "\(summary.durationMinutes) min")
                             MetricRow(label: "Tutor Talk Time", value: "\(Int(summary.talkTimeRatio.tutor * 100))%")
@@ -292,7 +292,7 @@ struct SessionDetailView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Key Moments")
                                     .font(.headline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(NerdyTheme.textPrimary)
 
                                 ForEach(summary.keyMoments) { moment in
                                     HStack(alignment: .top) {
@@ -319,7 +319,7 @@ struct SessionDetailView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Recommendations")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(NerdyTheme.textPrimary)
 
                             ForEach(summary.recommendations, id: \.self) { rec in
                                 HStack(alignment: .top, spacing: 8) {
@@ -339,7 +339,7 @@ struct SessionDetailView: View {
         }
         .navigationTitle("Session Detail")
         #if os(iOS)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         #endif
         .onAppear {
             snapshots = sessionStore.getSnapshots(sessionId: summary.sessionId)
@@ -354,7 +354,7 @@ struct SessionDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Engagement Timeline")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(NerdyTheme.textPrimary)
 
                 engagementChart
                     .frame(height: 180)
@@ -397,7 +397,7 @@ struct SessionDetailView: View {
         .chartYAxis {
             AxisMarks(values: [0, 0.25, 0.5, 0.75, 1.0]) { value in
                 AxisGridLine()
-                    .foregroundStyle(Color.white.opacity(0.1))
+                    .foregroundStyle(Color.black.opacity(0.08))
                 AxisValueLabel {
                     if let v = value.as(Double.self) {
                         Text("\(Int(v * 100))%")
@@ -410,7 +410,7 @@ struct SessionDetailView: View {
         .chartXAxis {
             AxisMarks { value in
                 AxisGridLine()
-                    .foregroundStyle(Color.white.opacity(0.05))
+                    .foregroundStyle(Color.black.opacity(0.04))
                 AxisValueLabel {
                     if let v = value.as(Double.self) {
                         Text(formatMinutes(v))
@@ -491,7 +491,7 @@ struct BatteryUsageCard: View {
                             .foregroundColor(batteryColor)
                         Text("Device & Battery")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(NerdyTheme.textPrimary)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
@@ -560,7 +560,7 @@ struct MetricRow: View {
             Spacer()
             Text(value)
                 .fontWeight(.semibold)
-                .foregroundColor(.white)
+                .foregroundColor(NerdyTheme.textPrimary)
         }
     }
 }

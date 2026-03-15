@@ -46,7 +46,7 @@ struct StudentListView: View {
         }
         .navigationTitle("Students")
         #if os(iOS)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         #endif
         .onAppear { loadStudents() }
     }
@@ -78,7 +78,7 @@ struct StudentRowCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(name)
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(NerdyTheme.textPrimary)
                     HStack(spacing: 12) {
                         Label("\(sessionCount) sessions", systemImage: "video.fill")
                             .font(.caption)
@@ -123,7 +123,7 @@ struct StudentDetailView: View {
                     VStack(spacing: 8) {
                         Text(studentName)
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(NerdyTheme.textPrimary)
                         Text("\(totalSessions) session\(totalSessions == 1 ? "" : "s")")
                             .foregroundColor(NerdyTheme.textSecondary)
                     }
@@ -154,7 +154,7 @@ struct StudentDetailView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Session History")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(NerdyTheme.textPrimary)
 
                         ForEach(summaries) { summary in
                             NavigationLink(destination: SessionDetailView(summary: summary)) {
@@ -168,7 +168,7 @@ struct StudentDetailView: View {
         }
         .navigationTitle(studentName)
         #if os(iOS)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         #endif
         .onAppear { loadData() }
     }
@@ -178,7 +178,7 @@ struct StudentDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Engagement Over Time")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(NerdyTheme.textPrimary)
 
                 Chart(summaries) { summary in
                     LineMark(
@@ -212,7 +212,7 @@ struct StudentDetailView: View {
                 .chartYAxis {
                     AxisMarks(values: [0, 25, 50, 75, 100]) { value in
                         AxisGridLine()
-                            .foregroundStyle(Color.white.opacity(0.1))
+                            .foregroundStyle(Color.black.opacity(0.08))
                         AxisValueLabel {
                             if let v = value.as(Double.self) {
                                 Text("\(Int(v))")
@@ -225,7 +225,7 @@ struct StudentDetailView: View {
                 .chartXAxis {
                     AxisMarks { value in
                         AxisGridLine()
-                            .foregroundStyle(Color.white.opacity(0.05))
+                            .foregroundStyle(Color.black.opacity(0.04))
                         AxisValueLabel {
                             if let date = value.as(Date.self) {
                                 Text(date.formatted(.dateTime.month(.abbreviated).day()))

@@ -1,54 +1,54 @@
 import SwiftUI
 
 enum NerdyTheme {
-    // MARK: - Primary Colors (from nerdy.com)
-    static let backgroundDark = Color(hex: "0D0E1A")
-    static let backgroundCard = Color(hex: "1A1B2E")
-    static let backgroundElevated = Color(hex: "252640")
+    // MARK: - Primary Colors (warm light theme)
+    static let backgroundDark = Color(hex: "F0E8E0")
+    static let backgroundCard = Color(hex: "FFFFFF")
+    static let backgroundElevated = Color(hex: "FEFAF7")
 
-    static let cyan = Color(hex: "00D4AA")
-    static let magenta = Color(hex: "FF3CAC")
-    static let purple = Color(hex: "784BA0")
-    static let blue = Color(hex: "2B86C5")
-    static let orange = Color(hex: "FF6B35")
-    static let yellow = Color(hex: "FFD700")
+    static let cyan = Color(hex: "C4402F")
+    static let magenta = Color(hex: "C4402F")
+    static let purple = Color(hex: "C4402F")
+    static let blue = Color(hex: "C4402F")
+    static let orange = Color(hex: "E8573A")
+    static let yellow = Color(hex: "E8873A")
 
-    static let textPrimary = Color.white
-    static let textSecondary = Color(hex: "8B8CA0")
-    static let textMuted = Color(hex: "5A5B6E")
+    static let textPrimary = Color(hex: "1A1A1A")
+    static let textSecondary = Color(hex: "5A5A5A")
+    static let textMuted = Color(hex: "777777")
 
     // MARK: - Gradients
     static let gradientAccent = LinearGradient(
-        colors: [cyan, magenta, purple],
+        colors: [Color(hex: "C4402F"), Color(hex: "E8573A")],
         startPoint: .leading,
         endPoint: .trailing
     )
 
     static let gradientLiveAI = LinearGradient(
-        colors: [cyan, blue, purple, magenta],
+        colors: [Color(hex: "C4402F"), Color(hex: "E8573A"), Color(hex: "E8873A")],
         startPoint: .leading,
         endPoint: .trailing
     )
 
     static let backgroundGradient = LinearGradient(
-        colors: [backgroundDark, Color(hex: "121328")],
+        colors: [Color(hex: "F0E8E0"), Color(hex: "EDE5DF")],
         startPoint: .top,
         endPoint: .bottom
     )
 
     // MARK: - Nudge Colors
-    static let nudgeInfo = blue
-    static let nudgeSuggestion = Color(hex: "F59E0B")
-    static let nudgeAlert = Color(hex: "EF4444")
-    static let nudgeSuccess = cyan
+    static let nudgeInfo = Color(hex: "2B86C5")
+    static let nudgeSuggestion = Color(hex: "E8873A")
+    static let nudgeAlert = Color(hex: "C4402F")
+    static let nudgeSuccess = Color(hex: "2D9D5E")
 
     // MARK: - Engagement Score Colors
     static func engagementColor(for score: Double) -> Color {
         switch score {
-        case 0..<0.3: return .red
+        case 0..<0.3: return Color(hex: "C4402F")
         case 0.3..<0.5: return orange
         case 0.5..<0.7: return yellow
-        case 0.7..<0.85: return cyan
+        case 0.7..<0.85: return Color(hex: "2D9D5E")
         default: return Color(hex: "10B981")
         }
     }
@@ -103,8 +103,9 @@ struct NerdyCard<Content: View>: View {
                     .fill(NerdyTheme.backgroundCard)
                     .overlay(
                         RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium)
-                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
                     )
+                    .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
             )
     }
 }
@@ -155,7 +156,7 @@ struct GlassCard<Content: View>: View {
                     .fill(.ultraThinMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            .stroke(Color.black.opacity(0.08), lineWidth: 1)
                     )
             )
     }
@@ -170,7 +171,7 @@ struct MetricGauge: View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .stroke(Color.white.opacity(0.1), lineWidth: 6)
+                    .stroke(Color.black.opacity(0.08), lineWidth: 6)
                     .frame(width: 60, height: 60)
                 Circle()
                     .trim(from: 0, to: value)
@@ -186,7 +187,7 @@ struct MetricGauge: View {
             }
             Text("\(Int(value * 100))%")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(NerdyTheme.textPrimary)
             Text(label)
                 .font(.caption)
                 .foregroundColor(NerdyTheme.textSecondary)

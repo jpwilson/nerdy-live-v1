@@ -131,7 +131,7 @@ struct ProfileView: View {
                     Text(appState.tutorProfile?.name ?? "User")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(NerdyTheme.textPrimary)
 
                     if let email = appState.authService.currentUser?.email {
                         Text(email)
@@ -179,7 +179,7 @@ struct ProfileView: View {
                 loadStats()
             }
             #if os(iOS)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             #endif
         }
     }
@@ -211,7 +211,7 @@ struct ProfileRow: View {
             Spacer()
             Text(value)
                 .fontWeight(.semibold)
-                .foregroundColor(.white)
+                .foregroundColor(NerdyTheme.textPrimary)
         }
     }
 }

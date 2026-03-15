@@ -514,18 +514,6 @@ function RoomClient({
             </div>
           </div>
 
-          {!remoteStream && (
-            <div className="stage-note">
-              <p className="body-copy">
-                {role === "student"
-                  ? "The browser stays student-simple. Engagement analysis belongs on the tutor-side surface once the iPhone app consumes this WebRTC stream."
-                  : "Tutor preview is a browser-only fallback so the WebRTC path can be rehearsed before the iOS tutor app is connected."}
-              </p>
-              <p className="body-copy">
-                Room topic: <span className="mono">{roomTopic}</span>
-              </p>
-            </div>
-          )}
 
           {/* Floating call controls on video stage */}
           {connectionState !== "idle" && connectionState !== "disconnected" && (

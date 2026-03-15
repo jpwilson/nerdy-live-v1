@@ -8,7 +8,7 @@ struct LiveSeshApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
         }
     }
 }

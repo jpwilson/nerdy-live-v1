@@ -69,7 +69,7 @@ struct SessionView: View {
                 #endif
             }
             #if os(iOS)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             #endif
         }
         .overlay(alignment: .topTrailing) {
@@ -98,7 +98,7 @@ struct SessionView: View {
                     .foregroundStyle(NerdyTheme.gradientLiveAI)
                 + Text("+AI")
                     .font(.system(size: 48, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(NerdyTheme.textPrimary)
 
                 Text("Session Analysis")
                     .font(.title3)
@@ -109,7 +109,7 @@ struct SessionView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Session Setup")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(NerdyTheme.textPrimary)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Subject")
@@ -628,7 +628,7 @@ struct SessionView: View {
                     Text("Room: \(roomCode)")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                        .foregroundColor(NerdyTheme.textPrimary)
                     Text("Student can join from the web app with this room code.")
                         .font(.caption2)
                         .foregroundColor(NerdyTheme.textSecondary)
@@ -734,7 +734,11 @@ struct NerdyTextFieldStyle: TextFieldStyle {
                 RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusSmall)
                     .fill(NerdyTheme.backgroundElevated)
             )
-            .foregroundColor(.white)
+            .foregroundColor(NerdyTheme.textPrimary)
+            .overlay(
+                RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusSmall)
+                    .stroke(Color.black.opacity(0.08), lineWidth: 1)
+            )
     }
 }
 
@@ -747,7 +751,7 @@ struct LiveMetricsDashboardView: View {
                 HStack {
                     Text("Live Metrics")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(NerdyTheme.textPrimary)
                     Spacer()
                     TrendBadge(trend: metrics.session.engagementTrend)
                 }
@@ -875,7 +879,7 @@ struct LiveCaptureSurfaceView: View {
         .frame(minHeight: 340)
         .overlay(
             RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusMedium)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                .stroke(Color.black.opacity(0.06), lineWidth: 1)
         )
     }
 
@@ -1022,7 +1026,7 @@ struct SpeakingIndicatorView: View {
                 .animation(.easeInOut(duration: 0.3).repeatWhile(isSpeaking), value: isSpeaking)
             Text(label)
                 .font(.subheadline)
-                .foregroundColor(isSpeaking ? .white : NerdyTheme.textSecondary)
+                .foregroundColor(isSpeaking ? NerdyTheme.textPrimary : NerdyTheme.textSecondary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -1048,7 +1052,7 @@ struct NudgePillView: View {
 
             Text(nudge.message)
                 .font(.caption)
-                .foregroundColor(.white)
+                .foregroundColor(NerdyTheme.textPrimary)
                 .lineLimit(2)
 
             Button(action: onDismiss) {
