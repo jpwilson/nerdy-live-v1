@@ -23,58 +23,54 @@ export default function DashboardPage() {
     });
   }, [router]);
 
-  if (loading) return <main className="shell"><p style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading...</p></main>;
+  if (loading) return <main className="dash-shell"><p style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading...</p></main>;
   if (!email) return null;
 
   const displayName = localStorage.getItem("livesesh_displayName") || email.split("@")[0];
 
-  const signOut = async () => {
-    const supabase = getSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    localStorage.removeItem("livesesh_displayName");
-    localStorage.removeItem("livesesh_roomId");
-    localStorage.removeItem("livesesh_role");
-    window.location.href = "/";
-  };
-
   return (
-    <main className="shell">
-      {/* Top bar */}
-      <header className="dash-header">
-        <div className="dash-header-left">
-          <span className="dash-logo">LiveSesh AI</span>
+    <main className="dash-shell">
+      <aside className="dash-sidebar">
+        <div className="dash-sidebar-profile">
+          <div className="dash-avatar">{displayName.charAt(0).toUpperCase()}</div>
+          <span className="dash-profile-name">{displayName}</span>
+          <span className="dash-profile-email">{email}</span>
         </div>
-        <div className="dash-header-right">
-          <span className="dash-user">{displayName}</span>
-          <button className="dash-signout" onClick={() => void signOut()}>Sign out</button>
-          <button className="primary-button" style={{ padding: "10px 18px", fontSize: "0.82rem" }} onClick={() => router.push("/")}>
-            Join Room
-          </button>
-        </div>
-      </header>
 
-      {/* Tab navigation */}
-      <nav className="dash-nav">
-        {(["sessions", "analytics", "settings"] as const).map((tab) => (
-          <button
-            key={tab}
-            className={`dash-nav-tab ${activeTab === tab ? "active" : ""}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab === "sessions" ? "Sessions" : tab === "analytics" ? "Analytics" : "Settings"}
-          </button>
-        ))}
-      </nav>
+        <nav className="dash-sidebar-nav">
+          {(["sessions", "analytics", "settings"] as const).map((tab) => (
+            <button
+              key={tab}
+              className={`dash-sidebar-link ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab === "sessions" && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              )}
+              {tab === "analytics" && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              )}
+              {tab === "settings" && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              )}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </nav>
 
-      {/* Tab content */}
-      <div className="dash-content">
+        <button className="dash-sidebar-join" onClick={() => router.push("/")}>
+          Start Session →
+        </button>
+      </aside>
+
+      <div className="dash-main">
         {activeTab === "sessions" && <TutorDashboard />}
         {activeTab === "analytics" && (
           <div className="dash-tab-panel">
             <h1 className="dash-title">Analytics</h1>
             <p style={{ color: "var(--muted)", marginTop: 8 }}>Cross-session analysis and tutor performance insights.</p>
             <div className="detail-timeline-placeholder" style={{ marginTop: 20, minHeight: 200 }}>
-              Session graph visualization — see Settings tab for interactive graph
+              Interactive session graph visualization — coming soon
             </div>
           </div>
         )}
@@ -110,11 +106,21 @@ export default function DashboardPage() {
             </div>
 
             <div className="settings-card">
-              <h2 className="settings-card-title">Coaching</h2>
-              <p style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
-                Coaching sensitivity is set per-session in the join form.
-                Grace period: 5 minutes of observation before any nudges.
-                Assessment windows: every 3 minutes. Escalating nudge levels.
+              <h2 className="settings-card-title">Coaching Engine</h2>
+              <div className="settings-row">
+                <span className="settings-label">Grace period</span>
+                <span className="settings-value">5 minutes</span>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">Assessment window</span>
+                <span className="settings-value">3 minutes</span>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">Escalation</span>
+                <span className="settings-value">L1 → L2 → L3</span>
+              </div>
+              <p style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 8 }}>
+                Nudges are based on window-over-window engagement trends compared to the session baseline. No nudges fire during the first 5 minutes.
               </p>
             </div>
           </div>

@@ -42,7 +42,6 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
   // Session setup (tutor-only)
   const [subject, setSubject] = useState("");
   const [studentLevel, setStudentLevel] = useState("High School");
-  const [coachingSensitivity, setCoachingSensitivity] = useState("medium");
 
   // Auth state
   const [authState, setAuthState] = useState<AuthState>("signed_out");
@@ -98,7 +97,7 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
       name: inferredName,
       role,
       ...(role === "tutor_preview" && subject ? { subject } : {}),
-      ...(role === "tutor_preview" ? { level: studentLevel, sensitivity: coachingSensitivity } : {}),
+      ...(role === "tutor_preview" ? { level: studentLevel } : {}),
     });
 
     router.push(`/room/${encodeURIComponent(normalizedRoomId)}?${params.toString()}`);
@@ -356,25 +355,6 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
                 <option key={lvl} value={lvl}>{lvl}</option>
               ))}
             </select>
-          </div>
-          <div className="field">
-            <label>Coaching sensitivity</label>
-            <div className="segment-row">
-              {[
-                { value: "low", label: "Low" },
-                { value: "medium", label: "Medium" },
-                { value: "high", label: "High" },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={`segment-btn ${coachingSensitivity === opt.value ? "active" : ""}`}
-                  onClick={() => setCoachingSensitivity(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
           </div>
         </fieldset>
       )}

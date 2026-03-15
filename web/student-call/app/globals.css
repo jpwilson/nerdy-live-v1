@@ -25,6 +25,74 @@
   box-sizing: border-box;
 }
 
+/* ── Global Navigation ───────────────────── */
+.global-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(240, 232, 224, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+
+.global-nav-inner {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-logo {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.nav-link:hover {
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.nav-link.active {
+  color: var(--accent);
+  background: rgba(196, 64, 47, 0.08);
+}
+
+.nav-btn {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.nav-btn:hover {
+  background: var(--accent-strong);
+}
+
 html {
   min-height: 100%;
 }
@@ -1867,66 +1935,74 @@ h3 {
   font-family: "SFMono-Regular", "SF Mono", "Menlo", monospace;
 }
 
-/* ── Dashboard page layout ───────────────── */
-.dash-header {
+/* ── Dashboard page layout (sidebar + main) ── */
+.dash-shell {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 0;
-  margin-bottom: 8px;
+  max-width: 1220px;
+  margin: 0 auto;
+  min-height: calc(100vh - 52px);
+  padding: 0 16px;
+  gap: 24px;
 }
 
-.dash-header-left {
+.dash-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  padding: 24px 0;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 52px;
+  height: fit-content;
 }
 
-.dash-logo {
+.dash-sidebar-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.dash-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.1rem;
   font-weight: 800;
-  color: var(--accent);
 }
 
-.dash-header-right {
+.dash-profile-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.dash-profile-email {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.dash-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-sidebar-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.dash-user {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.dash-signout {
-  font-size: 0.78rem;
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 6px 12px;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.dash-signout:hover {
-  color: var(--ink);
-  border-color: var(--ink);
-}
-
-.dash-nav {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 12px;
-  margin-bottom: 24px;
-}
-
-.dash-nav-tab {
-  flex: 1;
-  padding: 10px 16px;
+  gap: 10px;
+  padding: 10px 14px;
   font-size: 0.84rem;
   font-weight: 600;
   border: none;
@@ -1935,24 +2011,45 @@ h3 {
   color: var(--muted);
   cursor: pointer;
   transition: all 0.15s;
+  text-align: left;
 }
 
-.dash-nav-tab:hover {
+.dash-sidebar-link:hover {
+  background: rgba(0, 0, 0, 0.04);
   color: var(--ink);
 }
 
-.dash-nav-tab.active {
+.dash-sidebar-link.active {
   background: #ffffff;
-  color: var(--ink);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: var(--accent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-.dash-content {
-  min-height: 60vh;
+.dash-sidebar-join {
+  padding: 12px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dash-sidebar-join:hover {
+  background: var(--accent-strong);
+}
+
+.dash-main {
+  flex: 1;
+  min-width: 0;
+  padding: 24px 0;
+  max-width: 860px;
 }
 
 .dash-tab-panel {
-  padding: 4px 0;
+  padding: 0;
 }
 
 .settings-card {

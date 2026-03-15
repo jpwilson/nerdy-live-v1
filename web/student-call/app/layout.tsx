@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { GlobalNav } from "@/components/global-nav";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -8,8 +9,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "LiveSesh — Join Session",
-  description: "Student-side video client for LiveSesh real-time tutoring analysis.",
+  title: "LiveSesh AI — Real-Time Tutoring Analysis",
+  description: "AI-powered engagement analysis for live tutoring sessions.",
 };
 
 export default function RootLayout({
@@ -19,7 +20,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <GlobalNav />
+        {children}
+      </body>
     </html>
   );
 }
