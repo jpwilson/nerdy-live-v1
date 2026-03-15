@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RoomRole } from "@/lib/call-types";
 import {
@@ -27,7 +27,7 @@ const DEMO_ROOM = "demo-room";
 
 type AuthState = "signed_out" | "otp_sent" | "signed_in";
 
-export function JoinForm() {
+export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) => void } = {}) {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [roomId, setRoomId] = useState(createRoomId);
@@ -40,6 +40,24 @@ export function JoinForm() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [signedInEmail, setSignedInEmail] = useState<string | null>(null);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        setSignedInEmail(session.user.email);
+        const isStudent = session.user.email.toLowerCase().includes("student");
+        setRole(isStudent ? "student" : "tutor_preview");
+        setAuthState("signed_in");
+      }
+    });
+  }, []);
+
+  // Notify parent of auth changes
+  useEffect(() => {
+    onAuthChange?.(authState === "signed_in");
+  }, [authState, onAuthChange]);
 
   const inferredName = useMemo(() => {
     return displayName.trim() || signedInEmail?.split("@")[0] || defaultDisplayName(role);
