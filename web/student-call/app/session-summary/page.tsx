@@ -224,7 +224,7 @@ export default function SessionSummaryPage() {
               metricsNote: metricsForAI.engagement === 0
                 ? "No real-time metrics were collected for this session. Analysis is based on transcript only."
                 : `Based on ${realMetrics?.snapshotCount ?? "unknown"} real-time metric snapshots collected during the session.`,
-              model: "sonnet",
+              model: localStorage.getItem("livesesh_model_summary") || "sonnet",
               task: "summary",
             }),
           });

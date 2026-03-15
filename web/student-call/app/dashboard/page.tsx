@@ -12,6 +12,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"analytics" | "settings">("analytics");
   const [analyticsSubTab, setAnalyticsSubTab] = useState<"sessions" | "trends" | "graph">("sessions");
+  const [modelRealtime, setModelRealtime] = useState("haiku");
+  const [modelSummary, setModelSummary] = useState("sonnet");
+  const [modelInsight, setModelInsight] = useState("opus");
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -24,6 +27,12 @@ export default function DashboardPage() {
       setLoading(false);
     });
   }, [router]);
+
+  useEffect(() => {
+    setModelRealtime(localStorage.getItem("livesesh_model_realtime") || "haiku");
+    setModelSummary(localStorage.getItem("livesesh_model_summary") || "sonnet");
+    setModelInsight(localStorage.getItem("livesesh_model_insight") || "opus");
+  }, []);
 
   if (loading) return <main className="dash-shell"><p style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading...</p></main>;
   if (!email) return null;
@@ -137,10 +146,13 @@ export default function DashboardPage() {
 
             {analyticsSubTab === "trends" && (
               <div className="trends-panel">
+                <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginBottom: 16, lineHeight: 1.5 }}>
+                  Track how each student&apos;s key metrics evolve across sessions. Use these trends to identify improvement patterns, spot regressions early, and tailor your coaching approach per student.
+                </p>
                 {[
-                  { label: "Engagement", key: "engagement" as const, color: "#C4402F" },
-                  { label: "Eye Contact", key: "eyeContact" as const, color: "#2B86C5" },
-                  { label: "Talk Balance", key: "talkBalance" as const, color: "#8B5CF6" },
+                  { label: "Engagement", key: "engagement" as const, color: "#C4402F", desc: "Overall session engagement per student over time. Higher values indicate more interactive, participatory sessions." },
+                  { label: "Eye Contact", key: "eyeContact" as const, color: "#2B86C5", desc: "Percentage of time the student maintained eye contact with the camera. Tracks visual attention and presence." },
+                  { label: "Talk Balance", key: "talkBalance" as const, color: "#8B5CF6", desc: "Student\u2019s share of speaking time. Higher values indicate more student-led discussion." },
                 ].map(metric => {
                   const students = ["Sarah Chen", "Alex Rivera", "Jordan Patel", "Casey Kim", "Morgan Davis"];
                   const studentColors: Record<string, string> = {
@@ -154,6 +166,7 @@ export default function DashboardPage() {
                   return (
                     <div key={metric.key} className="trend-metric-card">
                       <h3 className="trend-metric-title">{metric.label}</h3>
+                      <p style={{ color: "var(--muted)", fontSize: "0.8rem", marginTop: 2, marginBottom: 8, lineHeight: 1.4 }}>{metric.desc}</p>
                       <svg viewBox="0 0 500 160" className="trend-metric-chart">
                         {/* Grid */}
                         {[0, 1, 2, 3, 4].map(i => (
@@ -314,7 +327,7 @@ export default function DashboardPage() {
               </p>
               <div className="settings-row">
                 <span className="settings-label">Real-time transcript analysis</span>
-                <select className="settings-select" defaultValue="haiku">
+                <select className="settings-select" value={modelRealtime} onChange={(e) => { setModelRealtime(e.target.value); localStorage.setItem("livesesh_model_realtime", e.target.value); }}>
                   <option value="haiku">Claude Haiku 4.5 (fast, $0.25/1M tokens)</option>
                   <option value="sonnet">Claude Sonnet 4.6 (balanced, $3/1M tokens)</option>
                   <option value="opus">Claude Opus 4.6 (thorough, $15/1M tokens)</option>
@@ -322,7 +335,7 @@ export default function DashboardPage() {
               </div>
               <div className="settings-row">
                 <span className="settings-label">Post-session summary</span>
-                <select className="settings-select" defaultValue="sonnet">
+                <select className="settings-select" value={modelSummary} onChange={(e) => { setModelSummary(e.target.value); localStorage.setItem("livesesh_model_summary", e.target.value); }}>
                   <option value="haiku">Claude Haiku 4.5 (fast, $0.25/1M tokens)</option>
                   <option value="sonnet">Claude Sonnet 4.6 (balanced, $3/1M tokens)</option>
                   <option value="opus">Claude Opus 4.6 (thorough, $15/1M tokens)</option>
@@ -330,7 +343,7 @@ export default function DashboardPage() {
               </div>
               <div className="settings-row">
                 <span className="settings-label">Insight generation</span>
-                <select className="settings-select" defaultValue="opus">
+                <select className="settings-select" value={modelInsight} onChange={(e) => { setModelInsight(e.target.value); localStorage.setItem("livesesh_model_insight", e.target.value); }}>
                   <option value="haiku">Claude Haiku 4.5 (fast, $0.25/1M tokens)</option>
                   <option value="sonnet">Claude Sonnet 4.6 (balanced, $3/1M tokens)</option>
                   <option value="opus">Claude Opus 4.6 (thorough, $15/1M tokens)</option>

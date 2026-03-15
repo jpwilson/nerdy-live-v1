@@ -40,8 +40,8 @@ function RadarChart({ data, size = 260 }: { data: { label: string; value: number
   const getLabelPoint = (i: number) => {
     const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
     return {
-      x: cx + Math.cos(angle) * 130,
-      y: cy + Math.sin(angle) * 130,
+      x: cx + Math.cos(angle) * 140,
+      y: cy + Math.sin(angle) * 140,
     };
   };
 
@@ -94,7 +94,7 @@ function RadarChart({ data, size = 260 }: { data: { label: string; value: number
       {data.map((d, i) => {
         const p = getLabelPoint(i);
         return (
-          <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill={d.color || "#5A5A5A"} fontWeight="600">
+          <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize="12" fill={d.color || "#5A5A5A"} fontWeight="600">
             {d.label}
           </text>
         );
@@ -460,12 +460,30 @@ export function TutorDashboard() {
             <p className="detail-summary-text">
               {enriched.demoSummary}
             </p>
-            <div className="detail-comparison">
-              <span className="detail-comp-label">vs. last session with {enriched.studentName}</span>
-              <span className="detail-comp-value" style={{ color: Math.random() > 0.5 ? "#2D9D5E" : "#C4402F" }}>
-                {Math.random() > 0.5 ? "\u2191" : "\u2193"} {Math.round(Math.random() * 15 + 2)}% engagement
-              </span>
-            </div>
+            {(() => {
+              const studentSessions = enrichedSessions
+                .filter(s => s.studentName === enriched.studentName && s.id !== enriched.id)
+                .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
+              const prevSession = studentSessions.find(s => new Date(s.started_at).getTime() < new Date(enriched.started_at).getTime());
+              if (!prevSession) return (
+                <div className="detail-comparison">
+                  <span className="detail-comp-label">vs. last session with {enriched.studentName}</span>
+                  <span className="detail-comp-value" style={{ color: "var(--muted)" }}>No previous session</span>
+                </div>
+              );
+              const currentScore = score;
+              const prevScore = prevSession.engagement_score ?? prevSession.demoMetrics.eyeContact;
+              const diff = Math.round(currentScore - prevScore);
+              const isUp = diff >= 0;
+              return (
+                <div className="detail-comparison">
+                  <span className="detail-comp-label">vs. last session with {enriched.studentName}</span>
+                  <span className="detail-comp-value" style={{ color: isUp ? "#2D9D5E" : "#C4402F" }}>
+                    {isUp ? "\u2191" : "\u2193"} {Math.abs(diff)}% engagement
+                  </span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Engagement timeline tile */}
@@ -566,6 +584,22 @@ export function TutorDashboard() {
                 {score >= 70 && (
                   <li>Strong session overall. {enriched.studentName} was engaged and participatory. Continue with this approach for {enriched.subject}.</li>
                 )}
+                {eyeContact >= 50 && (
+                  <li>Eye contact was solid at {eyeContact}%. Continue encouraging screen presence.</li>
+                )}
+                {talkStudent >= 30 && talkStudent < 50 && (
+                  <li>Student talk at {talkStudent}% is reasonable. Push toward 50%+ by using the Socratic method.</li>
+                )}
+                {talkStudent >= 50 && (
+                  <li>Excellent student talk at {talkStudent}%. This student-led approach is working well.</li>
+                )}
+                {enriched.demoMetrics.duration >= 30 && (
+                  <li>Session length of {enriched.demoMetrics.duration}m is appropriate for sustained focus. Consider a brief mid-session break for sessions over 40m.</li>
+                )}
+                {enriched.demoMetrics.duration < 30 && (
+                  <li>At {enriched.demoMetrics.duration}m, this was a shorter session. For complex topics, aim for 35-45 minutes.</li>
+                )}
+                <li>Next session: build on {enriched.subject} with progressive difficulty. Review any areas where {enriched.studentName} hesitated.</li>
               </ul>
             </div>
           </div>
