@@ -1456,6 +1456,61 @@ h3 {
   to { opacity: 0; }
 }
 
+/* ── Floating stage nudge (draggable) ────── */
+.stage-nudge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  max-width: 280px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(26, 27, 46, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  z-index: 15;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  animation: toast-slide-in 300ms ease-out;
+}
+
+.stage-nudge:active {
+  cursor: grabbing;
+}
+
+.stage-nudge.priority-high {
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.stage-nudge.priority-low {
+  border-color: rgba(0, 212, 170, 0.4);
+}
+
+.stage-nudge-label {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--warn);
+  margin-bottom: 4px;
+}
+
+.stage-nudge.priority-high .stage-nudge-label {
+  color: var(--danger);
+}
+
+.stage-nudge.priority-low .stage-nudge-label {
+  color: var(--success);
+}
+
+.stage-nudge-msg {
+  font-size: 0.82rem;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
 /* ── Collapsible details card ────────────── */
 .details-card {
   cursor: default;

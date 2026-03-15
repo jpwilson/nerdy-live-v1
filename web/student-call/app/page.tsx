@@ -15,7 +15,9 @@ export default function HomePage() {
     <main className="shell">
       <section className="hero">
         {signedIn ? (
-          <TutorDashboard />
+          <div className="hero-copy">
+            <TutorDashboard />
+          </div>
         ) : (
           <div className="hero-copy">
             <p className="eyebrow">LiveSesh</p>

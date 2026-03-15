@@ -31,7 +31,7 @@ interface StudentMetrics {
 }
 
 /** Structured coaching nudge */
-interface CoachingNudge {
+export interface CoachingNudge {
   id: string;
   priority: "high" | "medium" | "low";
   category: "engagement" | "talk_balance" | "positive" | "technique" | "attention";
@@ -248,12 +248,14 @@ export function StudentAnalysisCard({
   onFacePosition,
   overlayMode,
   onOverlayModeChange,
+  onNudge,
 }: {
   remoteStream: MediaStream | null;
   localStream?: MediaStream | null;
   onFacePosition?: (data: FacePositionData) => void;
   overlayMode?: OverlayMode;
   onOverlayModeChange?: (mode: OverlayMode) => void;
+  onNudge?: (nudge: CoachingNudge | null) => void;
 }) {
   return (
     <AnalysisErrorBoundary>
@@ -263,6 +265,7 @@ export function StudentAnalysisCard({
         onFacePosition={onFacePosition}
         overlayMode={overlayMode ?? "all"}
         onOverlayModeChange={onOverlayModeChange}
+        onNudge={onNudge}
       />
     </AnalysisErrorBoundary>
   );
@@ -275,12 +278,14 @@ function AnalysisPanelInner({
   onFacePosition,
   overlayMode,
   onOverlayModeChange,
+  onNudge,
 }: {
   remoteStream: MediaStream | null;
   localStream: MediaStream | null;
   onFacePosition?: (data: FacePositionData) => void;
   overlayMode: OverlayMode;
   onOverlayModeChange?: (mode: OverlayMode) => void;
+  onNudge?: (nudge: CoachingNudge | null) => void;
 }) {
   const [metrics, setMetrics] = useState<StudentMetrics>(INITIAL_METRICS);
   const [status, setStatus] = useState("Initializing…");
@@ -790,7 +795,11 @@ function AnalysisPanelInner({
         lastNudgeCategoryRef.current[pendingNudge.category] = now;
         setNudges(prev => [...prev.slice(-9), pendingNudge!]);
         setToastNudge(pendingNudge);
-        setTimeout(() => setToastNudge(prev => prev?.id === pendingNudge!.id ? null : prev), 5000);
+        onNudge?.(pendingNudge);
+        setTimeout(() => {
+          setToastNudge(prev => prev?.id === pendingNudge!.id ? null : prev);
+          onNudge?.(null);
+        }, 8000);
       }
 
       setMetrics({
@@ -1136,12 +1145,7 @@ function AnalysisPanelInner({
         </>
       )}
 
-      {/* Toast nudge — slides in from bottom */}
-      {toastNudge && (
-        <div className={`nudge-toast priority-${toastNudge.priority}`}>
-          <span className="nudge-toast-msg">{toastNudge.message}</span>
-        </div>
-      )}
+      {/* Toast nudge rendered on video stage via onNudge callback */}
     </section>
   );
 }

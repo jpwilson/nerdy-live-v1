@@ -13,7 +13,7 @@ import {
   roleLabel,
 } from "@/lib/room-utils";
 import { useLiveKitRoom } from "@/lib/use-livekit-room";
-import { StudentAnalysisCard, type FacePositionData, type OverlayMode } from "@/components/analysis-panel";
+import { StudentAnalysisCard, type CoachingNudge, type FacePositionData, type OverlayMode } from "@/components/analysis-panel";
 import {
   FACEMESH_TESSELATION,
   FACE_OVAL,
@@ -209,6 +209,9 @@ function RoomClient({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [overlayMode, setOverlayMode] = useState<OverlayMode>("all");
   const [facePosition, setFacePosition] = useState<FacePositionData | null>(null);
+  const [activeNudge, setActiveNudge] = useState<CoachingNudge | null>(null);
+  const [nudgePos, setNudgePos] = useState<{ x: number; y: number } | null>(null);
+  const nudgeDragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoFrameRef = useRef<HTMLDivElement | null>(null);
@@ -594,7 +597,7 @@ function RoomClient({
                 className="stage-btn hangup"
                 type="button"
                 onClick={() => {
-                  void hangUp().then(() => router.push("/"));
+                  void hangUp().then(() => window.location.href = "/");
                 }}
                 title="End call"
               >
@@ -602,6 +605,37 @@ function RoomClient({
                   <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-5.33-5.33A19.79 19.79 0 0 1 2.79 5.18 2 2 0 0 1 4.79 3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.77 10.91a16 16 0 0 0 1.91 2.4z" transform="rotate(135 12 12)"/>
                 </svg>
               </button>
+            </div>
+          )}
+
+          {/* Floating coaching nudge on video stage */}
+          {activeNudge && (
+            <div
+              className={`stage-nudge priority-${activeNudge.priority}`}
+              style={nudgePos ? { top: nudgePos.y, left: nudgePos.x, right: "auto", bottom: "auto" } : undefined}
+              onPointerDown={(e) => {
+                const el = e.currentTarget;
+                const rect = el.getBoundingClientRect();
+                nudgeDragRef.current = {
+                  startX: e.clientX,
+                  startY: e.clientY,
+                  origX: rect.left,
+                  origY: rect.top,
+                };
+                el.setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                if (!nudgeDragRef.current) return;
+                const d = nudgeDragRef.current;
+                setNudgePos({
+                  x: d.origX + (e.clientX - d.startX),
+                  y: d.origY + (e.clientY - d.startY),
+                });
+              }}
+              onPointerUp={() => { nudgeDragRef.current = null; }}
+            >
+              <span className="stage-nudge-label">COACHING NUDGE</span>
+              <span className="stage-nudge-msg">{activeNudge.message}</span>
             </div>
           )}
         </article>
@@ -639,7 +673,7 @@ function RoomClient({
                 className="control-button leave"
                 type="button"
                 onClick={() => {
-                  void hangUp().then(() => router.push("/"));
+                  void hangUp().then(() => window.location.href = "/");
                 }}
               >
                 Leave call
@@ -654,6 +688,7 @@ function RoomClient({
               onFacePosition={handleFacePosition}
               overlayMode={overlayMode}
               onOverlayModeChange={setOverlayMode}
+              onNudge={setActiveNudge}
             />
           )}
 
