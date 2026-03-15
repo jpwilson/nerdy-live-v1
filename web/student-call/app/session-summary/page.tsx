@@ -127,6 +127,9 @@ export default function SessionSummaryPage() {
 
       setCurrentSessionId(sessionId);
 
+      // Track resolved metrics locally so we can use them for AI call in same tick
+      let resolvedMetrics: RealMetrics | null = null;
+
       // End the session in Supabase
       if (sessionId) {
         const sb = getSupabaseBrowserClient();
@@ -136,9 +139,45 @@ export default function SessionSummaryPage() {
         // Fetch real metrics from Supabase
         const metrics = await fetchRealMetrics(sessionId);
         if (metrics) {
-          setRealMetrics(metrics);
+          resolvedMetrics = metrics;
         }
       }
+
+      // Fall back to localStorage metrics if Supabase had nothing
+      if (!resolvedMetrics) {
+        const savedMetricsRaw = localStorage.getItem("livesesh_sessionMetrics");
+        if (savedMetricsRaw) {
+          try {
+            const saved = JSON.parse(savedMetricsRaw);
+            resolvedMetrics = {
+              engagement: saved.engagement ?? 0,
+              eyeContact: saved.eyeContact ?? 0,
+              studentTalk: saved.studentTalk ?? 0,
+              tutorTalk: saved.tutorTalk ?? 0,
+              responsiveness: saved.responsiveness ?? 0,
+              attentionDrift: saved.attentionDrift ?? 0,
+              interruptions: saved.interruptions ?? 0,
+              duration: saved.duration ?? 1,
+              snapshotCount: saved.snapshotCount ?? 1,
+            };
+            // Also use subject from metrics if session data has none
+            if (saved.subject && saved.subject !== "General" && sessionData) {
+              if (!sessionData.subject || sessionData.subject === "General" || sessionData.subject === "Unknown") {
+                sessionData.subject = saved.subject;
+                setSummary({ ...sessionData });
+              }
+            }
+          } catch { /* bad JSON */ }
+        }
+      }
+
+      // Set state for display
+      if (resolvedMetrics) {
+        setRealMetrics(resolvedMetrics);
+      }
+
+      // Clean up localStorage metrics after loading
+      localStorage.removeItem("livesesh_sessionMetrics");
 
       // Check minimum session validation
       const sessionStartedAt = sessionData?.timestamp
@@ -171,37 +210,20 @@ export default function SessionSummaryPage() {
       if (!skipAnalysis && (sessionData?.transcript || sessionData?.summary)) {
         setAnalyzing(true);
         try {
-          // Use real metrics if available, otherwise use metrics from localStorage session, otherwise be honest about no data
+          // Build metrics for AI from resolved metrics (Supabase or localStorage fallback)
           let metricsForAI: Record<string, number>;
-          const rm = realMetrics;
 
-          if (sessionId) {
-            // We already fetched, but realMetrics state may not be set yet, refetch inline
-            const freshMetrics = await fetchRealMetrics(sessionId);
-            if (freshMetrics) {
-              metricsForAI = {
-                engagement: freshMetrics.engagement,
-                eyeContact: freshMetrics.eyeContact,
-                studentTalk: freshMetrics.studentTalk,
-                tutorTalk: freshMetrics.tutorTalk,
-                responsiveness: freshMetrics.responsiveness,
-                attentionDrift: freshMetrics.attentionDrift,
-                interruptions: freshMetrics.interruptions,
-                duration: freshMetrics.duration,
-              };
-            } else {
-              // No real metrics -- pass zeros to be honest
-              metricsForAI = {
-                engagement: 0,
-                eyeContact: 0,
-                studentTalk: 0,
-                tutorTalk: 0,
-                responsiveness: 0,
-                attentionDrift: 0,
-                interruptions: 0,
-                duration: 0,
-              };
-            }
+          if (resolvedMetrics && resolvedMetrics.engagement > 0) {
+            metricsForAI = {
+              engagement: resolvedMetrics.engagement,
+              eyeContact: resolvedMetrics.eyeContact,
+              studentTalk: resolvedMetrics.studentTalk,
+              tutorTalk: resolvedMetrics.tutorTalk,
+              responsiveness: resolvedMetrics.responsiveness,
+              attentionDrift: resolvedMetrics.attentionDrift,
+              interruptions: resolvedMetrics.interruptions,
+              duration: resolvedMetrics.duration,
+            };
           } else {
             metricsForAI = {
               engagement: 0,
@@ -223,7 +245,7 @@ export default function SessionSummaryPage() {
               metrics: metricsForAI,
               metricsNote: metricsForAI.engagement === 0
                 ? "No real-time metrics were collected for this session. Analysis is based on transcript only."
-                : `Based on ${realMetrics?.snapshotCount ?? "unknown"} real-time metric snapshots collected during the session.`,
+                : `Based on ${resolvedMetrics?.snapshotCount ?? "unknown"} real-time metric snapshots collected during the session. Based on real-time analysis data.`,
               model: localStorage.getItem("livesesh_model_summary") || "sonnet",
               task: "summary",
             }),

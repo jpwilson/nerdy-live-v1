@@ -27,6 +27,61 @@ import {
   NOSE_BRIDGE,
 } from "@/lib/face-mesh-data";
 
+/** Derive the dominant expression from blendshapes */
+function getDominantExpression(bs: Record<string, number>): { label: string; confidence: number } | null {
+  const expressionMap: Array<{ key: string; label: string }> = [
+    { key: "mouthSmileLeft", label: "Smiling" },
+    { key: "mouthFrownLeft", label: "Frowning" },
+    { key: "browInnerUp", label: "Surprised" },
+    { key: "browDownLeft", label: "Concentrating" },
+    { key: "jawOpen", label: "Speaking" },
+    { key: "mouthPucker", label: "Thinking" },
+    { key: "eyeSquintLeft", label: "Squinting" },
+  ];
+
+  let best: { label: string; confidence: number } | null = null;
+  for (const { key, label } of expressionMap) {
+    const val = bs[key] ?? 0;
+    if (val > 0.15 && (!best || val > best.confidence)) {
+      best = { label, confidence: val };
+    }
+  }
+  return best;
+}
+
+/** Draw a rounded-rect pill with text */
+function drawPill(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  text: string,
+  fontSize: number,
+  bgColor: string,
+  textColor: string,
+  align: "left" | "right" = "left",
+) {
+  ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  const metrics = ctx.measureText(text);
+  const padX = 10;
+  const padY = 6;
+  const pillW = metrics.width + padX * 2;
+  const pillH = fontSize + padY * 2;
+  const drawX = align === "right" ? x - pillW : x;
+
+  ctx.fillStyle = bgColor;
+  ctx.beginPath();
+  ctx.roundRect(drawX, y, pillW, pillH, 6);
+  ctx.fill();
+
+  ctx.fillStyle = textColor;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.fillText(text, drawX + padX, y + pillH / 2);
+}
+
+// Track blink flash state outside the function so it persists across frames
+let _blinkFlashUntil = 0;
+
 function drawFaceMesh(
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -34,6 +89,8 @@ function drawFaceMesh(
   landmarks: Array<{ x: number; y: number; z: number }>,
   blendshapes: Record<string, number> | null,
   headPose: { yaw: number; pitch: number },
+  overlayMode: OverlayMode,
+  engagementLevel: "high" | "medium" | "low" | null,
 ) {
   ctx.clearRect(0, 0, w, h);
 
@@ -41,9 +98,9 @@ function drawFaceMesh(
   const toX = (i: number) => lm[i].x * w;
   const toY = (i: number) => lm[i].y * h;
 
-  // 1. Draw full tessellation wireframe (low opacity, thin lines)
-  ctx.strokeStyle = "rgba(0, 212, 170, 0.12)";
-  ctx.lineWidth = 0.5;
+  // 1. Draw full tessellation wireframe
+  ctx.strokeStyle = "rgba(0, 212, 170, 0.3)";
+  ctx.lineWidth = 1;
   ctx.beginPath();
   for (const [a, b] of FACEMESH_TESSELATION) {
     if (a < lm.length && b < lm.length) {
@@ -53,11 +110,11 @@ function drawFaceMesh(
   }
   ctx.stroke();
 
-  // 2. Draw all landmark dots (small, low opacity)
-  ctx.fillStyle = "rgba(0, 212, 170, 0.15)";
+  // 2. Draw all landmark dots
+  ctx.fillStyle = "rgba(0, 212, 170, 0.35)";
   for (let i = 0; i < Math.min(lm.length, 468); i++) {
     ctx.beginPath();
-    ctx.arc(lm[i].x * w, lm[i].y * h, 0.7, 0, Math.PI * 2);
+    ctx.arc(lm[i].x * w, lm[i].y * h, 1.2, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -73,21 +130,21 @@ function drawFaceMesh(
     ctx.stroke();
   };
 
-  drawPath(FACE_OVAL, "rgba(0, 212, 170, 0.45)", 1.2);
-  drawPath(LEFT_EYE, "rgba(0, 212, 170, 0.65)", 1.3);
-  drawPath(RIGHT_EYE, "rgba(0, 212, 170, 0.65)", 1.3);
-  drawPath(LEFT_EYEBROW, "rgba(0, 212, 170, 0.4)", 1);
-  drawPath(RIGHT_EYEBROW, "rgba(0, 212, 170, 0.4)", 1);
-  drawPath(LIPS_OUTER, "rgba(0, 212, 170, 0.5)", 1.2);
-  drawPath(LIPS_INNER, "rgba(0, 212, 170, 0.4)", 1);
-  drawPath(NOSE_BRIDGE, "rgba(0, 212, 170, 0.35)", 0.8);
+  drawPath(FACE_OVAL, "rgba(0, 212, 170, 0.6)", 1.7);
+  drawPath(LEFT_EYE, "rgba(0, 212, 170, 0.8)", 1.8);
+  drawPath(RIGHT_EYE, "rgba(0, 212, 170, 0.8)", 1.8);
+  drawPath(LEFT_EYEBROW, "rgba(0, 212, 170, 0.55)", 1.5);
+  drawPath(RIGHT_EYEBROW, "rgba(0, 212, 170, 0.55)", 1.5);
+  drawPath(LIPS_OUTER, "rgba(0, 212, 170, 0.65)", 1.7);
+  drawPath(LIPS_INNER, "rgba(0, 212, 170, 0.55)", 1.5);
+  drawPath(NOSE_BRIDGE, "rgba(0, 212, 170, 0.5)", 1.3);
 
   // 4. Iris centers + gaze arrows
   if (lm.length > 473) {
-    ctx.fillStyle = "rgba(0, 212, 170, 0.9)";
+    ctx.fillStyle = "rgba(0, 212, 170, 1)";
     for (const idx of [468, 473]) {
       ctx.beginPath();
-      ctx.arc(toX(idx), toY(idx), 2.5, 0, Math.PI * 2);
+      ctx.arc(toX(idx), toY(idx), 3.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -99,9 +156,9 @@ function drawFaceMesh(
         -(blendshapes.eyeLookUpLeft ?? 0) +
         (blendshapes.eyeLookDownLeft ?? 0);
 
-      const arrowLen = 25;
-      ctx.strokeStyle = "rgba(0, 212, 170, 0.8)";
-      ctx.lineWidth = 1.5;
+      const arrowLen = 30;
+      ctx.strokeStyle = "rgba(0, 212, 170, 0.95)";
+      ctx.lineWidth = 2;
 
       for (const irisIdx of [468, 473]) {
         const ix = toX(irisIdx);
@@ -117,7 +174,7 @@ function drawFaceMesh(
         ctx.stroke();
 
         const angle = Math.atan2(dy, dx);
-        const headLen = 5;
+        const headLen = 7;
         ctx.beginPath();
         ctx.moveTo(ex, ey);
         ctx.lineTo(
@@ -130,6 +187,69 @@ function drawFaceMesh(
           ey - headLen * Math.sin(angle + 0.5),
         );
         ctx.stroke();
+      }
+    }
+  }
+
+  // 5. Text overlay labels (shown in "all" or "expressions" modes)
+  if (overlayMode === "all" || overlayMode === "expressions") {
+    const margin = 12;
+
+    // Top-left: dominant expression + confidence
+    if (blendshapes) {
+      const expr = getDominantExpression(blendshapes);
+      if (expr) {
+        const pct = Math.round(expr.confidence * 100);
+        drawPill(ctx, margin, margin, `${expr.label} ${pct}%`, 13, "rgba(0,0,0,0.55)", "#fff", "left");
+      }
+    }
+
+    // Top-right: engagement level
+    if (engagementLevel) {
+      const engagementConfig = {
+        high:   { color: "#22c55e", label: "High" },
+        medium: { color: "#eab308", label: "Medium" },
+        low:    { color: "#ef4444", label: "Low" },
+      } as const;
+      const cfg = engagementConfig[engagementLevel];
+      drawPill(ctx, w - margin, margin, `${cfg.label} \u25CF`, 13, "rgba(0,0,0,0.55)", cfg.color, "right");
+    }
+
+    // Near forehead: head yaw/pitch
+    if (lm.length > 10) {
+      // Use landmark 10 (forehead center) as anchor
+      const foreheadX = toX(10);
+      const foreheadY = toY(10) - 20;
+      const yawDeg = Math.round(headPose.yaw);
+      const pitchDeg = Math.round(headPose.pitch);
+      const poseText = `Yaw: ${yawDeg}\u00B0  Pitch: ${pitchDeg}\u00B0`;
+      ctx.font = "500 11px -apple-system, BlinkMacSystemFont, sans-serif";
+      const tw = ctx.measureText(poseText).width;
+      const px = Math.max(4, Math.min(w - tw - 12, foreheadX - tw / 2));
+      const py = Math.max(4, foreheadY);
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.beginPath();
+      ctx.roundRect(px - 6, py - 10, tw + 12, 18, 4);
+      ctx.fill();
+      ctx.fillStyle = "rgba(0, 212, 170, 0.9)";
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "left";
+      ctx.fillText(poseText, px, py - 1);
+    }
+
+    // Near eyes: blink indicator
+    if (blendshapes) {
+      const blinkL = blendshapes.eyeBlinkLeft ?? 0;
+      const blinkR = blendshapes.eyeBlinkRight ?? 0;
+      const now = Date.now();
+      if (blinkL > 0.5 || blinkR > 0.5) {
+        _blinkFlashUntil = now + 400;
+      }
+      if (now < _blinkFlashUntil && lm.length > 159) {
+        // Position between the two eyes (landmarks 159 = right eye top, 386 = left eye top)
+        const eyeMidX = (toX(159) + toX(386)) / 2;
+        const eyeY = Math.min(toY(159), toY(386)) - 16;
+        drawPill(ctx, eyeMidX - 28, Math.max(4, eyeY), "BLINK", 11, "rgba(239, 68, 68, 0.7)", "#fff", "left");
       }
     }
   }
@@ -327,6 +447,19 @@ function RoomClient({
     return { objectPosition: `${x}% ${y}%` };
   }, [isTutor, facePosition]);
 
+  // Determine engagement level for overlay
+  const engagementLevel = useMemo(() => {
+    if (!isTutor || !remoteStream || !facePosition?.faceDetected) return null;
+    // We don't have direct access to engagement score here, so derive from face data
+    if (!facePosition.blendshapes) return null;
+    const bs = facePosition.blendshapes;
+    const hDev = ((bs.eyeLookInLeft ?? 0) + (bs.eyeLookOutLeft ?? 0) + (bs.eyeLookInRight ?? 0) + (bs.eyeLookOutRight ?? 0)) / 4;
+    const ec = Math.max(0, Math.min(1, 1 - Math.max(hDev) * 3)) * 100;
+    if (ec >= 60) return "high";
+    if (ec >= 30) return "medium";
+    return "low";
+  }, [isTutor, remoteStream, facePosition]);
+
   // Draw face mesh overlay on canvas, mapping landmarks from the hidden
   // analysis video's coordinate space to the displayed video's object-fit:cover space.
   useEffect(() => {
@@ -400,8 +533,10 @@ function RoomClient({
       transformedLandmarks,
       facePosition.blendshapes,
       facePosition.headPose,
+      overlayMode,
+      engagementLevel,
     );
-  }, [overlayMode, facePosition]);
+  }, [overlayMode, facePosition, engagementLevel]);
 
   // Resize canvas when window resizes
   useEffect(() => {
@@ -416,19 +551,6 @@ function RoomClient({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  // Determine engagement level for overlay
-  const engagementLevel = useMemo(() => {
-    if (!isTutor || !remoteStream || !facePosition?.faceDetected) return null;
-    // We don't have direct access to engagement score here, so derive from face data
-    if (!facePosition.blendshapes) return null;
-    const bs = facePosition.blendshapes;
-    const hDev = ((bs.eyeLookInLeft ?? 0) + (bs.eyeLookOutLeft ?? 0) + (bs.eyeLookInRight ?? 0) + (bs.eyeLookOutRight ?? 0)) / 4;
-    const ec = Math.max(0, Math.min(1, 1 - Math.max(hDev) * 3)) * 100;
-    if (ec >= 60) return "high";
-    if (ec >= 30) return "medium";
-    return "low";
-  }, [isTutor, remoteStream, facePosition]);
 
   // Determine face warning badge
   const faceBadge = useMemo(() => {
@@ -577,10 +699,19 @@ function RoomClient({
                   void (async () => {
                     const sessionData = getSessionData(50); // TODO: get actual engagement score
                     const sessionStartedAt = parseInt(localStorage.getItem("livesesh_sessionStartedAt") || "0", 10);
+                    // Update localStorage metrics with detected subject before navigating
+                    try {
+                      const savedMetricsRaw = localStorage.getItem("livesesh_sessionMetrics");
+                      if (savedMetricsRaw) {
+                        const savedMetrics = JSON.parse(savedMetricsRaw);
+                        savedMetrics.subject = sessionData.subject || detectedSubject || "General";
+                        localStorage.setItem("livesesh_sessionMetrics", JSON.stringify(savedMetrics));
+                      }
+                    } catch { /* ignore */ }
                     // Store in localStorage for the summary page to pick up
                     try {
                       localStorage.setItem("livesesh_lastSession", JSON.stringify({
-                        subject: sessionData.subject,
+                        subject: sessionData.subject || detectedSubject || "General",
                         summary: sessionData.summary,
                         transcript: sessionData.transcriptText.slice(0, 2000),
                         timestamp: sessionStartedAt || Date.now(),

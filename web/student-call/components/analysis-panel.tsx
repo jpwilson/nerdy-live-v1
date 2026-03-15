@@ -296,6 +296,8 @@ function AnalysisPanelInner({
   const [toastNudge, setToastNudge] = useState<CoachingNudge | null>(null);
 
   const lastPersistRef = useRef(0);
+  const lastLocalPersistRef = useRef(0);
+  const snapshotCountRef = useRef(0);
   const sessionIdRef = useRef<string | null>(null);
 
   // EMA-smoothed values for Trends tab (alpha=0.1 for slow smoothing)
@@ -913,6 +915,29 @@ function AnalysisPanelInner({
         gazeDirection,
         localSpeaking,
       });
+
+      // Persist metrics to localStorage every 10s for summary page fallback
+      const localPersistNow = Date.now();
+      if (localPersistNow - lastLocalPersistRef.current > 10_000 && faceDetected) {
+        lastLocalPersistRef.current = localPersistNow;
+        snapshotCountRef.current++;
+        const sessionStartedAt = parseInt(localStorage.getItem("livesesh_sessionStartedAt") || "0", 10);
+        const durationMin = sessionStartedAt > 0 ? Math.max(1, Math.round((localPersistNow - sessionStartedAt) / 60000)) : 1;
+        try {
+          localStorage.setItem("livesesh_sessionMetrics", JSON.stringify({
+            engagement: Math.round(engagement),
+            eyeContact: Math.round(ecSmoothed),
+            studentTalk: Math.round(spk),
+            tutorTalk: Math.round(100 - spk),
+            responsiveness: energyLevel,
+            attentionDrift,
+            interruptions: interruptCountRef.current,
+            duration: durationMin,
+            snapshotCount: snapshotCountRef.current,
+            subject: "General",
+          }));
+        } catch { /* localStorage full */ }
+      }
 
       // Persist metrics snapshot every 30s
       const persistNow = Date.now();
