@@ -46,14 +46,17 @@ final class LiveKitService: NSObject, ObservableObject {
             return
         }
 
-        let room = Room(delegate: self)
+        let roomOptions = RoomOptions(
+            defaultCameraCaptureOptions: CameraCaptureOptions(position: .front)
+        )
+        let room = Room(delegate: self, roomOptions: roomOptions)
         self.room = room
 
         do {
             try await room.connect(url: LiveKitConfig.url, token: token)
 
             // Enable camera (front-facing) and microphone
-            try await room.localParticipant.setCamera(enabled: true, captureOptions: CameraCaptureOptions(position: .front))
+            try await room.localParticipant.setCamera(enabled: true)
             try await room.localParticipant.setMicrophone(enabled: true)
 
             // Grab local video track
