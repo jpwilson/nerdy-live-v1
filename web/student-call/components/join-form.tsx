@@ -85,6 +85,9 @@ export function JoinForm() {
       const { error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
       if (error) throw error;
       setSignedInEmail(email);
+      // Auto-detect role: student emails contain "student", otherwise tutor
+      const isStudent = email.toLowerCase().includes("student");
+      setRole(isStudent ? "student" : "tutor_preview");
       setAuthState("signed_in");
     } catch (err: unknown) {
       setAuthError(err instanceof Error ? err.message : "Invalid code");
@@ -280,40 +283,9 @@ export function JoinForm() {
         </datalist>
       </div>
 
-      <fieldset className="fieldset">
-        <legend>Join mode</legend>
-        <div className="choice-grid">
-          <label className="choice-card" htmlFor="mode-student">
-            <input
-              id="mode-student"
-              type="radio"
-              name="role"
-              value="student"
-              checked={role === "student"}
-              onChange={() => setRole("student")}
-            />
-            <strong>Student</strong>
-            <span>
-              The browser acts as the student-side webcam and mic.
-            </span>
-          </label>
-
-          <label className="choice-card" htmlFor="mode-tutor-preview">
-            <input
-              id="mode-tutor-preview"
-              type="radio"
-              name="role"
-              value="tutor_preview"
-              checked={role === "tutor_preview"}
-              onChange={() => setRole("tutor_preview")}
-            />
-            <strong>Tutor</strong>
-            <span>
-              Join as tutor to view student engagement analysis in real time.
-            </span>
-          </label>
-        </div>
-      </fieldset>
+      <p className="field-hint" style={{ marginTop: 4 }}>
+        Joining as <strong>{role === "tutor_preview" ? "Tutor" : "Student"}</strong> — {role === "tutor_preview" ? "you'll see engagement analysis" : "your camera is shared with the tutor"}.
+      </p>
 
       <div className="actions">
         <button className="primary-button" type="submit">

@@ -517,10 +517,10 @@ function AnalysisPanelInner({
             const elapsed = Date.now() - cal.startTime;
 
             if (!cal.calibrated && elapsed < 60_000) {
-              // Calibration phase: collect samples
+              // Calibration phase: collect where student naturally looks
               cal.samples.push({ hDev, lookUp, lookDown });
-              // During calibration, be generous — assume engaged
-              eyeContact = Math.max(0.6, Math.min(1, 1 - hDev * 1.5));
+              // During calibration, assume engaged if face is present
+              eyeContact = 0.9;
             } else {
               // Finalize calibration if not done yet
               if (!cal.calibrated && cal.samples.length > 10) {
@@ -531,16 +531,19 @@ function AnalysisPanelInner({
                 cal.calibrated = true;
               }
 
-              // Deviation from personal baseline (how far from their natural position)
-              const hDevFromBaseline = Math.max(0, Math.abs(hDev - cal.baselineH) - 0.05);
-              const upDevFromBaseline = Math.max(0, lookUp - cal.baselineLookUp - 0.08);
-              const downDevFromBaseline = Math.max(0, lookDown - cal.baselineLookDown - 0.15);
-              const vDev = Math.max(upDevFromBaseline, downDevFromBaseline);
+              // Wide dead zones: normal screen-looking variance should score ~100%
+              // Only penalize when gaze deviates significantly from their baseline
+              const hDeadZone = 0.12; // horizontal tolerance
+              const vDeadZone = 0.20; // vertical tolerance (looking up/down at notes is fine)
+              const hDevFromBaseline = Math.max(0, Math.abs(hDev - cal.baselineH) - hDeadZone);
+              const upDevFromBaseline = Math.max(0, lookUp - cal.baselineLookUp - vDeadZone);
+              const downDevFromBaseline = Math.max(0, lookDown - cal.baselineLookDown - vDeadZone);
+              const vDevFromBaseline = Math.max(upDevFromBaseline, downDevFromBaseline);
 
-              // Horizontal drift is primary disengagement; vertical is secondary
+              // Gentle penalty curve: only really drops when looking far away
               eyeContact = Math.max(
                 0,
-                Math.min(1, 1 - (hDevFromBaseline * 3.0 + vDev * 1.5)),
+                Math.min(1, 1 - (hDevFromBaseline * 2.0 + vDevFromBaseline * 1.0)),
               );
             }
 
@@ -687,13 +690,18 @@ function AnalysisPanelInner({
         enH.reduce((a, b) => a + b, 0) / enH.length
       );
 
-      // Improved engagement: weighted combination of all signals
+      // Engagement: face present + looking at screen + participating = engaged
+      // Each component is 0-100, then weighted to sum to 100
+      const facePresenceScore = faceDetected ? 100 : 0;
+      const speakingScore = Math.min(100, spk * 3); // 33%+ speaking → 100
+      const stabilityScore = 100 - attentionDrift;
       const engagement = faceDetected
         ? Math.min(100, Math.round(
-            ecSmoothed * 0.35 +           // eye contact (35%)
-            Math.min(spk, 30) * 0.5 +     // speaking participation (15%)
-            (100 - attentionDrift) * 0.2 + // attention stability (20%)
-            energyLevel * 0.3              // energy/expressiveness (30%)
+            facePresenceScore * 0.15 +     // face visible (15%)
+            ecSmoothed * 0.35 +            // eye contact (35%)
+            speakingScore * 0.20 +         // speaking participation (20%)
+            stabilityScore * 0.15 +        // attention stability (15%)
+            energyLevel * 0.15             // energy/expressiveness (15%)
           ))
         : 0;
 

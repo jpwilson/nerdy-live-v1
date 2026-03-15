@@ -286,26 +286,28 @@ export function useLiveKitRoom({
   const toggleMicrophone = useCallback(async () => {
     const room = roomRef.current;
     if (!room) return;
-    const next = !isMicrophoneEnabled;
-    try {
-      await room.localParticipant.setMicrophoneEnabled(next);
-      setIsMicrophoneEnabled(next);
-    } catch (err) {
-      console.error("[livekit] toggleMicrophone failed:", err);
-    }
-  }, [isMicrophoneEnabled]);
+    setIsMicrophoneEnabled((prev) => {
+      const next = !prev;
+      room.localParticipant.setMicrophoneEnabled(next).catch((err) => {
+        console.error("[livekit] toggleMicrophone failed:", err);
+        setIsMicrophoneEnabled(prev);
+      });
+      return next;
+    });
+  }, []);
 
   const toggleCamera = useCallback(async () => {
     const room = roomRef.current;
     if (!room) return;
-    const next = !isCameraEnabled;
-    try {
-      await room.localParticipant.setCameraEnabled(next);
-      setIsCameraEnabled(next);
-    } catch (err) {
-      console.error("[livekit] toggleCamera failed:", err);
-    }
-  }, [isCameraEnabled]);
+    setIsCameraEnabled((prev) => {
+      const next = !prev;
+      room.localParticipant.setCameraEnabled(next).catch((err) => {
+        console.error("[livekit] toggleCamera failed:", err);
+        setIsCameraEnabled(prev); // revert on failure
+      });
+      return next;
+    });
+  }, []);
 
   const hangUp = useCallback(async () => {
     const room = roomRef.current;
