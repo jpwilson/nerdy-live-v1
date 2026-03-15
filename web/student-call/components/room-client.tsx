@@ -13,6 +13,7 @@ import {
   roleLabel,
 } from "@/lib/room-utils";
 import { useLiveKitRoom } from "@/lib/use-livekit-room";
+import { useTranscript } from "@/lib/use-transcript";
 import { StudentAnalysisCard, type CoachingNudge, type FacePositionData, type OverlayMode } from "@/components/analysis-panel";
 import {
   FACEMESH_TESSELATION,
@@ -237,6 +238,8 @@ function RoomClient({
     role,
   });
 
+  const { transcript, isListening, detectedSubject, startListening, stopListening, getSessionData } = useTranscript();
+
   const isTutor = role === "tutor_preview";
 
   const sharePath = useMemo(() => buildStudentShareUrl(roomId), [roomId]);
@@ -269,6 +272,13 @@ function RoomClient({
     const timer = window.setTimeout(() => setCopyState("idle"), 1800);
     return () => window.clearTimeout(timer);
   }, [copyState]);
+
+  useEffect(() => {
+    if (connectionState === "connected" || connectionState === "waiting_for_peer") {
+      startListening();
+    }
+    return () => { stopListening(); };
+  }, [connectionState, startListening, stopListening]);
 
   // Face position callback (stable ref via useCallback)
   const handleFacePosition = useCallback((data: FacePositionData) => {
@@ -435,6 +445,15 @@ function RoomClient({
         </div>
 
         <div className="toolbar-group">
+          {detectedSubject !== "General" && (
+            <span className="detected-subject">{detectedSubject}</span>
+          )}
+          {isListening && (
+            <span className="recording-indicator">
+              <span className="recording-dot" />
+              Recording
+            </span>
+          )}
           <span className={`status-chip ${connectionState}`}>
             {connectionLabel(connectionState)}
           </span>
@@ -544,7 +563,20 @@ function RoomClient({
                 className="stage-btn hangup"
                 type="button"
                 onClick={() => {
-                  void hangUp().then(() => window.location.href = "/dashboard");
+                  void (async () => {
+                    const sessionData = getSessionData(50); // TODO: get actual engagement score
+                    // Store in localStorage for the dashboard to pick up
+                    try {
+                      localStorage.setItem("livesesh_lastSession", JSON.stringify({
+                        subject: sessionData.subject,
+                        summary: sessionData.summary,
+                        transcript: sessionData.transcriptText.slice(0, 2000),
+                        timestamp: Date.now(),
+                      }));
+                    } catch { /* localStorage full */ }
+                    await hangUp();
+                    window.location.href = "/dashboard";
+                  })();
                 }}
                 title="End call"
               >

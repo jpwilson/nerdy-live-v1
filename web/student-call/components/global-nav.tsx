@@ -41,9 +41,11 @@ export function GlobalNav() {
               Dashboard
             </Link>
           )}
-          <Link href="/docs" className={`nav-link ${pathname === "/docs" ? "active" : ""}`}>
-            Docs
-          </Link>
+          {signedIn && (
+            <Link href="/docs" className={`nav-link ${pathname === "/docs" ? "active" : ""}`}>
+              Project Docs
+            </Link>
+          )}
           {signedIn ? (
             <button className="nav-btn" onClick={startSession}>Start Session</button>
           ) : (
