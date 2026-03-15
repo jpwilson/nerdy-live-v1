@@ -10,8 +10,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"sessions" | "analytics" | "settings">("sessions");
-  const [analyticsSubTab, setAnalyticsSubTab] = useState<"graph" | "trends">("graph");
+  const [activeTab, setActiveTab] = useState<"analytics" | "settings">("analytics");
+  const [analyticsSubTab, setAnalyticsSubTab] = useState<"sessions" | "trends" | "graph">("sessions");
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -48,14 +48,16 @@ export default function DashboardPage() {
 
   // Demo session data for graph visualization
   const demoSessions = [
-    { id: "s1", subject: "Algebra", date: "Mar 14", engagement: 82, eyeContact: 78, talkBalance: 45, interruptions: 2, duration: 28 },
-    { id: "s2", subject: "Calculus", date: "Mar 13", engagement: 65, eyeContact: 55, talkBalance: 35, interruptions: 4, duration: 22 },
-    { id: "s3", subject: "Geometry", date: "Mar 12", engagement: 91, eyeContact: 88, talkBalance: 50, interruptions: 1, duration: 35 },
-    { id: "s4", subject: "Physics", date: "Mar 11", engagement: 45, eyeContact: 32, talkBalance: 20, interruptions: 6, duration: 18 },
-    { id: "s5", subject: "Chemistry", date: "Mar 10", engagement: 73, eyeContact: 70, talkBalance: 42, interruptions: 3, duration: 30 },
-    { id: "s6", subject: "Biology", date: "Mar 9", engagement: 58, eyeContact: 48, talkBalance: 30, interruptions: 5, duration: 25 },
-    { id: "s7", subject: "English", date: "Mar 8", engagement: 88, eyeContact: 85, talkBalance: 55, interruptions: 1, duration: 32 },
-    { id: "s8", subject: "History", date: "Mar 7", engagement: 42, eyeContact: 35, talkBalance: 15, interruptions: 7, duration: 15 },
+    { id: "s1", subject: "Algebra", date: "Mar 14", engagement: 82, eyeContact: 78, talkBalance: 45, interruptions: 2, duration: 28, student: "Sarah Chen" },
+    { id: "s2", subject: "Calculus", date: "Mar 13", engagement: 65, eyeContact: 55, talkBalance: 35, interruptions: 4, duration: 22, student: "Sarah Chen" },
+    { id: "s3", subject: "Geometry", date: "Mar 12", engagement: 91, eyeContact: 88, talkBalance: 50, interruptions: 1, duration: 35, student: "Alex Rivera" },
+    { id: "s4", subject: "Physics", date: "Mar 11", engagement: 45, eyeContact: 32, talkBalance: 20, interruptions: 6, duration: 18, student: "Jordan Patel" },
+    { id: "s5", subject: "Algebra", date: "Mar 10", engagement: 73, eyeContact: 70, talkBalance: 42, interruptions: 3, duration: 30, student: "Alex Rivera" },
+    { id: "s6", subject: "Biology", date: "Mar 9", engagement: 58, eyeContact: 48, talkBalance: 30, interruptions: 5, duration: 25, student: "Casey Kim" },
+    { id: "s7", subject: "Algebra", date: "Mar 8", engagement: 88, eyeContact: 85, talkBalance: 55, interruptions: 1, duration: 32, student: "Sarah Chen" },
+    { id: "s8", subject: "History", date: "Mar 7", engagement: 42, eyeContact: 35, talkBalance: 15, interruptions: 7, duration: 15, student: "Morgan Davis" },
+    { id: "s9", subject: "Chemistry", date: "Mar 6", engagement: 76, eyeContact: 72, talkBalance: 48, interruptions: 2, duration: 27, student: "Jordan Patel" },
+    { id: "s10", subject: "Geometry", date: "Mar 5", engagement: 69, eyeContact: 60, talkBalance: 38, interruptions: 3, duration: 20, student: "Casey Kim" },
   ];
 
   return (
@@ -68,15 +70,12 @@ export default function DashboardPage() {
         </div>
 
         <nav className="dash-sidebar-nav">
-          {(["sessions", "analytics", "settings"] as const).map((tab) => (
+          {(["analytics", "settings"] as const).map((tab) => (
             <button
               key={tab}
               className={`dash-sidebar-link ${activeTab === tab ? "active" : ""}`}
               onClick={() => setActiveTab(tab)}
             >
-              {tab === "sessions" && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-              )}
               {tab === "analytics" && (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
               )}
@@ -97,7 +96,6 @@ export default function DashboardPage() {
       </aside>
 
       <div className="dash-main">
-        {activeTab === "sessions" && <TutorDashboard />}
         {activeTab === "analytics" && (
           <div className="dash-tab-panel">
             <h1 className="dash-title">Analytics</h1>
@@ -105,13 +103,20 @@ export default function DashboardPage() {
 
             {/* Sub-tabs */}
             <div className="analytics-subtabs">
-              <button className={`analytics-subtab ${analyticsSubTab === "graph" ? "active" : ""}`} onClick={() => setAnalyticsSubTab("graph")}>
-                Session Graph
+              <button className={`analytics-subtab ${analyticsSubTab === "sessions" ? "active" : ""}`} onClick={() => setAnalyticsSubTab("sessions")}>
+                Previous Sessions
               </button>
               <button className={`analytics-subtab ${analyticsSubTab === "trends" ? "active" : ""}`} onClick={() => setAnalyticsSubTab("trends")}>
                 Trends
               </button>
+              <button className={`analytics-subtab ${analyticsSubTab === "graph" ? "active" : ""}`} onClick={() => setAnalyticsSubTab("graph")}>
+                Session Graph
+              </button>
             </div>
+
+            {analyticsSubTab === "sessions" && (
+              <TutorDashboard />
+            )}
 
             {analyticsSubTab === "graph" && (
               <SessionGraph sessions={demoSessions} />
@@ -216,6 +221,25 @@ export default function DashboardPage() {
               </div>
               <p style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 8 }}>
                 Nudges are based on window-over-window engagement trends compared to the session baseline. No nudges fire during the first 5 minutes.
+              </p>
+            </div>
+
+            <div className="settings-card">
+              <h2 className="settings-card-title">System</h2>
+              <div className="settings-row">
+                <span className="settings-label">Video analysis latency</span>
+                <span className="settings-value">~150ms</span>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">Audio analysis latency</span>
+                <span className="settings-value">~30ms</span>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">End-to-end latency</span>
+                <span className="settings-value" style={{ color: "var(--accent)" }}>&lt;500ms</span>
+              </div>
+              <p style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 8 }}>
+                Processing latencies measured on-device. Video analysis uses Apple Vision framework; audio analysis uses AVCaptureSession pipeline.
               </p>
             </div>
           </div>
