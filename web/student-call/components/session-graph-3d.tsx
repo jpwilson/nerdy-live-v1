@@ -39,6 +39,8 @@ const METRIC_LABELS: Record<string, string> = {
   dur: "Duration",
 };
 
+const PULSE_YELLOW = "#FFD700";
+
 /* ── text-label helper ─────────────────────────────────────────── */
 function makeLabelSprite(
   THREE: any,
@@ -60,7 +62,6 @@ function makeLabelSprite(
   const ctx = canvas.getContext("2d")!;
   ctx.scale(2, 2);
 
-  // Rounded-rect background
   const r = 10, pad = 6;
   ctx.fillStyle = bg;
   ctx.beginPath();
@@ -95,9 +96,11 @@ function makeLabelSprite(
 
 export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
   const fgRef = useRef<any>(null);
-  const [highlightMetricKey, setHighlightMetricKey] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [highlightMetricKey, setHighlightMetricKey] = useState<string | null>(null);
+  // Track which links are currently "pulsing"
+  const [pulsingLinks, setPulsingLinks] = useState<Set<string>>(new Set());
+  const pulseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const graphData = useMemo(() => {
     const nodes: any[] = [];
@@ -109,13 +112,14 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
         name: s.student.split(" ")[0],
         fullName: s.student,
         subject: s.subject,
-        val: 18 + s.duration / 6,           // bigger session nodes
+        val: 18 + s.duration / 6,
         color: STUDENT_COLORS[s.student] || "#888",
         type: "session",
         engagement: s.engagement,
         eyeContact: s.eyeContact,
         date: s.date,
         duration: s.duration,
+        student: s.student,
       });
 
       const metrics = [
@@ -130,18 +134,21 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
         nodes.push({
           id: mId,
           name: m.label,
-          val: 5 + m.value / 15,             // bigger metric nodes
+          val: 5 + m.value / 15,
           color: METRIC_COLORS[m.key],
           type: "metric",
           metricKey: m.key,
           metricValue: m.value,
           parentId: s.id,
+          student: s.student,
         });
         links.push({
           source: s.id,
           target: mId,
           color: METRIC_COLORS[m.key] + "50",
           linkType: "session-metric",
+          linkId: `${s.id}__${mId}`,
+          pulseColor: PULSE_YELLOW,
         });
       });
     });
@@ -155,7 +162,14 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
     Object.entries(studentSessions).forEach(([student, ids]) => {
       const sColor = STUDENT_COLORS[student] || "#888";
       for (let i = 1; i < ids.length; i++) {
-        links.push({ source: ids[i - 1], target: ids[i], color: sColor + "80", linkType: "same-student" });
+        links.push({
+          source: ids[i - 1],
+          target: ids[i],
+          color: sColor + "80",
+          linkType: "same-student",
+          linkId: `${ids[i - 1]}__${ids[i]}`,
+          pulseColor: sColor,
+        });
       }
     });
 
@@ -167,14 +181,21 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
     });
     Object.entries(metricGroups).forEach(([key, ids]) => {
       for (let i = 1; i < ids.length; i++) {
-        links.push({ source: ids[i - 1], target: ids[i], color: (METRIC_COLORS[key] || "#888") + "30", linkType: "same-metric" });
+        links.push({
+          source: ids[i - 1],
+          target: ids[i],
+          color: (METRIC_COLORS[key] || "#888") + "30",
+          linkType: "same-metric",
+          linkId: `${ids[i - 1]}__${ids[i]}`,
+          pulseColor: METRIC_COLORS[key] || "#888",
+        });
       }
     });
 
     return { nodes, links };
   }, [sessions]);
 
-  // Build adjacency for click-to-highlight connections
+  // Build adjacency
   const connectedIds = useMemo(() => {
     if (!selectedNodeId) return new Set<string>();
     const ids = new Set<string>([selectedNodeId]);
@@ -187,7 +208,7 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
     return ids;
   }, [selectedNodeId, graphData]);
 
-  // Spread nodes out more
+  // Configure forces — keep simulation warm for dragging
   useEffect(() => {
     if (fgRef.current) {
       fgRef.current.d3Force("charge")?.strength(-200);
@@ -200,6 +221,82 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
     }
   }, [graphData]);
 
+  // Fire pulse particles along connected links
+  const firePulse = useCallback((nodeId: string, node: any) => {
+    if (!fgRef.current) return;
+    const fg = fgRef.current;
+
+    // Find links touching this node
+    const directLinks: any[] = [];
+    const extendedLinks: any[] = [];
+    const clickedNode = graphData.nodes.find((n: any) => n.id === nodeId);
+
+    graphData.links.forEach((l: any) => {
+      const src = typeof l.source === "object" ? l.source.id : l.source;
+      const tgt = typeof l.target === "object" ? l.target.id : l.target;
+      if (src === nodeId || tgt === nodeId) {
+        directLinks.push(l);
+      }
+    });
+
+    // For session nodes: also pulse same-student links
+    // For metric nodes: also pulse same-metric-type links
+    if (clickedNode?.type === "session") {
+      graphData.links.forEach((l: any) => {
+        if (l.linkType === "same-student") {
+          const src = typeof l.source === "object" ? l.source.id : l.source;
+          const tgt = typeof l.target === "object" ? l.target.id : l.target;
+          // Check if this link connects sessions of the same student
+          const srcNode = graphData.nodes.find((n: any) => n.id === src);
+          const tgtNode = graphData.nodes.find((n: any) => n.id === tgt);
+          if (srcNode?.student === clickedNode.student || tgtNode?.student === clickedNode.student) {
+            if (!directLinks.includes(l)) extendedLinks.push(l);
+          }
+        }
+      });
+    } else if (clickedNode?.type === "metric" && clickedNode.metricKey) {
+      graphData.links.forEach((l: any) => {
+        if (l.linkType === "same-metric") {
+          const src = typeof l.source === "object" ? l.source.id : l.source;
+          const tgt = typeof l.target === "object" ? l.target.id : l.target;
+          const srcNode = graphData.nodes.find((n: any) => n.id === src);
+          const tgtNode = graphData.nodes.find((n: any) => n.id === tgt);
+          if (srcNode?.metricKey === clickedNode.metricKey || tgtNode?.metricKey === clickedNode.metricKey) {
+            if (!directLinks.includes(l)) extendedLinks.push(l);
+          }
+        }
+      });
+    }
+
+    // Collect all pulsing link IDs
+    const allPulseIds = new Set<string>();
+    [...directLinks, ...extendedLinks].forEach(l => allPulseIds.add(l.linkId));
+    setPulsingLinks(allPulseIds);
+
+    // Emit particles in waves
+    const emitWave = (links: any[], delay: number) => {
+      setTimeout(() => {
+        links.forEach(l => {
+          try { fg.emitParticle(l); } catch (_) { /* not all versions support this */ }
+        });
+      }, delay);
+    };
+
+    // Wave 1: direct connections (yellow pulse)
+    emitWave(directLinks, 0);
+    emitWave(directLinks, 150);
+    emitWave(directLinks, 300);
+
+    // Wave 2: extended connections (student-color or metric-color pulse)
+    emitWave(extendedLinks, 400);
+    emitWave(extendedLinks, 600);
+    emitWave(extendedLinks, 800);
+
+    // Clear pulse state after animation
+    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+    pulseTimerRef.current = setTimeout(() => setPulsingLinks(new Set()), 2500);
+  }, [graphData]);
+
   const nodeThreeObject = useCallback(
     (node: any) => {
       const THREE = require("three");
@@ -207,7 +304,6 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
       const hasSelection = !!selectedNodeId;
       const isConnected = connectedIds.has(node.id);
       const isSelected = selectedNodeId === node.id;
-      // Dim nodes that aren't connected to the selection
       const dimmed = hasSelection && !isConnected;
 
       if (node.type === "session") {
@@ -224,18 +320,16 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
         });
         const mesh = new THREE.Mesh(geo, mat);
 
-        // Wireframe outline
         const wire = new THREE.LineSegments(
           new THREE.EdgesGeometry(geo),
           new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: dimmed ? 0.05 : 0.25 })
         );
         mesh.add(wire);
 
-        // Glow ring when selected
         if (isSelected) {
           const ring = new THREE.Mesh(
             new THREE.TorusGeometry(sz + 3, 1.2, 8, 48),
-            new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.4 })
+            new THREE.MeshBasicMaterial({ color: PULSE_YELLOW, transparent: true, opacity: 0.5 })
           );
           mesh.add(ring);
         }
@@ -274,7 +368,7 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
         if (isHL) {
           const ring = new THREE.Mesh(
             new THREE.TorusGeometry(sz + 2, 0.8, 8, 32),
-            new THREE.MeshBasicMaterial({ color: node.color, transparent: true, opacity: 0.6 })
+            new THREE.MeshBasicMaterial({ color: isMetricHL ? node.color : PULSE_YELLOW, transparent: true, opacity: 0.6 })
           );
           mesh.add(ring);
         }
@@ -303,22 +397,25 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
     (node: any) => {
       if (!node) return;
 
-      // Toggle selection — click same node to deselect
+      // Toggle selection
       if (selectedNodeId === node.id) {
         setSelectedNodeId(null);
         setHighlightMetricKey(null);
+        setPulsingLinks(new Set());
         return;
       }
 
       setSelectedNodeId(node.id);
 
-      // Also highlight same-type metrics
+      // Highlight same-type metrics
       if (node.type === "metric" && node.metricKey) {
-        if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
         setHighlightMetricKey(node.metricKey);
       } else {
         setHighlightMetricKey(null);
       }
+
+      // Fire electric pulse animation
+      firePulse(node.id, node);
 
       // Fly camera toward clicked node
       if (fgRef.current) {
@@ -331,13 +428,13 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
         );
       }
     },
-    [selectedNodeId]
+    [selectedNodeId, firePulse]
   );
 
-  // Click empty space to deselect
   const handleBackgroundClick = useCallback(() => {
     setSelectedNodeId(null);
     setHighlightMetricKey(null);
+    setPulsingLinks(new Set());
   }, []);
 
   const handleCenterView = useCallback(() => {
@@ -364,7 +461,7 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
           }}
         >
-          ⊙ Center
+          &#x2299; Center
         </button>
       </div>
 
@@ -376,12 +473,12 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
           color: "white", borderRadius: 8, padding: "7px 16px",
           fontSize: 13, fontWeight: 600,
           boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
-          maxWidth: 280,
+          maxWidth: 300,
         }}>
           {highlightMetricKey
-            ? `● Showing all ${METRIC_LABELS[highlightMetricKey]} nodes`
-            : "● Node selected — showing connections"}
-          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Click again or click background to deselect</div>
+            ? `Showing all ${METRIC_LABELS[highlightMetricKey]} nodes`
+            : "Node selected — showing connections"}
+          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Click again or background to deselect</div>
         </div>
       )}
 
@@ -392,7 +489,7 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
         padding: "6px 12px", fontSize: 11, color: "#666",
         boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
       }}>
-        Left-drag: rotate · Right-drag: pan · Scroll: zoom · Click node: focus · Click metric: highlight type
+        Drag nodes to move · Left-drag: rotate · Right-drag: pan · Scroll: zoom · Click: select &amp; pulse
       </div>
 
       <ForceGraph3D
@@ -404,33 +501,33 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
           node.type === "session"
             ? `<div style="background:rgba(0,0,0,0.9);color:white;padding:10px 14px;border-radius:8px;font-size:14px;max-width:260px;line-height:1.5">
                 <strong style="font-size:16px">${node.fullName}</strong><br/>
-                ${node.subject} · ${node.date}<br/>
+                ${node.subject} &middot; ${node.date}<br/>
                 Engagement: <strong>${node.engagement}%</strong><br/>
                 Eye Contact: <strong>${node.eyeContact}%</strong><br/>
                 Duration: <strong>${Math.round(node.duration)}m</strong>
               </div>`
             : `<div style="background:rgba(0,0,0,0.9);color:white;padding:8px 12px;border-radius:6px;font-size:13px;line-height:1.4">
                 <strong>${node.name}</strong>: ${node.metricValue}%<br/>
-                <span style="font-size:11px;opacity:0.7">Click to highlight all ${node.name} nodes</span>
+                <span style="font-size:11px;opacity:0.7">Click to select &amp; pulse connections</span>
               </div>`
         }
+        /* ── Link appearance ── */
         linkColor={(link: any) => {
           if (!selectedNodeId) return link.color;
           const src = typeof link.source === "object" ? link.source.id : link.source;
           const tgt = typeof link.target === "object" ? link.target.id : link.target;
           const touches = src === selectedNodeId || tgt === selectedNodeId;
-          if (touches) {
-            // Bright highlight for connected links
-            const base = link.color?.slice(0, 7) || "#888888";
-            return base + "FF";
-          }
-          return link.color?.slice(0, 7) + "10"; // dim unconnected
+          if (touches) return link.color?.slice(0, 7) + "FF";
+          // Also brighten same-student or same-metric extended links
+          if (pulsingLinks.has(link.linkId)) return link.pulseColor || link.color?.slice(0, 7) + "CC";
+          return link.color?.slice(0, 7) + "10";
         }}
         linkWidth={(link: any) => {
           if (selectedNodeId) {
             const src = typeof link.source === "object" ? link.source.id : link.source;
             const tgt = typeof link.target === "object" ? link.target.id : link.target;
             if (src === selectedNodeId || tgt === selectedNodeId) return 3.5;
+            if (pulsingLinks.has(link.linkId)) return 2.5;
             return 0.3;
           }
           if (link.linkType === "same-student") return 2;
@@ -438,21 +535,42 @@ export function SessionGraph3D({ sessions }: { sessions: SessionNode[] }) {
           return 0.6;
         }}
         linkOpacity={0.6}
+        /* ── Directional particles for electric pulse ── */
+        linkDirectionalParticles={(link: any) => {
+          if (pulsingLinks.has(link.linkId)) return 6;
+          return 0;
+        }}
+        linkDirectionalParticleSpeed={0.02}
+        linkDirectionalParticleWidth={(link: any) => {
+          if (pulsingLinks.has(link.linkId)) return 4;
+          return 0;
+        }}
+        linkDirectionalParticleColor={(link: any) => {
+          return link.pulseColor || PULSE_YELLOW;
+        }}
+        /* ── General config ── */
         backgroundColor="#F0E8E0"
         width={undefined}
         height={550}
         onNodeClick={handleNodeClick}
         onBackgroundClick={handleBackgroundClick}
-        onNodeDragEnd={(node: any) => {
+        onNodeDrag={(node: any) => {
+          // Unpin while dragging so physics responds
           node.fx = node.x;
           node.fy = node.y;
           node.fz = node.z;
+        }}
+        onNodeDragEnd={(node: any) => {
+          // Release — let physics pull it back gently
+          node.fx = undefined;
+          node.fy = undefined;
+          node.fz = undefined;
         }}
         enableNodeDrag={true}
         enableNavigationControls={true}
         showNavInfo={false}
         warmupTicks={80}
-        cooldownTicks={40}
+        cooldownTicks={200}
       />
       <div className="graph-legend" style={{ position: "relative", zIndex: 10, marginTop: -8, flexWrap: "wrap" }}>
         {Object.entries(STUDENT_COLORS).map(([name, color]) => (
