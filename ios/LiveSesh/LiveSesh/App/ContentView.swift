@@ -179,7 +179,7 @@ struct ProfileView: View {
                 loadStats()
             }
             #if os(iOS)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             #endif
         }
     }
