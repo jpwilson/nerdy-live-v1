@@ -143,6 +143,7 @@ function VideoSurface({
   mirrored = false,
   videoStyle,
   videoRef: externalVideoRef,
+  showLabel = false,
 }: {
   title: string;
   stream: MediaStream | null;
@@ -152,6 +153,7 @@ function VideoSurface({
   mirrored?: boolean;
   videoStyle?: React.CSSProperties;
   videoRef?: React.RefObject<HTMLVideoElement | null>;
+  showLabel?: boolean;
 }) {
   const internalRef = useRef<HTMLVideoElement | null>(null);
   const videoRef = externalVideoRef || internalRef;
@@ -181,7 +183,7 @@ function VideoSurface({
           </div>
         </div>
       )}
-      <div className="video-label">{title}</div>
+      {showLabel && <div className="video-label">{title}</div>}
     </>
   );
 }
@@ -466,6 +468,19 @@ function RoomClient({
               videoStyle={isTutor ? videoTransformStyle : undefined}
             />
 
+            {isTutor && connectionState === "connected" && (
+              <select
+                className="video-overlay-select"
+                value={overlayMode}
+                onChange={(e) => setOverlayMode(e.target.value as OverlayMode)}
+              >
+                <option value="all">All overlays</option>
+                <option value="expressions">Expressions</option>
+                <option value="engagement">Engagement</option>
+                <option value="none">No overlay</option>
+              </select>
+            )}
+
             {/* Face mesh overlay canvas */}
             {isTutor && (
               <canvas
@@ -486,45 +501,6 @@ function RoomClient({
               </div>
             )}
 
-            {/* Engagement level badge */}
-            {isTutor && (overlayMode === "engagement" || overlayMode === "all") && engagementLevel && (
-              <div className={`engagement-badge ${engagementLevel}`}>
-                <span>{engagementLevel === "high" ? "Engaged" : engagementLevel === "medium" ? "Moderate" : "Low engagement"}</span>
-              </div>
-            )}
-
-            {/* Overlay mode cycle button */}
-            {isTutor && remoteStream && (
-              <button
-                className={`mesh-toggle-btn ${overlayMode !== "none" ? "active" : ""}`}
-                type="button"
-                onClick={() => {
-                  const modes: OverlayMode[] = ["all", "expressions", "engagement", "none"];
-                  const idx = modes.indexOf(overlayMode);
-                  setOverlayMode(modes[(idx + 1) % modes.length]);
-                }}
-                title={`Overlay: ${overlayMode}`}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  {overlayMode !== "none" ? (
-                    <>
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </>
-                  ) : (
-                    <>
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                    </>
-                  )}
-                </svg>
-                {overlayMode !== "none" && (
-                  <span className="overlay-mode-label">{overlayMode}</span>
-                )}
-              </button>
-            )}
-
             <div className="local-preview">
               <VideoSurface
                 title="Your camera"
@@ -533,6 +509,7 @@ function RoomClient({
                 emptyCopy="Allow camera access to send video into the room."
                 muted
                 mirrored
+                showLabel
               />
             </div>
           </div>
@@ -648,39 +625,6 @@ function RoomClient({
           {sidebarCollapsed ? "Show panel" : "Hide panel"}
         </button>
         <aside className={`sidebar${sidebarCollapsed ? " collapsed" : ""}`}>
-          <section className="sidebar-card">
-            <h3>Call controls</h3>
-            <div className="call-controls">
-              <button
-                className={`control-button ${
-                  isMicrophoneEnabled ? "active" : "inactive"
-                }`}
-                type="button"
-                onClick={toggleMicrophone}
-              >
-                {isMicrophoneEnabled ? "Mic on" : "Mic off"}
-              </button>
-              <button
-                className={`control-button ${
-                  isCameraEnabled ? "active" : "inactive"
-                }`}
-                type="button"
-                onClick={toggleCamera}
-              >
-                {isCameraEnabled ? "Camera on" : "Camera off"}
-              </button>
-              <button
-                className="control-button leave"
-                type="button"
-                onClick={() => {
-                  void hangUp().then(() => window.location.href = "/");
-                }}
-              >
-                Leave call
-              </button>
-            </div>
-          </section>
-
           {isTutor && (
             <StudentAnalysisCard
               remoteStream={remoteStream}

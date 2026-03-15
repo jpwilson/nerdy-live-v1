@@ -26,6 +26,7 @@ export function TutorDashboard() {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [summaries, setSummaries] = useState<Record<string, SummaryRow>>({});
   const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -79,6 +80,78 @@ export function TutorDashboard() {
     s == null ? "rgba(139,140,160,0.15)" : s >= 70 ? "rgba(0,212,170,0.15)" : s >= 40 ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)";
   const trendColor = trend === "Improving" ? "var(--success)" : trend === "Declining" ? "var(--danger)" : "var(--muted)";
 
+  if (selectedId) {
+    const session = sessions.find(s => s.id === selectedId);
+    const sm = summaries[selectedId];
+    if (!session) { setSelectedId(null); return null; }
+
+    const score = session.engagement_score ?? sm?.engagement_score ?? null;
+    const eyeContact = sm?.avg_eye_contact ? Math.round(((sm.avg_eye_contact as Record<string, number>).student ?? 0) * 100) : null;
+    const talkStudent = sm?.talk_time_ratio ? Math.round(((sm.talk_time_ratio as Record<string, number>).student ?? 0) * 100) : null;
+    const talkTutor = talkStudent != null ? 100 - talkStudent : null;
+
+    return (
+      <div className="dashboard">
+        <button className="detail-back" onClick={() => setSelectedId(null)}>&#8592; Back to sessions</button>
+        <h1 className="dash-title">Session Detail</h1>
+        <p className="detail-date">{fmt(session.started_at)}</p>
+
+        {/* Score badge */}
+        <div className="detail-score-section">
+          <div className="detail-score-badge" style={{ background: engBg(score), color: engColor(score) }}>
+            {score != null ? Math.round(score) : "\u2014"}
+          </div>
+          <div>
+            <span className="detail-score-label">Engagement Score</span>
+            <span className="detail-score-interp">
+              {score != null ? (score >= 70 ? "Good session" : score >= 40 ? "Moderate engagement" : "Low engagement \u2014 review recommendations") : "No data"}
+            </span>
+          </div>
+        </div>
+
+        {/* Metrics grid */}
+        <div className="dash-grid">
+          <div className="dash-card">
+            <span className="dash-card-label">Duration</span>
+            <span className="dash-card-value">{sm?.duration_minutes ?? 0}m</span>
+          </div>
+          <div className="dash-card">
+            <span className="dash-card-label">Eye Contact</span>
+            <span className="dash-card-value">{eyeContact ?? 0}%</span>
+          </div>
+          <div className="dash-card">
+            <span className="dash-card-label">Talk Balance</span>
+            <span className="dash-card-value">{talkStudent ?? 0}% / {talkTutor ?? 0}%</span>
+          </div>
+          <div className="dash-card">
+            <span className="dash-card-label">Interruptions</span>
+            <span className="dash-card-value">{sm?.total_interruptions ?? 0}</span>
+          </div>
+        </div>
+
+        {/* Engagement timeline placeholder */}
+        <div className="detail-timeline">
+          <h2 className="dash-section-title">Engagement Timeline</h2>
+          <div className="detail-timeline-placeholder">
+            Timeline visualization &mdash; coming soon
+          </div>
+        </div>
+
+        {/* Recommendations */}
+        {sm?.recommendations && sm.recommendations.length > 0 && (
+          <div className="detail-recommendations">
+            <h2 className="dash-section-title">Recommendations</h2>
+            <ul className="detail-rec-list">
+              {sm.recommendations.map((rec: string, i: number) => (
+                <li key={i}>{rec}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard">
       <h1 className="dash-title">Analytics</h1>
@@ -131,7 +204,7 @@ export function TutorDashboard() {
               ? Math.round(((sm.talk_time_ratio as Record<string, number>).student ?? 0) * 100)
               : null;
             return (
-              <div key={s.id} className="dash-session-card">
+              <div key={s.id} className="dash-session-card" onClick={() => setSelectedId(s.id)}>
                 <div className="dash-session-top">
                   <div>
                     <span className="dash-session-date">{fmt(s.started_at)}</span>

@@ -308,6 +308,14 @@ function AnalysisPanelInner({
   const lastNudgeCategoryRef = useRef<Record<string, number>>({});
   const sessionStartRef = useRef(Date.now());
 
+  // Window-based nudge assessment
+  const studentLastSeenRef = useRef(0);
+  const baselineRef = useRef<{ engagement: number; eyeContact: number; speaking: number } | null>(null);
+  const windowSamplesRef = useRef<{ engagement: number; eyeContact: number; speaking: number; ts: number }[]>([]);
+  const lastWindowAssessRef = useRef(0);
+  const nudgeLevelRef = useRef(0); // 0=none, 1=gentle, 2=stronger, 3=urgent
+  const postNudgeEngRef = useRef<number | null>(null); // engagement when last nudge was sent
+
   const landmarkerRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -735,71 +743,110 @@ function AnalysisPanelInner({
         emaMoodRef.current = "Unknown";
       }
 
-      // Structured coaching nudge system with cooldowns
+      // ── Window-based coaching assessment ──────────────────────
       const now = Date.now();
-      const timeSinceLastNudge = now - lastNudgeTimeRef.current;
-      const canNudge = timeSinceLastNudge > 120_000 && nudgeCountRef.current < 5; // 2 min cooldown, max 5
-      const canHighPriority = timeSinceLastNudge > 60_000 && nudgeCountRef.current < 5; // 1 min for high priority
+      const GRACE_PERIOD = 300_000; // 5 min observation phase
+      const WINDOW_LENGTH = 180_000; // 3 min assessment windows (medium sensitivity)
+      const elapsed = now - sessionStartRef.current;
 
       let coachingNudge: string | null = null;
-      let pendingNudge: CoachingNudge | null = null;
 
-      const categoryNotRecent = (cat: string) => {
-        const last = lastNudgeCategoryRef.current[cat] || 0;
-        return now - last > 300_000; // 5 min suppress per category
-      };
+      // Track when we last saw a student face
+      if (faceDetected) studentLastSeenRef.current = now;
 
-      // HIGH priority — actionable pedagogical suggestions
-      if (canHighPriority) {
-        if (!faceDetected && lm && noFaceCountRef.current > 10 && categoryNotRecent("engagement")) {
-          pendingNudge = { id: `nudge-${now}`, priority: "high", category: "engagement",
-            message: "Try: \"Hey, are you still with me? Everything okay?\"", timestamp: now };
-        } else if (engagement < 20 && eh.length > 10 && categoryNotRecent("engagement")) {
-          pendingNudge = { id: `nudge-${now}`, priority: "high", category: "engagement",
-            message: "Try: \"Let's pause — can you explain back to me what we just covered?\"", timestamp: now };
-        }
+      // Gate: no nudges without a student present
+      const studentPresent = now - studentLastSeenRef.current < 30_000;
+
+      // Collect window samples
+      if (studentPresent) {
+        windowSamplesRef.current.push({ engagement, eyeContact: ecSmoothed, speaking: spk, ts: now });
+        // Keep only samples within the window
+        windowSamplesRef.current = windowSamplesRef.current.filter(s => now - s.ts < Math.max(GRACE_PERIOD, WINDOW_LENGTH));
       }
 
-      // MEDIUM priority — practical teaching suggestions
-      if (!pendingNudge && canNudge) {
-        if (spk < 10 && sh.length > 20 && categoryNotRecent("talk_balance")) {
-          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "talk_balance",
-            message: "Try: \"What do you think the next step would be?\" — let them think aloud.", timestamp: now };
-        } else if (expressions.some(e => e.name === "Yawning") && categoryNotRecent("engagement")) {
-          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "engagement",
-            message: "Try: \"Let's take a 2-minute break — stretch, get water, then we'll pick up.\"", timestamp: now };
-        } else if (expressions.some(e => e.name === "Frowning" && e.interpretation === "Possibly confused") && categoryNotRecent("technique")) {
-          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "technique",
-            message: "Try: \"What part is tricky? Walk me through where you got stuck.\"", timestamp: now };
-        } else if (expressions.some(e => e.name === "Frustrated") && categoryNotRecent("technique")) {
-          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "technique",
-            message: "Try: \"This is a tough one — let's break it into smaller pieces together.\"", timestamp: now };
-        } else if (ecSmoothed < 25 && eh.length > 10 && categoryNotRecent("attention")) {
-          pendingNudge = { id: `nudge-${now}`, priority: "medium", category: "attention",
-            message: "Try: \"What are you thinking about right now?\" — check in gently.", timestamp: now };
+      if (elapsed < GRACE_PERIOD) {
+        // Grace period: observation only, building baseline
+        // No nudges during this phase
+      } else {
+        // Finalize baseline at end of grace period
+        if (!baselineRef.current) {
+          const samples = windowSamplesRef.current.filter(s => s.ts < sessionStartRef.current + GRACE_PERIOD);
+          if (samples.length > 10) {
+            baselineRef.current = {
+              engagement: samples.reduce((a, s2) => a + s2.engagement, 0) / samples.length,
+              eyeContact: samples.reduce((a, s2) => a + s2.eyeContact, 0) / samples.length,
+              speaking: samples.reduce((a, s2) => a + s2.speaking, 0) / samples.length,
+            };
+          } else {
+            // Not enough data, use defaults
+            baselineRef.current = { engagement: 70, eyeContact: 60, speaking: 20 };
+          }
+          windowSamplesRef.current = [];
+          lastWindowAssessRef.current = now;
         }
-      }
 
-      // LOW priority — positive reinforcement (important for tutor morale)
-      if (!pendingNudge && canNudge && now - sessionStartRef.current > 180_000) {
-        if (engagement > 65 && categoryNotRecent("positive")) {
-          pendingNudge = { id: `nudge-${now}`, priority: "low", category: "positive",
-            message: "Student is engaged and following along — nice work!", timestamp: now };
+        // Assess every window
+        if (studentPresent && baselineRef.current && now - lastWindowAssessRef.current > WINDOW_LENGTH) {
+          lastWindowAssessRef.current = now;
+          const recentSamples = windowSamplesRef.current.filter(s => now - s.ts < WINDOW_LENGTH);
+
+          if (recentSamples.length > 5) {
+            const windowAvg = {
+              engagement: recentSamples.reduce((a, s2) => a + s2.engagement, 0) / recentSamples.length,
+              eyeContact: recentSamples.reduce((a, s2) => a + s2.eyeContact, 0) / recentSamples.length,
+              speaking: recentSamples.reduce((a, s2) => a + s2.speaking, 0) / recentSamples.length,
+            };
+
+            const baseline = baselineRef.current;
+            const engDelta = windowAvg.engagement - baseline.engagement;
+
+            // Check if engagement improved after last nudge (de-escalation)
+            if (postNudgeEngRef.current !== null && windowAvg.engagement > postNudgeEngRef.current + 5) {
+              nudgeLevelRef.current = Math.max(0, nudgeLevelRef.current - 1);
+              postNudgeEngRef.current = null;
+              // Positive reinforcement
+              const positiveNudge: CoachingNudge = {
+                id: `nudge-${now}`, priority: "low" as const, category: "positive",
+                message: "Student engagement is recovering — nice work!", timestamp: now
+              };
+              coachingNudge = positiveNudge.message;
+              setNudges(prev => [...prev.slice(-9), positiveNudge]);
+              setToastNudge(positiveNudge);
+              onNudge?.(positiveNudge);
+              setTimeout(() => {
+                setToastNudge(prev => prev?.id === positiveNudge.id ? null : prev);
+                onNudge?.(null);
+              }, 8000);
+              lastNudgeTimeRef.current = now;
+            }
+            // Engagement significantly below baseline → escalate
+            else if (engDelta < -15 && now - lastNudgeTimeRef.current > WINDOW_LENGTH) {
+              nudgeLevelRef.current = Math.min(3, nudgeLevelRef.current + 1);
+              const level = nudgeLevelRef.current;
+
+              const messages: Record<number, { msg: string; priority: "low" | "medium" | "high" }> = {
+                1: { msg: "You might try asking an open-ended question to re-engage.", priority: "low" },
+                2: { msg: "Consider pausing to check understanding — engagement has dropped.", priority: "medium" },
+                3: { msg: "Engagement is significantly below baseline. Try changing the activity or taking a break.", priority: "high" },
+              };
+
+              const { msg, priority } = messages[level] || messages[1];
+              const pendingNudge: CoachingNudge = { id: `nudge-${now}`, priority, category: "engagement", message: msg, timestamp: now };
+
+              coachingNudge = pendingNudge.message;
+              setNudges(prev => [...prev.slice(-9), pendingNudge]);
+              setToastNudge(pendingNudge);
+              onNudge?.(pendingNudge);
+              setTimeout(() => {
+                setToastNudge(prev => prev?.id === pendingNudge.id ? null : prev);
+                onNudge?.(null);
+              }, 8000);
+              lastNudgeTimeRef.current = now;
+              nudgeCountRef.current++;
+              postNudgeEngRef.current = windowAvg.engagement;
+            }
+          }
         }
-      }
-
-      if (pendingNudge) {
-        coachingNudge = pendingNudge.message;
-        lastNudgeTimeRef.current = now;
-        nudgeCountRef.current++;
-        lastNudgeCategoryRef.current[pendingNudge.category] = now;
-        setNudges(prev => [...prev.slice(-9), pendingNudge!]);
-        setToastNudge(pendingNudge);
-        onNudge?.(pendingNudge);
-        setTimeout(() => {
-          setToastNudge(prev => prev?.id === pendingNudge!.id ? null : prev);
-          onNudge?.(null);
-        }, 8000);
       }
 
       setMetrics({
