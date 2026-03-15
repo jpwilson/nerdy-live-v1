@@ -19,6 +19,7 @@ interface GraphNode {
   label: string;
   x: number;
   y: number;
+  z: number;
   vx: number;
   vy: number;
   radius: number;
@@ -27,12 +28,26 @@ interface GraphNode {
   value?: number;
   icon?: string;
   parentId?: string;
+  metricKey?: string;
+  pulse?: number;
 }
 
 interface GraphEdge {
   source: string;
   target: string;
   color: string;
+}
+
+const STUDENT_COLORS: Record<string, string> = {
+  "Sarah Chen": "#2D9D5E",
+  "Alex Rivera": "#2B86C5",
+  "Jordan Patel": "#E8573A",
+  "Casey Kim": "#8B5CF6",
+  "Morgan Davis": "#E8873A",
+};
+
+function studentColor(name: string): string {
+  return STUDENT_COLORS[name] || "#888";
 }
 
 function engColor(v: number): string {
@@ -90,9 +105,9 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
       nodes.push({
         id: s.id,
         label: s.student?.split(" ")[0] || s.subject || "Session",
-        x, y, vx: 0, vy: 0,
+        x, y, z: (Math.random() - 0.5) * 200, vx: 0, vy: 0,
         radius: size,
-        color: engColor(s.engagement),
+        color: studentColor(s.student),
         type: "session",
         value: s.engagement,
       });
@@ -114,6 +129,7 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
           label: m.label,
           x: cx + Math.cos(mAngle) * mR,
           y: cy + Math.sin(mAngle) * mR,
+          z: (Math.random() - 0.5) * 100,
           vx: 0, vy: 0,
           radius: 6 + (m.value / 100) * 8,
           color: metricColor(m.key),
@@ -121,6 +137,7 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
           value: m.value,
           icon: m.icon,
           parentId: s.id,
+          metricKey: m.key,
         });
         edges.push({ source: s.id, target: mId, color: metricColor(m.key) });
       });
@@ -238,21 +255,47 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
         ctx.globalAlpha = 1;
       }
 
+      // Sort nodes by z for 3D depth (back to front)
+      const sortedNodes = [...nodes].sort((a, b) => a.z - b.z);
+
       // Nodes
-      for (const n of nodes) {
+      for (const n of sortedNodes) {
+        // 3D depth: scale and opacity based on z
+        const depthScale = 0.7 + (n.z + 100) / 300 * 0.6; // 0.7 to 1.3
+        const depthAlpha = 0.5 + (n.z + 100) / 200 * 0.5; // 0.5 to 1.0
+        const r3d = n.radius * depthScale;
+
+        // Pulse effect
+        const pulseAmt = n.pulse ? Math.max(0, 1 - (Date.now() - n.pulse) / 1500) : 0;
+        const pulseScale = 1 + pulseAmt * 0.4 * Math.sin(Date.now() / 100);
+        const effectiveR = r3d * pulseScale;
+
         if (n.type === "session") {
+          // 3D shadow
+          ctx.beginPath();
+          for (let hi = 0; hi < 6; hi++) {
+            const hAngle = (hi / 6) * Math.PI * 2 - Math.PI / 6;
+            const hx = n.x + Math.cos(hAngle) * (effectiveR + 3) + 3;
+            const hy = n.y + Math.sin(hAngle) * (effectiveR + 3) + 3;
+            if (hi === 0) ctx.moveTo(hx, hy);
+            else ctx.lineTo(hx, hy);
+          }
+          ctx.closePath();
+          ctx.fillStyle = "rgba(0,0,0,0.1)";
+          ctx.fill();
+
           // Draw hexagon for session nodes
           ctx.beginPath();
           for (let hi = 0; hi < 6; hi++) {
             const hAngle = (hi / 6) * Math.PI * 2 - Math.PI / 6;
-            const hx = n.x + Math.cos(hAngle) * n.radius;
-            const hy = n.y + Math.sin(hAngle) * n.radius;
+            const hx = n.x + Math.cos(hAngle) * effectiveR;
+            const hy = n.y + Math.sin(hAngle) * effectiveR;
             if (hi === 0) ctx.moveTo(hx, hy);
             else ctx.lineTo(hx, hy);
           }
           ctx.closePath();
           ctx.fillStyle = n.color;
-          ctx.globalAlpha = 0.88;
+          ctx.globalAlpha = depthAlpha * 0.9;
           ctx.fill();
           ctx.globalAlpha = 1;
           ctx.strokeStyle = "rgba(0,0,0,0.15)";
@@ -261,21 +304,31 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
 
           // Student name (primary label)
           ctx.fillStyle = "#fff";
-          ctx.font = `bold ${Math.max(8, n.radius * 0.42)}px Inter, sans-serif`;
+          ctx.font = `bold ${Math.max(8, effectiveR * 0.42)}px Inter, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(n.label, n.x, n.y - 3);
           // Engagement % (secondary)
-          ctx.font = `${Math.max(7, n.radius * 0.35)}px Inter, sans-serif`;
+          ctx.font = `${Math.max(7, effectiveR * 0.35)}px Inter, sans-serif`;
           ctx.globalAlpha = 0.8;
-          ctx.fillText(`${n.value}%`, n.x, n.y + n.radius * 0.35);
+          ctx.fillText(`${n.value}%`, n.x, n.y + effectiveR * 0.35);
           ctx.globalAlpha = 1;
         } else {
-          // Circle for metric nodes
+          // Circle for metric nodes with depth + pulse
+          if (pulseAmt > 0) {
+            // Pulse ring
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, effectiveR + 6 * pulseAmt, 0, Math.PI * 2);
+            ctx.strokeStyle = n.color;
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = pulseAmt * 0.5;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+          }
           ctx.beginPath();
-          ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+          ctx.arc(n.x, n.y, effectiveR, 0, Math.PI * 2);
           ctx.fillStyle = n.color;
-          ctx.globalAlpha = 0.6;
+          ctx.globalAlpha = depthAlpha * 0.65;
           ctx.fill();
           ctx.globalAlpha = 1;
           ctx.strokeStyle = "rgba(0,0,0,0.08)";
@@ -360,11 +413,36 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent) => {
     if (dragRef.current) {
       const node = nodesRef.current.find(n => n.id === dragRef.current!.nodeId);
-      if (node) setClickedNode(node);
+      if (node) {
+        setClickedNode(node);
+        // Pulse all same-type metric nodes
+        if (node.type === "metric" && node.metricKey) {
+          const key = node.metricKey;
+          for (const n of nodesRef.current) {
+            if (n.metricKey === key) n.pulse = Date.now();
+          }
+        }
+      }
       dragRef.current = null;
+    } else if (!isPanningRef.current) {
+      // Simple click (no drag/pan) — check if we hit a node
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        const node = findNodeAt(e.clientX - rect.left, e.clientY - rect.top);
+        if (node) {
+          setClickedNode(node);
+          if (node.type === "metric" && node.metricKey) {
+            for (const n of nodesRef.current) {
+              if (n.metricKey === node.metricKey) n.pulse = Date.now();
+            }
+          }
+        } else {
+          setClickedNode(null);
+        }
+      }
     }
     isPanningRef.current = false;
   };
@@ -393,7 +471,7 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
-        onMouseLeave={() => { setHoveredNode(null); handleMouseUp(); }}
+        onMouseLeave={() => { setHoveredNode(null); dragRef.current = null; isPanningRef.current = false; }}
         onWheel={handleWheel}
       />
       {(hoveredNode || clickedNode) && (() => {
@@ -410,12 +488,13 @@ export function SessionGraph({ sessions }: { sessions: SessionNode[] }) {
         );
       })()}
       <div className="graph-legend">
-        <span><span className="legend-dot" style={{ background: "#2D9D5E" }} /> High engagement</span>
-        <span><span className="legend-dot" style={{ background: "#E8873A" }} /> Moderate</span>
-        <span><span className="legend-dot" style={{ background: "#C4402F" }} /> Low</span>
-        <span><span className="legend-dot" style={{ background: "#2B86C5" }} /> Eye contact</span>
-        <span><span className="legend-dot" style={{ background: "#8B5CF6" }} /> Talk balance</span>
-        <span><span className="legend-dot" style={{ background: "#E8573A" }} /> Interruptions</span>
+        {Object.entries(STUDENT_COLORS).map(([name, color]) => (
+          <span key={name}><span className="legend-dot" style={{ background: color }} /> {name.split(" ")[0]}</span>
+        ))}
+        <span style={{ marginLeft: 12, borderLeft: "1px solid #ddd", paddingLeft: 12 }}><span className="legend-dot" style={{ background: "#2B86C5" }} /> Eye</span>
+        <span><span className="legend-dot" style={{ background: "#8B5CF6" }} /> Talk</span>
+        <span><span className="legend-dot" style={{ background: "#E8573A" }} /> Interrupts</span>
+        <span><span className="legend-dot" style={{ background: "#2D9D5E" }} /> Duration</span>
       </div>
     </div>
   );
