@@ -109,7 +109,7 @@ struct SessionView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Session Setup")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(NerdyTheme.textPrimary)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Subject")
@@ -733,8 +733,12 @@ struct NerdyTextFieldStyle: TextFieldStyle {
             .background(
                 RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusSmall)
                     .fill(NerdyTheme.backgroundElevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: NerdyTheme.cornerRadiusSmall)
+                            .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                    )
             )
-            .foregroundColor(.white)
+            .foregroundColor(NerdyTheme.textPrimary)
     }
 }
 
