@@ -224,7 +224,11 @@ final class LiveCaptureController: ObservableObject {
                 }
             }
             if connection.isVideoMirroringSupported {
-                connection.isVideoMirrored = true
+                // Keep analysis frames unmirrored so Vision gaze/expression
+                // detection reports correct left/right directions.
+                // The AVCaptureVideoPreviewLayer mirrors independently for
+                // the natural selfie-style preview the user sees.
+                connection.isVideoMirrored = false
             }
         }
 

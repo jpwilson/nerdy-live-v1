@@ -36,7 +36,7 @@ Session metrics:
 - Eye contact: ${metrics?.eyeContact ?? "N/A"}%
 - Student talk time: ${metrics?.studentTalk ?? "N/A"}%
 - Tutor talk time: ${metrics?.tutorTalk ?? "N/A"}%
-- Energy level: ${metrics?.energy ?? "N/A"}%
+- Responsiveness level: ${metrics?.responsiveness ?? metrics?.energy ?? "N/A"}%
 - Attention drift: ${metrics?.attentionDrift ?? "N/A"}%
 - Interruptions: ${metrics?.interruptions ?? "N/A"}
 - Duration: ${metrics?.duration ?? "N/A"} minutes

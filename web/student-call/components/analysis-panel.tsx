@@ -306,6 +306,15 @@ function AnalysisPanelInner({
   const emaSpeakingRef = useRef(30);
   const emaMoodRef = useRef<string>("Neutral");
 
+  // New metric tracking refs
+  const blinkTimestampsRef = useRef<number[]>([]); // timestamps of detected blinks
+  const lastBlinkStateRef = useRef(false); // was blinking in previous frame
+  const blinkRateRef = useRef(0); // blinks per minute
+  const headStabilityRef = useRef(0); // 0-100, inverse of yaw variance
+  const exprChangeTimestampsRef = useRef<number[]>([]); // timestamps of expression changes
+  const lastExprSetRef = useRef<string>(""); // serialized last expression set for change detection
+  const facialResponsivenessRef = useRef(0); // expression changes per minute
+
   // Coaching nudge system state
   const lastNudgeTimeRef = useRef(0);
   const nudgeCountRef = useRef(0);
@@ -747,6 +756,40 @@ function AnalysisPanelInner({
         emaMoodRef.current = "Unknown";
       }
 
+      // ── New metric: Blink Rate ──────────────────────────────────
+      const now2 = Date.now();
+      const bh2 = blinkHistRef.current;
+      const currentBlinkAvg = bh2.length > 0 ? bh2[bh2.length - 1] : 0;
+      const isBlinking = currentBlinkAvg > 0.5;
+      // Detect blink onset (transition from not-blinking to blinking)
+      if (isBlinking && !lastBlinkStateRef.current) {
+        blinkTimestampsRef.current.push(now2);
+      }
+      lastBlinkStateRef.current = isBlinking;
+      // Keep only blinks from last 60 seconds
+      blinkTimestampsRef.current = blinkTimestampsRef.current.filter(t => now2 - t < 60_000);
+      blinkRateRef.current = blinkTimestampsRef.current.length; // blinks in last 60s = blinks/min
+
+      // ── New metric: Head Stability ──────────────────────────────
+      // Inverse of yaw variance, mapped to 0-100
+      // yawVariance is already computed above
+      const stabilityRaw = Math.max(0, 100 - yawVariance * 10);
+      headStabilityRef.current = Math.round(Math.min(100, stabilityRaw));
+
+      // ── New metric: Facial Responsiveness ───────────────────────
+      // Track expression changes per minute
+      const currentExprSet = expressions.map(e => e.name).sort().join(",");
+      if (currentExprSet !== lastExprSetRef.current && currentExprSet !== "") {
+        exprChangeTimestampsRef.current.push(now2);
+        lastExprSetRef.current = currentExprSet;
+      } else if (currentExprSet === "" && lastExprSetRef.current !== "") {
+        exprChangeTimestampsRef.current.push(now2);
+        lastExprSetRef.current = currentExprSet;
+      }
+      // Keep only changes from last 60 seconds
+      exprChangeTimestampsRef.current = exprChangeTimestampsRef.current.filter(t => now2 - t < 60_000);
+      facialResponsivenessRef.current = exprChangeTimestampsRef.current.length;
+
       // ── Window-based coaching assessment ──────────────────────
       const now = Date.now();
       const GRACE_PERIOD = 300_000; // 5 min observation phase
@@ -947,6 +990,18 @@ function AnalysisPanelInner({
   const trendDrift = Math.round(emaDriftRef.current);
   const trendSpeaking = Math.round(emaSpeakingRef.current);
 
+  // New metric values
+  const blinkRate = blinkRateRef.current;
+  const headStability = headStabilityRef.current;
+  const facialResponsiveness = facialResponsivenessRef.current;
+
+  const blinkInterp = blinkRate >= 20 ? "High" : blinkRate >= 15 ? "Normal" : blinkRate > 0 ? "Low" : "--";
+  const blinkColor = blinkRate === 0 ? "var(--text-muted)" : (blinkRate >= 15 && blinkRate <= 20) ? "var(--success)" : blinkRate > 20 ? "var(--warn)" : "var(--warn)";
+  const headStabInterp = headStability >= 70 ? "Attentive" : headStability >= 40 ? "Moderate" : headStability > 0 ? "Restless" : "--";
+  const headStabColor = headStability === 0 && !metrics.faceDetected ? "var(--text-muted)" : headStability >= 70 ? "var(--success)" : headStability >= 40 ? "var(--warn)" : "var(--danger)";
+  const facialRespInterp = facialResponsiveness >= 10 ? "High" : facialResponsiveness >= 4 ? "Normal" : facialResponsiveness > 0 ? "Low" : "--";
+  const facialRespColor = facialResponsiveness === 0 ? "var(--text-muted)" : facialResponsiveness >= 4 ? "var(--success)" : "var(--warn)";
+
   // Interpretation text
   const engInterp = trendEngagement >= 65 ? "Attentive and participating well"
     : trendEngagement >= 40 ? "Moderate — could use more interaction"
@@ -955,8 +1010,8 @@ function AnalysisPanelInner({
   const attentionInterp = trendDrift <= 25 ? "Low drift" : trendDrift <= 50 ? "Some drift" : "Distracted";
   const attentionCheck = trendDrift <= 30 ? "\u2713" : trendDrift <= 50 ? "~" : "\u2717";
 
-  const energyInterp = trendEnergy >= 50 ? "Active and expressive"
-    : trendEnergy >= 25 ? "Moderate activity" : "Very quiet or still";
+  const energyInterp = trendEnergy >= 50 ? "Highly responsive"
+    : trendEnergy >= 25 ? "Moderately responsive" : "Low responsiveness";
 
   const talkTutor = 100 - trendSpeaking;
   const talkInterp = talkTutor > 70 ? "Tutor talking too much"
@@ -1166,16 +1221,56 @@ function AnalysisPanelInner({
                 <div className="trend-sub">Face presence: {metrics.faceDetected ? "100%" : "0%"}</div>
               </div>
 
-              {/* Energy */}
+              {/* Responsiveness */}
               <div className="trend-block">
                 <div className="trend-header">
-                  <span className="trend-label">Energy</span>
+                  <span className="trend-label">Responsiveness</span>
                   <span className="trend-value" style={{ color: colorForValue(trendEnergy) }}>
                     {trendEnergy}%
                   </span>
                 </div>
                 <div className="metric-track"><div className="metric-fill" style={{ width: `${trendEnergy}%`, background: colorForValue(trendEnergy) }} /></div>
                 <span className="trend-interp">{energyInterp}</span>
+              </div>
+
+              {/* Blink Rate */}
+              <div className="trend-block">
+                <div className="trend-header">
+                  <span className="trend-label">Blink Rate</span>
+                  <span className="trend-value" style={{ color: blinkRate === 0 ? "var(--text-muted)" : blinkColor }}>
+                    {blinkRate > 0 ? `${blinkRate} blinks/min` : "--"}
+                  </span>
+                </div>
+                <span className="trend-interp" style={{ color: blinkRate === 0 ? "var(--text-muted)" : undefined }}>
+                  {blinkInterp}{blinkRate > 0 ? " (normal: 15-20/min)" : ""}
+                </span>
+              </div>
+
+              {/* Head Stability */}
+              <div className="trend-block">
+                <div className="trend-header">
+                  <span className="trend-label">Head Stability</span>
+                  <span className="trend-value" style={{ color: !metrics.faceDetected && headStability === 0 ? "var(--text-muted)" : headStabColor }}>
+                    {metrics.faceDetected || headStability > 0 ? `${headStability}%` : "--"}
+                  </span>
+                </div>
+                <div className="metric-track"><div className="metric-fill" style={{ width: metrics.faceDetected || headStability > 0 ? `${headStability}%` : "0%", background: headStabColor }} /></div>
+                <span className="trend-interp" style={{ color: !metrics.faceDetected && headStability === 0 ? "var(--text-muted)" : undefined }}>
+                  {metrics.faceDetected || headStability > 0 ? headStabInterp : "--"}
+                </span>
+              </div>
+
+              {/* Facial Responsiveness */}
+              <div className="trend-block">
+                <div className="trend-header">
+                  <span className="trend-label">Facial Responsiveness</span>
+                  <span className="trend-value" style={{ color: facialResponsiveness === 0 ? "var(--text-muted)" : facialRespColor }}>
+                    {facialResponsiveness > 0 ? `${facialResponsiveness} changes/min` : "--"}
+                  </span>
+                </div>
+                <span className="trend-interp" style={{ color: facialResponsiveness === 0 ? "var(--text-muted)" : undefined }}>
+                  {facialRespInterp}{facialResponsiveness > 0 ? " — more changes = more engaged" : ""}
+                </span>
               </div>
 
               {/* Talk Balance */}
@@ -1203,13 +1298,15 @@ function AnalysisPanelInner({
               <div className="trend-block">
                 <div className="trend-header">
                   <span className="trend-label">Mood</span>
-                  <span className="trend-value">{emaMoodRef.current}</span>
+                  <span className="trend-value" style={emaMoodRef.current === "Unknown" || emaMoodRef.current === "Neutral" ? { color: "var(--text-muted)" } : undefined}>
+                    {emaMoodRef.current}
+                  </span>
                 </div>
-                {metrics.expressions.length > 0 && (
-                  <div className="trend-sub">
-                    {metrics.expressions.map(e => e.name).join(", ")} (dominant)
-                  </div>
-                )}
+                <div className="trend-sub" style={metrics.expressions.length === 0 ? { color: "var(--text-muted)" } : undefined}>
+                  {metrics.expressions.length > 0
+                    ? `${metrics.expressions.map(e => e.name).join(", ")} (dominant)`
+                    : "--"}
+                </div>
               </div>
 
               {/* Posture */}
@@ -1222,16 +1319,18 @@ function AnalysisPanelInner({
                 </div>
               </div>
 
-              {/* Latest coaching nudge */}
-              {latestNudge && (
-                <div className={`trend-nudge priority-${latestNudge.priority}`}>
-                  <div className="trend-nudge-header">Coaching Nudge</div>
-                  <div className="trend-nudge-message">{latestNudge.message}</div>
+              {/* Latest coaching nudge — always visible */}
+              <div className={`trend-nudge ${latestNudge ? `priority-${latestNudge.priority}` : "priority-none"}`} style={!latestNudge ? { opacity: 0.45 } : undefined}>
+                <div className="trend-nudge-header">Coaching Nudge</div>
+                <div className="trend-nudge-message" style={!latestNudge ? { color: "var(--text-muted)" } : undefined}>
+                  {latestNudge ? latestNudge.message : "--"}
+                </div>
+                {latestNudge && (
                   <div className="trend-nudge-meta">
                     {new Date(latestNudge.timestamp).toLocaleTimeString()} &middot; {latestNudge.priority} priority
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </>

@@ -11,6 +11,7 @@ const SECTIONS = [
   { id: "validation", label: "Validation & Accuracy" },
   { id: "privacy", label: "Privacy & Security" },
   { id: "limitations", label: "Known Limitations" },
+  { id: "metric-definitions", label: "Metric Definitions" },
 ];
 
 export default function DocsPage() {
@@ -150,7 +151,7 @@ export default function DocsPage() {
             <div className="docs-step-num">6</div>
             <div>
               <h4>Engagement Scoring</h4>
-              <p>Weighted composite: Face presence (15%) + Eye contact (35%) + Speaking participation (20%) + Attention stability (15%) + Energy/expressiveness (15%). All inputs normalized 0-100.</p>
+              <p>Weighted composite: Face presence (15%) + Eye contact (35%) + Speaking participation (20%) + Attention stability (15%) + Responsiveness (15%). All inputs normalized 0-100.</p>
             </div>
           </div>
           <div className="docs-pipeline-step">
@@ -278,6 +279,36 @@ export default function DocsPage() {
             <li><strong>No transcript analysis.</strong> Current system analyzes engagement from visual and audio signals only. Integrating speech-to-text would enable content-aware coaching (e.g., detecting confusion from language patterns).</li>
             <li><strong>Calibration dependency.</strong> Eye contact accuracy depends heavily on the 60-second calibration phase. If the student isn&apos;t looking at their screen during this period, the baseline will be wrong.</li>
           </ul>
+        </div>
+      </section>
+
+      <section id="metric-definitions" className="docs-section">
+        <h2>Metric Definitions</h2>
+
+        <div className="docs-card">
+          <h3>Responsiveness <span style={{ fontSize: "0.78rem", color: "var(--muted)" }}>(formerly Energy)</span></h3>
+          <p>Measures how dynamically a student reacts during a session. Calculated from three components:</p>
+          <ul style={{ paddingLeft: 20, fontSize: "0.88rem", lineHeight: 1.8 }}>
+            <li><strong>Expression variety (0–40):</strong> How many different facial expressions are detected and their confidence levels.</li>
+            <li><strong>Speaking activity (0–30):</strong> Percentage of time the student is actively speaking.</li>
+            <li><strong>Head movement (0–30):</strong> Variance in head orientation indicating active engagement vs. stillness.</li>
+          </ul>
+          <p style={{ marginTop: 8, fontSize: "0.84rem", color: "var(--muted)" }}>Score range: 0–100. Higher scores indicate a more interactive, responsive student.</p>
+        </div>
+
+        <div className="docs-card">
+          <h3>Blink Rate</h3>
+          <p>Blinks per minute tracked via eye blendshape coefficients. Normal range: 15–20 bpm.</p>
+        </div>
+
+        <div className="docs-card">
+          <h3>Head Stability</h3>
+          <p>Inverse of head yaw/pitch variance. High stability suggests focused attention.</p>
+        </div>
+
+        <div className="docs-card">
+          <h3>Facial Responsiveness</h3>
+          <p>Rate of expression changes per minute, indicating emotional engagement with content.</p>
         </div>
       </section>
 

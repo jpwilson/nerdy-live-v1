@@ -103,78 +103,130 @@ function RadarChart({ data, size = 260 }: { data: { label: string; value: number
   );
 }
 
+// Demo data: each student shows clear improvement over time (earlier = weaker, recent = stronger)
 const RICH_DEMO_DATA = [
+  // Sarah Chen: Algebra journey (Mar 5 -> Mar 15)
   {
-    student: "Sarah Chen", subject: "Algebra", duration: 35, engagement: 82, eyeContact: 78,
-    studentTalk: 42, tutorTalk: 58, energy: 68, attentionDrift: 12, interruptions: 2,
-    summary: "Covered quadratic equations and the discriminant. Sarah demonstrated good understanding of factoring but struggled with completing the square. Eye contact was strong throughout. Recommended practice: 10 problems on completing the square.",
-    date: "2026-03-14T21:05:00Z"
+    student: "Sarah Chen", subject: "Algebra", duration: 28, engagement: 52, eyeContact: 48,
+    studentTalk: 22, tutorTalk: 78, energy: 35, attentionDrift: 35, interruptions: 5,
+    summary: "First session. Introduced quadratic equations. Sarah was quiet and hesitant to participate. Eye contact was intermittent; looked away frequently when unsure. Mostly listened. Need to build confidence.",
+    date: "2026-03-05T16:00:00Z"
   },
   {
-    student: "Sarah Chen", subject: "Algebra", duration: 28, engagement: 75, eyeContact: 72,
-    studentTalk: 38, tutorTalk: 62, energy: 55, attentionDrift: 18, interruptions: 3,
-    summary: "Reviewed completing the square from last session \u2014 improvement noted. Introduced the quadratic formula. Sarah was engaged but energy dipped around the 20-minute mark. Suggest more frequent check-ins.",
-    date: "2026-03-12T19:30:00Z"
+    student: "Sarah Chen", subject: "Algebra", duration: 32, engagement: 64, eyeContact: 62,
+    studentTalk: 30, tutorTalk: 70, energy: 48, attentionDrift: 24, interruptions: 3,
+    summary: "Reviewed quadratics. Sarah spoke up more when prompted directly. Eye contact improved during worked examples. Starting to ask clarifying questions. Progress noted.",
+    date: "2026-03-08T16:00:00Z"
   },
   {
-    student: "Alex Rivera", subject: "Physics", duration: 45, engagement: 91, eyeContact: 88,
-    studentTalk: 48, tutorTalk: 52, energy: 82, attentionDrift: 8, interruptions: 1,
-    summary: "Excellent session on Newton's laws of motion. Alex asked insightful questions about the relationship between force and acceleration. Strong participation and eye contact throughout. Ready to move on to friction and inclined planes.",
-    date: "2026-03-13T22:00:00Z"
+    student: "Sarah Chen", subject: "Algebra", duration: 35, engagement: 75, eyeContact: 72,
+    studentTalk: 38, tutorTalk: 62, energy: 58, attentionDrift: 18, interruptions: 2,
+    summary: "Covered completing the square. Sarah attempted problems on her own before asking for help. Big improvement in confidence. Eye contact strong throughout. Energy dipped around 25 minutes.",
+    date: "2026-03-11T16:00:00Z"
   },
   {
-    student: "Alex Rivera", subject: "Physics", duration: 40, engagement: 85, eyeContact: 80,
-    studentTalk: 45, tutorTalk: 55, energy: 75, attentionDrift: 14, interruptions: 2,
-    summary: "Covered friction forces and free body diagrams. Alex grasped the concepts quickly but needed more time on resolving forces on inclined planes. Good verbal participation. Assigned 5 practice problems.",
-    date: "2026-03-11T20:15:00Z"
+    student: "Sarah Chen", subject: "Algebra", duration: 35, engagement: 85, eyeContact: 82,
+    studentTalk: 45, tutorTalk: 55, energy: 72, attentionDrift: 10, interruptions: 1,
+    summary: "Excellent session on the quadratic formula. Sarah solved 4 problems independently, explained her reasoning aloud, and caught her own errors. Eye contact consistently strong. Engagement at its highest yet.",
+    date: "2026-03-15T16:45:00Z"
   },
+
+  // Alex Rivera: Physics journey (Mar 6 -> Mar 14)
   {
-    student: "Jordan Patel", subject: "Chemistry", duration: 50, engagement: 45, eyeContact: 32,
-    studentTalk: 18, tutorTalk: 82, energy: 30, attentionDrift: 42, interruptions: 6,
-    summary: "Attempted to cover chemical bonding and electron configuration. Jordan was largely disengaged \u2014 attention drifted significantly after 15 minutes. Very low verbal participation. Need to try a different approach: shorter segments, more interactive demos, or hands-on activities.",
-    date: "2026-03-13T18:00:00Z"
-  },
-  {
-    student: "Jordan Patel", subject: "Chemistry", duration: 30, engagement: 58, eyeContact: 50,
-    studentTalk: 25, tutorTalk: 75, energy: 42, attentionDrift: 28, interruptions: 4,
-    summary: "Focused on periodic table trends. Slight improvement from last session after switching to a more visual teaching approach. Jordan responded better to diagrams and color-coded charts. Still below target engagement.",
-    date: "2026-03-10T17:30:00Z"
-  },
-  {
-    student: "Casey Kim", subject: "Biology", duration: 55, engagement: 73, eyeContact: 70,
-    studentTalk: 40, tutorTalk: 60, energy: 65, attentionDrift: 20, interruptions: 3,
-    summary: "Covered cell division \u2014 mitosis phases. Casey followed along well during the visual walkthrough but struggled with the terminology. Recommend flashcard practice for prophase/metaphase/anaphase/telophase. Good questions about cancer and uncontrolled division.",
-    date: "2026-03-12T16:00:00Z"
-  },
-  {
-    student: "Casey Kim", subject: "English", duration: 40, engagement: 88, eyeContact: 85,
-    studentTalk: 55, tutorTalk: 45, energy: 78, attentionDrift: 10, interruptions: 1,
-    summary: "Analyzed Chapter 3 of To Kill a Mockingbird. Casey showed strong analytical skills \u2014 identified themes of innocence and prejudice independently. Excellent discussion, more student-led than tutor-led. Outstanding session.",
-    date: "2026-03-09T15:00:00Z"
-  },
-  {
-    student: "Morgan Davis", subject: "History", duration: 35, engagement: 42, eyeContact: 35,
-    studentTalk: 15, tutorTalk: 85, energy: 28, attentionDrift: 45, interruptions: 7,
-    summary: "Attempted to cover the American Revolution causes. Morgan was highly disengaged \u2014 frequent looking away, minimal participation, multiple interruptions. Consider: shorter session length, starting with a hook question, or connecting to Morgan's interests.",
-    date: "2026-03-11T14:00:00Z"
-  },
-  {
-    student: "Morgan Davis", subject: "History", duration: 25, engagement: 62, eyeContact: 58,
-    studentTalk: 30, tutorTalk: 70, energy: 48, attentionDrift: 25, interruptions: 3,
-    summary: "Tried a different approach \u2014 started with a debate question about taxation without representation. Morgan engaged more when given an opinion-based prompt. Improvement from last session. Continue with discussion-based format rather than lecture.",
-    date: "2026-03-08T14:30:00Z"
-  },
-  {
-    student: "Sarah Chen", subject: "Geometry", duration: 42, engagement: 79, eyeContact: 75,
-    studentTalk: 44, tutorTalk: 56, energy: 70, attentionDrift: 15, interruptions: 2,
-    summary: "Covered triangle congruence proofs (SSS, SAS, ASA). Sarah worked through 3 proofs independently with guidance. Strong spatial reasoning. Needs practice on writing formal proof statements. Assigned proof worksheet.",
-    date: "2026-03-07T20:00:00Z"
-  },
-  {
-    student: "Alex Rivera", subject: "Mathematics", duration: 60, engagement: 68, eyeContact: 62,
-    studentTalk: 35, tutorTalk: 65, energy: 55, attentionDrift: 22, interruptions: 4,
-    summary: "Long session covering integration techniques \u2014 substitution and parts. Alex understood substitution well but integration by parts was challenging. Energy dropped in final 15 minutes. Consider splitting into two shorter sessions for dense material.",
+    student: "Alex Rivera", subject: "Physics", duration: 40, engagement: 58, eyeContact: 55,
+    studentTalk: 28, tutorTalk: 72, energy: 42, attentionDrift: 30, interruptions: 4,
+    summary: "Introduced Newton's first law. Alex has good intuition but struggled with formal definitions. Low verbal participation. Attention wandered during derivations. Try more real-world examples next time.",
     date: "2026-03-06T19:00:00Z"
+  },
+  {
+    student: "Alex Rivera", subject: "Physics", duration: 45, engagement: 72, eyeContact: 70,
+    studentTalk: 38, tutorTalk: 62, energy: 62, attentionDrift: 18, interruptions: 2,
+    summary: "Newton's second law (F=ma). Used car/rocket examples which Alex responded to well. Started asking 'what if' questions. Eye contact much improved. Participation increasing. Good momentum.",
+    date: "2026-03-09T19:00:00Z"
+  },
+  {
+    student: "Alex Rivera", subject: "Physics", duration: 50, engagement: 84, eyeContact: 82,
+    studentTalk: 44, tutorTalk: 56, energy: 75, attentionDrift: 12, interruptions: 1,
+    summary: "Covered friction forces and free body diagrams. Alex drew diagrams independently and explained force components. Strong participation. Grasped inclined plane problems faster than expected.",
+    date: "2026-03-11T19:00:00Z"
+  },
+  {
+    student: "Alex Rivera", subject: "Physics", duration: 45, engagement: 92, eyeContact: 90,
+    studentTalk: 50, tutorTalk: 50, energy: 85, attentionDrift: 6, interruptions: 0,
+    summary: "Outstanding session on Newton's third law and momentum. Alex led the problem-solving, asked deep questions about real-world applications, and made connections across all three laws. Near-perfect engagement.",
+    date: "2026-03-14T19:00:00Z"
+  },
+
+  // Jordan Patel: Chemistry journey (Mar 7 -> Mar 15) - slower improvement
+  {
+    student: "Jordan Patel", subject: "Chemistry", duration: 30, engagement: 32, eyeContact: 28,
+    studentTalk: 12, tutorTalk: 88, energy: 20, attentionDrift: 52, interruptions: 8,
+    summary: "Difficult session. Attempted atomic structure basics. Jordan was largely disengaged. Phone distraction, minimal eye contact, almost no verbal participation. Ended early. Need a completely different approach.",
+    date: "2026-03-07T17:00:00Z"
+  },
+  {
+    student: "Jordan Patel", subject: "Chemistry", duration: 35, engagement: 48, eyeContact: 42,
+    studentTalk: 20, tutorTalk: 80, energy: 35, attentionDrift: 38, interruptions: 5,
+    summary: "Tried visual/interactive approach with molecular model kit. Jordan engaged more with hands-on activity. Eye contact improved when manipulating models vs. lecture. Still low verbal participation. Build on what works.",
+    date: "2026-03-10T17:00:00Z"
+  },
+  {
+    student: "Jordan Patel", subject: "Chemistry", duration: 40, engagement: 58, eyeContact: 52,
+    studentTalk: 28, tutorTalk: 72, energy: 45, attentionDrift: 28, interruptions: 3,
+    summary: "Periodic table trends with color-coded visual charts. Jordan responded well to the competitive quiz format. Attention improved noticeably. Asked two questions voluntarily. Progress is slow but real.",
+    date: "2026-03-12T17:00:00Z"
+  },
+  {
+    student: "Jordan Patel", subject: "Chemistry", duration: 45, engagement: 66, eyeContact: 60,
+    studentTalk: 32, tutorTalk: 68, energy: 52, attentionDrift: 22, interruptions: 2,
+    summary: "Chemical bonding with 3D molecule visualizations. Best session yet. Jordan explained ionic vs. covalent bonding back in own words. Eye contact above 50% for the first time. The visual/interactive format is working.",
+    date: "2026-03-15T17:00:00Z"
+  },
+
+  // Casey Kim: Biology (Mar 8 -> Mar 14)
+  {
+    student: "Casey Kim", subject: "Biology", duration: 40, engagement: 60, eyeContact: 58,
+    studentTalk: 30, tutorTalk: 70, energy: 45, attentionDrift: 25, interruptions: 3,
+    summary: "Introduction to cell biology. Casey listened attentively but rarely spoke up. Understood diagrams well. Eye contact moderate. Seemed interested but passive. Try more open-ended questions.",
+    date: "2026-03-08T15:00:00Z"
+  },
+  {
+    student: "Casey Kim", subject: "Biology", duration: 50, engagement: 74, eyeContact: 72,
+    studentTalk: 40, tutorTalk: 60, energy: 62, attentionDrift: 18, interruptions: 2,
+    summary: "Cell division and mitosis phases. Casey followed the visual walkthrough well. Asked good questions about cancer and uncontrolled division. Participation up from last session. Terminology still needs flashcard practice.",
+    date: "2026-03-11T15:00:00Z"
+  },
+  {
+    student: "Casey Kim", subject: "Biology", duration: 55, engagement: 88, eyeContact: 85,
+    studentTalk: 52, tutorTalk: 48, energy: 78, attentionDrift: 8, interruptions: 1,
+    summary: "Genetics and Punnett squares. Casey was highly engaged. Solved problems independently, explained heredity concepts clearly, and even taught back dominant/recessive traits. Student-led session. Remarkable improvement.",
+    date: "2026-03-14T15:00:00Z"
+  },
+
+  // Morgan Davis: History (Mar 7 -> Mar 15) - hardest student, gradual gains
+  {
+    student: "Morgan Davis", subject: "History", duration: 25, engagement: 28, eyeContact: 22,
+    studentTalk: 10, tutorTalk: 90, energy: 18, attentionDrift: 55, interruptions: 9,
+    summary: "Very challenging session. American Revolution causes. Morgan showed no interest in lecture format. Constant fidgeting, looking away, one-word answers. Ended 5 minutes early. Must find Morgan's interest hook.",
+    date: "2026-03-07T14:00:00Z"
+  },
+  {
+    student: "Morgan Davis", subject: "History", duration: 30, engagement: 45, eyeContact: 40,
+    studentTalk: 22, tutorTalk: 78, energy: 35, attentionDrift: 35, interruptions: 5,
+    summary: "Tried debate format: 'Was the Boston Tea Party justified?' Morgan engaged when given an opinion to defend. Eye contact improved during the debate portion. Still disengaged during factual review. Lean into discussion-based format.",
+    date: "2026-03-10T14:00:00Z"
+  },
+  {
+    student: "Morgan Davis", subject: "History", duration: 35, engagement: 58, eyeContact: 55,
+    studentTalk: 30, tutorTalk: 70, energy: 48, attentionDrift: 25, interruptions: 3,
+    summary: "Constitutional Convention as a role-play exercise. Morgan chose to represent Virginia. Participated actively during the role-play, less so during debrief. Eye contact strong during interactive portions.",
+    date: "2026-03-12T14:00:00Z"
+  },
+  {
+    student: "Morgan Davis", subject: "History", duration: 40, engagement: 68, eyeContact: 64,
+    studentTalk: 38, tutorTalk: 62, energy: 58, attentionDrift: 18, interruptions: 2,
+    summary: "Civil War causes using primary source documents. Asked Morgan to 'be the detective.' Best session yet. Morgan voluntarily shared opinions and made connections to current events. Interactive/role-play format is key for this student.",
+    date: "2026-03-15T14:00:00Z"
   },
 ];
 
@@ -202,6 +254,31 @@ export function TutorDashboard() {
   const [sortBy, setSortBy] = useState<"date" | "student" | "score" | "duration" | "eyeContact">("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expandedTile, setExpandedTile] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const deleteSession = async (sessionId: string) => {
+    if (!confirm("Delete this session? This will permanently remove all session data including metrics and coaching nudges.")) return;
+    setDeleting(sessionId);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("sessions").delete().eq("id", sessionId);
+      if (error) {
+        console.error("[dashboard] delete failed:", error);
+        alert("Failed to delete session: " + error.message);
+        return;
+      }
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      setEnrichedSessions(prev => prev.filter(s => s.id !== sessionId));
+      setSummaries(prev => {
+        const next = { ...prev };
+        delete next[sessionId];
+        return next;
+      });
+      if (selectedId === sessionId) setSelectedId(null);
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const toggleSort = (col: typeof sortBy) => {
     if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -304,7 +381,17 @@ export function TutorDashboard() {
 
     return (
       <div className="dashboard">
-        <button className="detail-back" onClick={() => setSelectedId(null)}>&#8592; Back to sessions</button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button className="detail-back" onClick={() => setSelectedId(null)}>&#8592; Back to sessions</button>
+          <button
+            className="ghost-button"
+            style={{ color: "var(--danger)", fontSize: "0.82rem", padding: "6px 14px" }}
+            onClick={(e) => { e.stopPropagation(); void deleteSession(enriched.id); }}
+            disabled={deleting === enriched.id}
+          >
+            {deleting === enriched.id ? "Deleting..." : "Delete Session"}
+          </button>
+        </div>
         <h1 className="dash-title">Session Detail</h1>
         <p className="detail-date">{fmt(enriched.started_at)} &middot; {enriched.studentName} &middot; {enriched.subject}</p>
 
@@ -357,7 +444,7 @@ export function TutorDashboard() {
               { label: "Eye Contact", value: eyeContact, max: 100, color: "#2B86C5" },
               { label: "Student Talk", value: talkStudent, max: 100, color: "#8B5CF6" },
               { label: "Tutor Talk", value: talkTutor, max: 100, color: "#E8573A" },
-              { label: "Energy", value: enriched.demoMetrics.energy, max: 100, color: "#2D9D5E" },
+              { label: "Responsiveness", value: enriched.demoMetrics.energy, max: 100, color: "#2D9D5E" },
               { label: "Attention", value: 100 - enriched.demoMetrics.attentionDrift, max: 100, color: "#E8873A" },
               { label: "Duration", value: Math.min(100, enriched.demoMetrics.duration * 2), max: 100, color: "#6366F1" },
               { label: "Engagement", value: score, max: 100, color: "#C4402F" },
@@ -468,7 +555,7 @@ export function TutorDashboard() {
                   <li>{enriched.studentName} spoke for only {enriched.demoMetrics.studentTalk}% of the session. Increase student talk time by asking open-ended questions and waiting at least 5 seconds for responses.</li>
                 )}
                 {enriched.demoMetrics.energy < 40 && (
-                  <li>Energy level was low ({enriched.demoMetrics.energy}%). Consider adding interactive exercises, whiteboard activities, or short breaks to boost engagement.</li>
+                  <li>Responsiveness was low ({enriched.demoMetrics.energy}%). Consider adding interactive exercises, whiteboard activities, or short breaks to boost engagement.</li>
                 )}
                 {enriched.demoMetrics.attentionDrift > 30 && (
                   <li>Attention drift was elevated ({enriched.demoMetrics.attentionDrift}%). This often indicates the material pace is too fast or too slow. Check for understanding at 5-minute intervals.</li>
@@ -536,6 +623,7 @@ export function TutorDashboard() {
                 <th onClick={() => toggleSort("duration")} className="sortable">Duration {sortBy === "duration" ? (sortDir === "asc" ? "\u2191" : "\u2193") : ""}</th>
                 <th onClick={() => toggleSort("eyeContact")} className="sortable">Eye Contact {sortBy === "eyeContact" ? (sortDir === "asc" ? "\u2191" : "\u2193") : ""}</th>
                 <th onClick={() => toggleSort("score")} className="sortable">Score {sortBy === "score" ? (sortDir === "asc" ? "\u2191" : "\u2193") : ""}</th>
+                <th style={{ width: 50 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -552,6 +640,22 @@ export function TutorDashboard() {
                       <span className="table-score" style={{ background: engBg(score), color: engColor(score) }}>
                         {Math.round(score)}
                       </span>
+                    </td>
+                    <td>
+                      <button
+                        className="ghost-button"
+                        style={{ color: "var(--danger)", fontSize: "0.75rem", padding: "4px 8px", minWidth: "auto" }}
+                        onClick={(e) => { e.stopPropagation(); void deleteSession(s.id); }}
+                        disabled={deleting === s.id}
+                        title="Delete session"
+                      >
+                        {deleting === s.id ? "..." : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                          </svg>
+                        )}
+                      </button>
                     </td>
                   </tr>
                 );

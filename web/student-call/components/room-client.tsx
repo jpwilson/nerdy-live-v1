@@ -273,12 +273,23 @@ function RoomClient({
     return () => window.clearTimeout(timer);
   }, [copyState]);
 
+  // Track session start time
   useEffect(() => {
     if (connectionState === "connected" || connectionState === "waiting_for_peer") {
+      if (!localStorage.getItem("livesesh_sessionStartedAt")) {
+        localStorage.setItem("livesesh_sessionStartedAt", String(Date.now()));
+      }
       startListening();
     }
     return () => { stopListening(); };
   }, [connectionState, startListening, stopListening]);
+
+  // Track whether a student/remote peer ever joined
+  useEffect(() => {
+    if (remoteStream) {
+      localStorage.setItem("livesesh_studentJoined", "true");
+    }
+  }, [remoteStream]);
 
   // Face position callback (stable ref via useCallback)
   const handleFacePosition = useCallback((data: FacePositionData) => {
@@ -565,15 +576,17 @@ function RoomClient({
                 onClick={() => {
                   void (async () => {
                     const sessionData = getSessionData(50); // TODO: get actual engagement score
-                    // Store in localStorage for the dashboard to pick up
+                    const sessionStartedAt = parseInt(localStorage.getItem("livesesh_sessionStartedAt") || "0", 10);
+                    // Store in localStorage for the summary page to pick up
                     try {
                       localStorage.setItem("livesesh_lastSession", JSON.stringify({
                         subject: sessionData.subject,
                         summary: sessionData.summary,
                         transcript: sessionData.transcriptText.slice(0, 2000),
-                        timestamp: Date.now(),
+                        timestamp: sessionStartedAt || Date.now(),
                       }));
                     } catch { /* localStorage full */ }
+                    localStorage.removeItem("livesesh_sessionStartedAt");
                     await hangUp();
                     window.location.href = "/session-summary";
                   })();
