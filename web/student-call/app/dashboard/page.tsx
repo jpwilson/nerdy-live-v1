@@ -48,16 +48,18 @@ export default function DashboardPage() {
 
   // Demo session data for graph visualization
   const demoSessions = [
-    { id: "s1", subject: "Algebra", date: "Mar 14", engagement: 82, eyeContact: 78, talkBalance: 45, interruptions: 2, duration: 28, student: "Sarah Chen" },
-    { id: "s2", subject: "Calculus", date: "Mar 13", engagement: 65, eyeContact: 55, talkBalance: 35, interruptions: 4, duration: 22, student: "Sarah Chen" },
-    { id: "s3", subject: "Geometry", date: "Mar 12", engagement: 91, eyeContact: 88, talkBalance: 50, interruptions: 1, duration: 35, student: "Alex Rivera" },
-    { id: "s4", subject: "Physics", date: "Mar 11", engagement: 45, eyeContact: 32, talkBalance: 20, interruptions: 6, duration: 18, student: "Jordan Patel" },
-    { id: "s5", subject: "Algebra", date: "Mar 10", engagement: 73, eyeContact: 70, talkBalance: 42, interruptions: 3, duration: 30, student: "Alex Rivera" },
-    { id: "s6", subject: "Biology", date: "Mar 9", engagement: 58, eyeContact: 48, talkBalance: 30, interruptions: 5, duration: 25, student: "Casey Kim" },
-    { id: "s7", subject: "Algebra", date: "Mar 8", engagement: 88, eyeContact: 85, talkBalance: 55, interruptions: 1, duration: 32, student: "Sarah Chen" },
-    { id: "s8", subject: "History", date: "Mar 7", engagement: 42, eyeContact: 35, talkBalance: 15, interruptions: 7, duration: 15, student: "Morgan Davis" },
-    { id: "s9", subject: "Chemistry", date: "Mar 6", engagement: 76, eyeContact: 72, talkBalance: 48, interruptions: 2, duration: 27, student: "Jordan Patel" },
-    { id: "s10", subject: "Geometry", date: "Mar 5", engagement: 69, eyeContact: 60, talkBalance: 38, interruptions: 3, duration: 20, student: "Casey Kim" },
+    { id: "s1", subject: "Algebra", date: "2026-03-14", engagement: 82, eyeContact: 78, talkBalance: 42, interruptions: 2, duration: 35, student: "Sarah Chen" },
+    { id: "s2", subject: "Physics", date: "2026-03-13", engagement: 91, eyeContact: 88, talkBalance: 48, interruptions: 1, duration: 45, student: "Alex Rivera" },
+    { id: "s3", subject: "Chemistry", date: "2026-03-13", engagement: 45, eyeContact: 32, talkBalance: 18, interruptions: 6, duration: 50, student: "Jordan Patel" },
+    { id: "s4", subject: "Algebra", date: "2026-03-12", engagement: 75, eyeContact: 72, talkBalance: 38, interruptions: 3, duration: 28, student: "Sarah Chen" },
+    { id: "s5", subject: "Biology", date: "2026-03-12", engagement: 73, eyeContact: 70, talkBalance: 40, interruptions: 3, duration: 55, student: "Casey Kim" },
+    { id: "s6", subject: "Physics", date: "2026-03-11", engagement: 85, eyeContact: 80, talkBalance: 45, interruptions: 2, duration: 40, student: "Alex Rivera" },
+    { id: "s7", subject: "History", date: "2026-03-11", engagement: 42, eyeContact: 35, talkBalance: 15, interruptions: 7, duration: 35, student: "Morgan Davis" },
+    { id: "s8", subject: "Chemistry", date: "2026-03-10", engagement: 58, eyeContact: 50, talkBalance: 25, interruptions: 4, duration: 30, student: "Jordan Patel" },
+    { id: "s9", subject: "English", date: "2026-03-09", engagement: 88, eyeContact: 85, talkBalance: 55, interruptions: 1, duration: 40, student: "Casey Kim" },
+    { id: "s10", subject: "History", date: "2026-03-08", engagement: 62, eyeContact: 58, talkBalance: 30, interruptions: 3, duration: 25, student: "Morgan Davis" },
+    { id: "s11", subject: "Geometry", date: "2026-03-07", engagement: 79, eyeContact: 75, talkBalance: 44, interruptions: 2, duration: 42, student: "Sarah Chen" },
+    { id: "s12", subject: "Mathematics", date: "2026-03-06", engagement: 68, eyeContact: 62, talkBalance: 35, interruptions: 4, duration: 60, student: "Alex Rivera" },
   ];
 
   return (
@@ -124,52 +126,101 @@ export default function DashboardPage() {
 
             {analyticsSubTab === "trends" && (
               <div className="trends-panel">
-                <div className="trends-grid">
-                  {[
-                    { label: "Eye Contact", values: demoSessions.map(s => s.eyeContact), color: "#2B86C5" },
-                    { label: "Engagement", values: demoSessions.map(s => s.engagement), color: "#2D9D5E" },
-                    { label: "Talk Balance", values: demoSessions.map(s => s.talkBalance), color: "#8B5CF6" },
-                  ].map(metric => {
-                    const avg = Math.round(metric.values.reduce((a, b) => a + b, 0) / metric.values.length);
-                    const recent = metric.values.slice(0, 3);
-                    const older = metric.values.slice(3, 6);
-                    const recentAvg = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
-                    const olderAvg = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : 0;
-                    const trend = older.length === 0 ? "—" : recentAvg > olderAvg + 3 ? "↑ Improving" : recentAvg < olderAvg - 3 ? "↓ Declining" : "→ Stable";
-                    const trendColor = trend.includes("Improving") ? "#2D9D5E" : trend.includes("Declining") ? "#C4402F" : "var(--muted)";
-                    return (
-                      <div key={metric.label} className="trend-card">
-                        <div className="trend-card-header">
-                          <span className="trend-card-label">{metric.label}</span>
-                          <span className="trend-card-avg" style={{ color: metric.color }}>{avg}%</span>
+                {/* Per-student trend charts */}
+                {["Sarah Chen", "Alex Rivera", "Jordan Patel", "Casey Kim", "Morgan Davis"].map(student => {
+                  // Get sessions for this student from demoSessions
+                  const studentSessions = demoSessions
+                    .filter(s => s.student === student)
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                  if (studentSessions.length === 0) return null;
+
+                  const avgEng = Math.round(studentSessions.reduce((a, b) => a + b.engagement, 0) / studentSessions.length);
+                  const firstEng = studentSessions[0].engagement;
+                  const lastEng = studentSessions[studentSessions.length - 1].engagement;
+                  const trendDir = lastEng > firstEng + 3 ? "↑ Improving" : lastEng < firstEng - 3 ? "↓ Declining" : "→ Stable";
+                  const trendColor = trendDir.includes("Improving") ? "#2D9D5E" : trendDir.includes("Declining") ? "#C4402F" : "var(--muted)";
+
+                  return (
+                    <div key={student} className="student-trend-card">
+                      <div className="student-trend-header">
+                        <div>
+                          <span className="student-trend-name">{student}</span>
+                          <span className="student-trend-sessions">{studentSessions.length} sessions · Avg: {avgEng}%</span>
                         </div>
-                        {/* Mini sparkline */}
-                        <svg viewBox="0 0 200 60" className="trend-sparkline">
-                          <polyline
-                            fill="none"
-                            stroke={metric.color}
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            points={metric.values.map((v, i) =>
-                              `${(i / (metric.values.length - 1)) * 190 + 5},${55 - (v / 100) * 50}`
-                            ).join(" ")}
-                          />
-                          {metric.values.map((v, i) => (
-                            <circle
-                              key={i}
-                              cx={(i / (metric.values.length - 1)) * 190 + 5}
-                              cy={55 - (v / 100) * 50}
-                              r="3"
-                              fill={metric.color}
-                            />
-                          ))}
-                        </svg>
-                        <span className="trend-card-direction" style={{ color: trendColor }}>{trend}</span>
+                        <span className="student-trend-dir" style={{ color: trendColor }}>{trendDir}</span>
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Multi-metric chart */}
+                      <svg viewBox="0 0 500 140" className="student-trend-chart">
+                        {/* Grid */}
+                        {[0, 1, 2, 3, 4].map(i => (
+                          <line key={i} x1="40" y1={15 + i * 27} x2="490" y2={15 + i * 27} stroke="rgba(0,0,0,0.05)" strokeWidth="1" />
+                        ))}
+                        {/* Y labels */}
+                        <text x="8" y="18" fontSize="9" fill="#999">100</text>
+                        <text x="8" y="72" fontSize="9" fill="#999">50</text>
+                        <text x="8" y="126" fontSize="9" fill="#999">0</text>
+
+                        {/* X labels — actual dates */}
+                        {studentSessions.map((s, i) => (
+                          <text key={i} x={40 + (i / Math.max(1, studentSessions.length - 1)) * 450} y="138" fontSize="8" fill="#999" textAnchor="middle">
+                            {new Date(s.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </text>
+                        ))}
+
+                        {/* Engagement line */}
+                        <polyline
+                          fill="none" stroke="#C4402F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                          points={studentSessions.map((s, i) => {
+                            const x = 40 + (i / Math.max(1, studentSessions.length - 1)) * 450;
+                            const y = 123 - (s.engagement / 100) * 108;
+                            return `${x},${y}`;
+                          }).join(" ")}
+                        />
+                        {studentSessions.map((s, i) => {
+                          const x = 40 + (i / Math.max(1, studentSessions.length - 1)) * 450;
+                          const y = 123 - (s.engagement / 100) * 108;
+                          return <circle key={`e${i}`} cx={x} cy={y} r="4" fill="#C4402F" />;
+                        })}
+
+                        {/* Eye contact line */}
+                        <polyline
+                          fill="none" stroke="#2B86C5" strokeWidth="1.5" strokeDasharray="4 2" strokeLinecap="round"
+                          points={studentSessions.map((s, i) => {
+                            const x = 40 + (i / Math.max(1, studentSessions.length - 1)) * 450;
+                            const y = 123 - (s.eyeContact / 100) * 108;
+                            return `${x},${y}`;
+                          }).join(" ")}
+                        />
+
+                        {/* Talk balance line */}
+                        <polyline
+                          fill="none" stroke="#8B5CF6" strokeWidth="1.5" strokeDasharray="2 3" strokeLinecap="round"
+                          points={studentSessions.map((s, i) => {
+                            const x = 40 + (i / Math.max(1, studentSessions.length - 1)) * 450;
+                            const y = 123 - (s.talkBalance / 100) * 108;
+                            return `${x},${y}`;
+                          }).join(" ")}
+                        />
+                      </svg>
+
+                      <div className="student-trend-legend">
+                        <span><span className="legend-dot" style={{ background: "#C4402F" }} /> Engagement</span>
+                        <span><span className="legend-dot" style={{ background: "#2B86C5" }} /> Eye Contact</span>
+                        <span><span className="legend-dot" style={{ background: "#8B5CF6" }} /> Talk Balance</span>
+                      </div>
+
+                      <p className="student-trend-desc">
+                        {trendDir.includes("Improving")
+                          ? `${student}'s engagement has been trending upward across recent sessions. Eye contact and participation are both strengthening.`
+                          : trendDir.includes("Declining")
+                          ? `${student}'s engagement is declining. Consider changing the teaching approach — try more interactive methods or shorter sessions.`
+                          : `${student} shows consistent engagement levels. Look for opportunities to push engagement higher with varied activities.`}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

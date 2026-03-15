@@ -48,7 +48,7 @@ function RadarChart({ data, size = 260 }: { data: { label: string; value: number
   const gridLevels = [0.25, 0.5, 0.75, 1.0];
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="radar-chart">
+    <svg viewBox={`-30 -30 ${size + 60} ${size + 60}`} className="radar-chart">
       {/* Grid */}
       {gridLevels.map(level => (
         <polygon
@@ -103,6 +103,81 @@ function RadarChart({ data, size = 260 }: { data: { label: string; value: number
   );
 }
 
+const RICH_DEMO_DATA = [
+  {
+    student: "Sarah Chen", subject: "Algebra", duration: 35, engagement: 82, eyeContact: 78,
+    studentTalk: 42, tutorTalk: 58, energy: 68, attentionDrift: 12, interruptions: 2,
+    summary: "Covered quadratic equations and the discriminant. Sarah demonstrated good understanding of factoring but struggled with completing the square. Eye contact was strong throughout. Recommended practice: 10 problems on completing the square.",
+    date: "2026-03-14T21:05:00Z"
+  },
+  {
+    student: "Sarah Chen", subject: "Algebra", duration: 28, engagement: 75, eyeContact: 72,
+    studentTalk: 38, tutorTalk: 62, energy: 55, attentionDrift: 18, interruptions: 3,
+    summary: "Reviewed completing the square from last session \u2014 improvement noted. Introduced the quadratic formula. Sarah was engaged but energy dipped around the 20-minute mark. Suggest more frequent check-ins.",
+    date: "2026-03-12T19:30:00Z"
+  },
+  {
+    student: "Alex Rivera", subject: "Physics", duration: 45, engagement: 91, eyeContact: 88,
+    studentTalk: 48, tutorTalk: 52, energy: 82, attentionDrift: 8, interruptions: 1,
+    summary: "Excellent session on Newton's laws of motion. Alex asked insightful questions about the relationship between force and acceleration. Strong participation and eye contact throughout. Ready to move on to friction and inclined planes.",
+    date: "2026-03-13T22:00:00Z"
+  },
+  {
+    student: "Alex Rivera", subject: "Physics", duration: 40, engagement: 85, eyeContact: 80,
+    studentTalk: 45, tutorTalk: 55, energy: 75, attentionDrift: 14, interruptions: 2,
+    summary: "Covered friction forces and free body diagrams. Alex grasped the concepts quickly but needed more time on resolving forces on inclined planes. Good verbal participation. Assigned 5 practice problems.",
+    date: "2026-03-11T20:15:00Z"
+  },
+  {
+    student: "Jordan Patel", subject: "Chemistry", duration: 50, engagement: 45, eyeContact: 32,
+    studentTalk: 18, tutorTalk: 82, energy: 30, attentionDrift: 42, interruptions: 6,
+    summary: "Attempted to cover chemical bonding and electron configuration. Jordan was largely disengaged \u2014 attention drifted significantly after 15 minutes. Very low verbal participation. Need to try a different approach: shorter segments, more interactive demos, or hands-on activities.",
+    date: "2026-03-13T18:00:00Z"
+  },
+  {
+    student: "Jordan Patel", subject: "Chemistry", duration: 30, engagement: 58, eyeContact: 50,
+    studentTalk: 25, tutorTalk: 75, energy: 42, attentionDrift: 28, interruptions: 4,
+    summary: "Focused on periodic table trends. Slight improvement from last session after switching to a more visual teaching approach. Jordan responded better to diagrams and color-coded charts. Still below target engagement.",
+    date: "2026-03-10T17:30:00Z"
+  },
+  {
+    student: "Casey Kim", subject: "Biology", duration: 55, engagement: 73, eyeContact: 70,
+    studentTalk: 40, tutorTalk: 60, energy: 65, attentionDrift: 20, interruptions: 3,
+    summary: "Covered cell division \u2014 mitosis phases. Casey followed along well during the visual walkthrough but struggled with the terminology. Recommend flashcard practice for prophase/metaphase/anaphase/telophase. Good questions about cancer and uncontrolled division.",
+    date: "2026-03-12T16:00:00Z"
+  },
+  {
+    student: "Casey Kim", subject: "English", duration: 40, engagement: 88, eyeContact: 85,
+    studentTalk: 55, tutorTalk: 45, energy: 78, attentionDrift: 10, interruptions: 1,
+    summary: "Analyzed Chapter 3 of To Kill a Mockingbird. Casey showed strong analytical skills \u2014 identified themes of innocence and prejudice independently. Excellent discussion, more student-led than tutor-led. Outstanding session.",
+    date: "2026-03-09T15:00:00Z"
+  },
+  {
+    student: "Morgan Davis", subject: "History", duration: 35, engagement: 42, eyeContact: 35,
+    studentTalk: 15, tutorTalk: 85, energy: 28, attentionDrift: 45, interruptions: 7,
+    summary: "Attempted to cover the American Revolution causes. Morgan was highly disengaged \u2014 frequent looking away, minimal participation, multiple interruptions. Consider: shorter session length, starting with a hook question, or connecting to Morgan's interests.",
+    date: "2026-03-11T14:00:00Z"
+  },
+  {
+    student: "Morgan Davis", subject: "History", duration: 25, engagement: 62, eyeContact: 58,
+    studentTalk: 30, tutorTalk: 70, energy: 48, attentionDrift: 25, interruptions: 3,
+    summary: "Tried a different approach \u2014 started with a debate question about taxation without representation. Morgan engaged more when given an opinion-based prompt. Improvement from last session. Continue with discussion-based format rather than lecture.",
+    date: "2026-03-08T14:30:00Z"
+  },
+  {
+    student: "Sarah Chen", subject: "Geometry", duration: 42, engagement: 79, eyeContact: 75,
+    studentTalk: 44, tutorTalk: 56, energy: 70, attentionDrift: 15, interruptions: 2,
+    summary: "Covered triangle congruence proofs (SSS, SAS, ASA). Sarah worked through 3 proofs independently with guidance. Strong spatial reasoning. Needs practice on writing formal proof statements. Assigned proof worksheet.",
+    date: "2026-03-07T20:00:00Z"
+  },
+  {
+    student: "Alex Rivera", subject: "Mathematics", duration: 60, engagement: 68, eyeContact: 62,
+    studentTalk: 35, tutorTalk: 65, energy: 55, attentionDrift: 22, interruptions: 4,
+    summary: "Long session covering integration techniques \u2014 substitution and parts. Alex understood substitution well but integration by parts was challenging. Energy dropped in final 15 minutes. Consider splitting into two shorter sessions for dense material.",
+    date: "2026-03-06T19:00:00Z"
+  },
+];
+
 interface EnrichedSession extends SessionRow {
   studentName: string;
   subject: string;
@@ -115,6 +190,7 @@ interface EnrichedSession extends SessionRow {
     interruptions: number;
     duration: number;
   };
+  demoSummary: string;
 }
 
 export function TutorDashboard() {
@@ -166,25 +242,24 @@ export function TutorDashboard() {
           setSummaries(map);
         }
 
-        // Enrich sessions with demo data for display
-        const demoStudents = ["Sarah Chen", "Alex Rivera", "Jordan Patel", "Casey Kim", "Morgan Davis"];
-        const demoSubjects = ["Algebra", "Calculus", "Geometry", "Physics", "Biology", "Chemistry", "English", "History"];
-
+        // Enrich sessions with rich demo data for display
         const enriched = sessionData.map((s: SessionRow, i: number) => {
-          const studentTalk = 25 + Math.round(Math.cos(i * 0.8) * 15 + Math.random() * 10);
+          const demo = RICH_DEMO_DATA[i % RICH_DEMO_DATA.length];
           return {
             ...s,
-            studentName: demoStudents[i % demoStudents.length],
-            subject: s.subject || demoSubjects[i % demoSubjects.length],
+            studentName: demo.student,
+            subject: demo.subject,
+            engagement_score: s.engagement_score ?? demo.engagement,
             demoMetrics: {
-              eyeContact: 40 + Math.round(Math.sin(i * 1.5) * 25 + Math.random() * 15),
-              studentTalk,
-              tutorTalk: 100 - studentTalk,
-              energy: 35 + Math.round(Math.sin(i * 2.1) * 20 + Math.random() * 15),
-              attentionDrift: 10 + Math.round(Math.abs(Math.sin(i * 1.2)) * 30),
-              interruptions: Math.round(Math.abs(Math.sin(i * 3)) * 5),
-              duration: 10 + Math.round(Math.random() * 30),
-            }
+              eyeContact: demo.eyeContact,
+              studentTalk: demo.studentTalk,
+              tutorTalk: demo.tutorTalk,
+              energy: demo.energy,
+              attentionDrift: demo.attentionDrift,
+              interruptions: demo.interruptions,
+              duration: demo.duration,
+            },
+            demoSummary: demo.summary,
           };
         });
         setEnrichedSessions(enriched);
@@ -299,11 +374,7 @@ export function TutorDashboard() {
           >
             <h2 className="dash-section-title">Session Summary</h2>
             <p className="detail-summary-text">
-              {score != null && score >= 70
-                ? `${enriched.studentName} showed strong engagement throughout this ${enriched.subject} session. Eye contact was consistently above average and participation was active. Consider maintaining the current teaching approach.`
-                : score != null && score >= 40
-                ? `${enriched.studentName} showed moderate engagement during ${enriched.subject}. There were periods of disengagement, particularly around the midpoint. Try incorporating more interactive elements or checking for understanding more frequently.`
-                : `${enriched.studentName} showed lower engagement in this ${enriched.subject} session. Consider shorter focused segments with breaks, more direct questions, and varying the activity type. Compare with previous sessions to identify what approaches work best.`}
+              {enriched.demoSummary}
             </p>
             <div className="detail-comparison">
               <span className="detail-comp-label">vs. last session with {enriched.studentName}</span>
@@ -330,9 +401,13 @@ export function TutorDashboard() {
                   <line key={i} x1="30" y1={10 + i * 22} x2="390" y2={10 + i * 22} stroke="rgba(0,0,0,0.06)" strokeWidth="1" />
                 ))}
                 {/* X-axis labels */}
-                {["0m", "5m", "10m", "15m", "20m", "25m", "30m"].map((label, i) => (
-                  <text key={i} x={30 + i * 60} y="115" fontSize="8" fill="#999" textAnchor="middle">{label}</text>
-                ))}
+                {Array.from({ length: 7 }, (_, i) => {
+                  const dur = enriched.demoMetrics.duration;
+                  const label = `${Math.round((i / 6) * dur)}m`;
+                  return (
+                    <text key={i} x={30 + i * 60} y="115" fontSize="8" fill="#999" textAnchor="middle">{label}</text>
+                  );
+                })}
                 {/* Fake engagement line */}
                 <polyline
                   fill="none"

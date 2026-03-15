@@ -186,53 +186,6 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
           <h2>Authenticate to join a session.</h2>
         </div>
 
-        <fieldset className="fieldset">
-          <legend>Quick demo login</legend>
-          <p className="field-hint">
-            Select a name to sign in instantly with the correct role.
-          </p>
-          <div className="demo-dropdowns">
-            <div className="demo-select-group">
-              <label htmlFor="demo-student">Student</label>
-              <select
-                id="demo-student"
-                disabled={authLoading}
-                defaultValue=""
-                onChange={(e) => {
-                  const account = DEMO_STUDENTS.find((a) => a.email === e.target.value);
-                  if (account) void demoSignIn(account, "student");
-                  e.target.value = "";
-                }}
-              >
-                <option value="" disabled>Choose student...</option>
-                {DEMO_STUDENTS.map((account) => (
-                  <option key={account.email} value={account.email}>{account.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="demo-select-group">
-              <label htmlFor="demo-tutor">Tutor</label>
-              <select
-                id="demo-tutor"
-                disabled={authLoading}
-                defaultValue=""
-                onChange={(e) => {
-                  const account = DEMO_TUTORS.find((a) => a.email === e.target.value);
-                  if (account) void demoSignIn(account, "tutor_preview");
-                  e.target.value = "";
-                }}
-              >
-                <option value="" disabled>Choose tutor...</option>
-                {DEMO_TUTORS.map((account) => (
-                  <option key={account.email} value={account.email}>{account.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </fieldset>
-
-        <div className="divider-label">or sign in with email</div>
-
         {authState === "signed_out" ? (
           <div className="field">
             <label htmlFor="auth-email">Email address</label>
@@ -284,6 +237,53 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
             </div>
           </div>
         )}
+
+        <div className="divider-label"><span>or use a demo account</span></div>
+
+        <fieldset className="fieldset">
+          <legend>Quick demo login</legend>
+          <p className="field-hint">
+            Select a name to sign in instantly with the correct role.
+          </p>
+          <div className="demo-dropdowns">
+            <div className="demo-select-group">
+              <label htmlFor="demo-student">Student</label>
+              <select
+                id="demo-student"
+                disabled={authLoading}
+                defaultValue=""
+                onChange={(e) => {
+                  const account = DEMO_STUDENTS.find((a) => a.email === e.target.value);
+                  if (account) void demoSignIn(account, "student");
+                  e.target.value = "";
+                }}
+              >
+                <option value="" disabled>Choose student...</option>
+                {DEMO_STUDENTS.map((account) => (
+                  <option key={account.email} value={account.email}>{account.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="demo-select-group">
+              <label htmlFor="demo-tutor">Tutor</label>
+              <select
+                id="demo-tutor"
+                disabled={authLoading}
+                defaultValue=""
+                onChange={(e) => {
+                  const account = DEMO_TUTORS.find((a) => a.email === e.target.value);
+                  if (account) void demoSignIn(account, "tutor_preview");
+                  e.target.value = "";
+                }}
+              >
+                <option value="" disabled>Choose tutor...</option>
+                {DEMO_TUTORS.map((account) => (
+                  <option key={account.email} value={account.email}>{account.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </fieldset>
 
         {authError && <div className="message error">{authError}</div>}
       </div>
