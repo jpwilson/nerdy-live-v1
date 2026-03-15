@@ -366,17 +366,18 @@ function RoomClient({
   const { transcript, isListening, detectedSubject, startListening, stopListening, getSessionData } = useTranscript();
 
   const isTutor = role === "tutor_preview";
+  const [isVideoRecording, setIsVideoRecording] = useState(true);
 
   const sharePath = useMemo(() => buildStudentShareUrl(roomId), [roomId]);
 
   const remoteTitle =
     role === "student" ? "Tutor feed" : "Student feed";
   const emptyTitle =
-    role === "student" ? "Waiting for the tutor app" : "Waiting for the student";
+    role === "student" ? "Waiting for the tutor" : "Waiting for the student";
   const emptyCopy =
     role === "student"
-      ? "The student browser is connected and ready. Once the tutor app joins this room, video appears here."
-      : "Use a second browser in Student mode, or wire the iOS app to this room topic to complete the call.";
+      ? "Connected and ready. Once the tutor joins this room, video appears here."
+      : "Use a second browser in Student mode, or the iOS app to join this room.";
 
   const copyShareLink = async () => {
     try {
@@ -587,10 +588,15 @@ function RoomClient({
             <span className="detected-subject">{detectedSubject}</span>
           )}
           {isListening && (
-            <span className="recording-indicator">
+            <button
+              className={`recording-indicator ${isVideoRecording ? "" : "recording-off"}`}
+              type="button"
+              onClick={() => setIsVideoRecording(v => !v)}
+              title={isVideoRecording ? "Click to stop video recording (metrics still collected)" : "Click to start video recording"}
+            >
               <span className="recording-dot" />
-              Recording
-            </span>
+              {isVideoRecording ? "Recording" : "Metrics only"}
+            </button>
           )}
           <span className={`status-chip ${connectionState}`}>
             {connectionLabel(connectionState)}

@@ -992,21 +992,20 @@ h3 {
 }
 
 .waiting-logo {
-  height: 40px;
+  height: 60px;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08));
 }
 
 .waiting-logo-liveai {
-  height: 48px;
+  height: 72px;
 }
 
 .waiting-x {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 300;
   color: var(--muted);
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .waiting-text h3 {
@@ -1018,17 +1017,33 @@ h3 {
   max-width: 400px;
 }
 
-@keyframes pulse-glow {
-  0%, 100% { opacity: 1; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08)); }
-  50% { opacity: 0.65; filter: drop-shadow(0 4px 24px rgba(196, 64, 47, 0.3)); }
+/* Nerdy logo: fade out completely, then scale-bounce back in */
+@keyframes brand-pulse-a {
+  0%   { opacity: 1; transform: scale(1); filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08)); }
+  30%  { opacity: 0; transform: scale(0.85); filter: drop-shadow(0 0 0 transparent); }
+  50%  { opacity: 0; transform: scale(0.85); }
+  65%  { opacity: 1; transform: scale(1.08); filter: drop-shadow(0 6px 28px rgba(196, 64, 47, 0.35)); }
+  80%  { opacity: 1; transform: scale(0.97); filter: drop-shadow(0 3px 14px rgba(196, 64, 47, 0.2)); }
+  100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08)); }
+}
+
+/* Live+AI logo: offset timing so they alternate */
+@keyframes brand-pulse-b {
+  0%   { opacity: 1; transform: scale(1); filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08)); }
+  30%  { opacity: 1; transform: scale(1); filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08)); }
+  50%  { opacity: 0; transform: scale(0.85); filter: drop-shadow(0 0 0 transparent); }
+  70%  { opacity: 0; transform: scale(0.85); }
+  82%  { opacity: 1; transform: scale(1.08); filter: drop-shadow(0 6px 28px rgba(100, 60, 200, 0.35)); }
+  92%  { opacity: 1; transform: scale(0.97); filter: drop-shadow(0 3px 14px rgba(100, 60, 200, 0.2)); }
+  100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08)); }
 }
 
 .pulse-slow {
-  animation: pulse-glow 3s ease-in-out infinite;
+  animation: brand-pulse-a 4s ease-in-out infinite;
 }
 
 .pulse-delay {
-  animation-delay: 1.5s;
+  animation: brand-pulse-b 4s ease-in-out infinite;
 }
 
 .video-placeholder h3,
@@ -2687,6 +2702,25 @@ h3 {
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--danger);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.recording-indicator:hover {
+  background: rgba(196, 64, 47, 0.08);
+}
+
+.recording-indicator.recording-off {
+  color: var(--muted);
+}
+
+.recording-indicator.recording-off .recording-dot {
+  background: var(--muted);
+  animation: none;
 }
 
 .recording-dot {

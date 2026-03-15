@@ -34,7 +34,7 @@ export function connectionLabel(state: CallConnectionState): string {
     case "joining_room":
       return "Joining room";
     case "waiting_for_peer":
-      return "Waiting for the tutor app";
+      return "Waiting for peer";
     case "connecting":
       return "Negotiating WebRTC";
     case "connected":
