@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { TutorDashboard } from "@/components/tutor-dashboard";
+import { SessionGraph } from "@/components/session-graph";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"sessions" | "analytics" | "settings">("sessions");
+  const [analyticsSubTab, setAnalyticsSubTab] = useState<"graph" | "trends">("graph");
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -43,6 +45,18 @@ export default function DashboardPage() {
     localStorage.removeItem("livesesh_role");
     window.location.href = "/";
   };
+
+  // Demo session data for graph visualization
+  const demoSessions = [
+    { id: "s1", subject: "Algebra", date: "Mar 14", engagement: 82, eyeContact: 78, talkBalance: 45, interruptions: 2, duration: 28 },
+    { id: "s2", subject: "Calculus", date: "Mar 13", engagement: 65, eyeContact: 55, talkBalance: 35, interruptions: 4, duration: 22 },
+    { id: "s3", subject: "Geometry", date: "Mar 12", engagement: 91, eyeContact: 88, talkBalance: 50, interruptions: 1, duration: 35 },
+    { id: "s4", subject: "Physics", date: "Mar 11", engagement: 45, eyeContact: 32, talkBalance: 20, interruptions: 6, duration: 18 },
+    { id: "s5", subject: "Chemistry", date: "Mar 10", engagement: 73, eyeContact: 70, talkBalance: 42, interruptions: 3, duration: 30 },
+    { id: "s6", subject: "Biology", date: "Mar 9", engagement: 58, eyeContact: 48, talkBalance: 30, interruptions: 5, duration: 25 },
+    { id: "s7", subject: "English", date: "Mar 8", engagement: 88, eyeContact: 85, talkBalance: 55, interruptions: 1, duration: 32 },
+    { id: "s8", subject: "History", date: "Mar 7", engagement: 42, eyeContact: 35, talkBalance: 15, interruptions: 7, duration: 15 },
+  ];
 
   return (
     <main className="dash-shell">
@@ -87,10 +101,72 @@ export default function DashboardPage() {
         {activeTab === "analytics" && (
           <div className="dash-tab-panel">
             <h1 className="dash-title">Analytics</h1>
-            <p style={{ color: "var(--muted)", marginTop: 8 }}>Cross-session analysis and tutor performance insights.</p>
-            <div className="detail-timeline-placeholder" style={{ marginTop: 20, minHeight: 200 }}>
-              Interactive session graph visualization — coming soon
+            <p style={{ color: "var(--muted)", marginTop: 8 }}>Cross-session insights and engagement trends.</p>
+
+            {/* Sub-tabs */}
+            <div className="analytics-subtabs">
+              <button className={`analytics-subtab ${analyticsSubTab === "graph" ? "active" : ""}`} onClick={() => setAnalyticsSubTab("graph")}>
+                Session Graph
+              </button>
+              <button className={`analytics-subtab ${analyticsSubTab === "trends" ? "active" : ""}`} onClick={() => setAnalyticsSubTab("trends")}>
+                Trends
+              </button>
             </div>
+
+            {analyticsSubTab === "graph" && (
+              <SessionGraph sessions={demoSessions} />
+            )}
+
+            {analyticsSubTab === "trends" && (
+              <div className="trends-panel">
+                <div className="trends-grid">
+                  {[
+                    { label: "Eye Contact", values: demoSessions.map(s => s.eyeContact), color: "#2B86C5" },
+                    { label: "Engagement", values: demoSessions.map(s => s.engagement), color: "#2D9D5E" },
+                    { label: "Talk Balance", values: demoSessions.map(s => s.talkBalance), color: "#8B5CF6" },
+                  ].map(metric => {
+                    const avg = Math.round(metric.values.reduce((a, b) => a + b, 0) / metric.values.length);
+                    const recent = metric.values.slice(0, 3);
+                    const older = metric.values.slice(3, 6);
+                    const recentAvg = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+                    const olderAvg = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : 0;
+                    const trend = older.length === 0 ? "—" : recentAvg > olderAvg + 3 ? "↑ Improving" : recentAvg < olderAvg - 3 ? "↓ Declining" : "→ Stable";
+                    const trendColor = trend.includes("Improving") ? "#2D9D5E" : trend.includes("Declining") ? "#C4402F" : "var(--muted)";
+                    return (
+                      <div key={metric.label} className="trend-card">
+                        <div className="trend-card-header">
+                          <span className="trend-card-label">{metric.label}</span>
+                          <span className="trend-card-avg" style={{ color: metric.color }}>{avg}%</span>
+                        </div>
+                        {/* Mini sparkline */}
+                        <svg viewBox="0 0 200 60" className="trend-sparkline">
+                          <polyline
+                            fill="none"
+                            stroke={metric.color}
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            points={metric.values.map((v, i) =>
+                              `${(i / (metric.values.length - 1)) * 190 + 5},${55 - (v / 100) * 50}`
+                            ).join(" ")}
+                          />
+                          {metric.values.map((v, i) => (
+                            <circle
+                              key={i}
+                              cx={(i / (metric.values.length - 1)) * 190 + 5}
+                              cy={55 - (v / 100) * 50}
+                              r="3"
+                              fill={metric.color}
+                            />
+                          ))}
+                        </svg>
+                        <span className="trend-card-direction" style={{ color: trendColor }}>{trend}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
         {activeTab === "settings" && (
