@@ -15,12 +15,28 @@ export default function DashboardPage() {
   const [modelRealtime, setModelRealtime] = useState("haiku");
   const [modelSummary, setModelSummary] = useState("sonnet");
   const [modelInsight, setModelInsight] = useState("opus");
+  const [gracePeriod, setGracePeriod] = useState("300");
+  const [assessmentWindow, setAssessmentWindow] = useState("180");
+  const [demoMode, setDemoMode] = useState(false);
 
   useEffect(() => {
+    // Check demo login first, then Supabase
+    const demoEmail = localStorage.getItem("livesesh_email");
+    if (demoEmail) {
+      setEmail(demoEmail);
+      setLoading(false);
+      return;
+    }
     const supabase = getSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user?.email) {
-        router.push("/");
+        // Check if demo user is signed in via displayName
+        const name = localStorage.getItem("livesesh_displayName");
+        if (name) {
+          setEmail("demo@livesesh.app");
+        } else {
+          router.push("/");
+        }
       } else {
         setEmail(session.user.email);
       }
@@ -32,6 +48,9 @@ export default function DashboardPage() {
     setModelRealtime(localStorage.getItem("livesesh_model_realtime") || "haiku");
     setModelSummary(localStorage.getItem("livesesh_model_summary") || "sonnet");
     setModelInsight(localStorage.getItem("livesesh_model_insight") || "opus");
+    setGracePeriod(localStorage.getItem("livesesh_grace_period") || "300");
+    setAssessmentWindow(localStorage.getItem("livesesh_assessment_window") || "180");
+    setDemoMode(localStorage.getItem("livesesh_demo_mode") === "true");
   }, []);
 
   if (loading) return <main className="dash-shell"><p style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading...</p></main>;
@@ -278,7 +297,7 @@ export default function DashboardPage() {
               <h2 className="settings-card-title">Coaching Engine & Demo Mode</h2>
               <div className="settings-row">
                 <span className="settings-label">Grace period</span>
-                <select className="settings-select" defaultValue="300">
+                <select className="settings-select" value={gracePeriod} onChange={e => { setGracePeriod(e.target.value); localStorage.setItem("livesesh_grace_period", e.target.value); }}>
                   <option value="30">30 seconds (demo)</option>
                   <option value="120">2 minutes</option>
                   <option value="300">5 minutes (default)</option>
@@ -287,7 +306,7 @@ export default function DashboardPage() {
               </div>
               <div className="settings-row">
                 <span className="settings-label">Assessment window</span>
-                <select className="settings-select" defaultValue="180">
+                <select className="settings-select" value={assessmentWindow} onChange={e => { setAssessmentWindow(e.target.value); localStorage.setItem("livesesh_assessment_window", e.target.value); }}>
                   <option value="15">15 seconds (demo)</option>
                   <option value="60">1 minute</option>
                   <option value="180">3 minutes (default)</option>
@@ -304,7 +323,20 @@ export default function DashboardPage() {
               </div>
               <div className="settings-row">
                 <span className="settings-label">Demo mode</span>
-                <span className="settings-value" style={{ color: "var(--warn)" }}>Add ?demo=true to room URL</span>
+                <button
+                  className="settings-toggle"
+                  type="button"
+                  onClick={() => { const next = !demoMode; setDemoMode(next); localStorage.setItem("livesesh_demo_mode", String(next)); }}
+                  style={{
+                    background: demoMode ? "var(--success)" : "rgba(0,0,0,0.1)",
+                    color: demoMode ? "#fff" : "var(--muted)",
+                    border: "none", borderRadius: 20, padding: "5px 16px",
+                    fontSize: "0.8rem", fontWeight: 600, cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {demoMode ? "On — compressed timing" : "Off"}
+                </button>
               </div>
               <div className="settings-row">
                 <span className="settings-label">Face mesh overlay</span>
@@ -315,7 +347,7 @@ export default function DashboardPage() {
                 <span className="settings-value" style={{ color: "var(--success)" }}>Active</span>
               </div>
               <p style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 8 }}>
-                The coaching engine observes for the grace period, then assesses engagement every window. Nudges escalate on consecutive low windows and de-escalate when engagement recovers. Demo mode compresses timing for evaluation.
+                Settings auto-save. The coaching engine observes for the grace period, then assesses engagement every window. Nudges escalate on consecutive low windows and de-escalate when engagement recovers. Demo mode compresses timing for faster evaluation.
               </p>
             </div>
 
