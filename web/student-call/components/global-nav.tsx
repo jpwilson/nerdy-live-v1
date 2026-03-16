@@ -8,17 +8,20 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 export function GlobalNav() {
   const pathname = usePathname();
   const router = useRouter();
-  // Fast sync check from localStorage, then confirm with Supabase
+  // Check localStorage (demo login) OR Supabase session (real auth)
   const [signedIn, setSignedIn] = useState(() =>
     typeof window !== "undefined" ? !!localStorage.getItem("livesesh_displayName") : false
   );
 
   useEffect(() => {
+    // If already signed in via demo login (localStorage), keep it
+    if (signedIn) return;
+    // Otherwise check Supabase for real auth session
     const supabase = getSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSignedIn(!!session?.user);
+      if (session?.user) setSignedIn(true);
     });
-  }, []);
+  }, [signedIn]);
 
   // Don't show nav on the room/call page
   if (pathname.startsWith("/room/")) return null;
