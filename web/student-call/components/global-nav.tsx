@@ -53,7 +53,9 @@ export function GlobalNav() {
             </Link>
           )}
           {signedIn ? (
-            <button className="nav-btn" onClick={startSession}>Start Session</button>
+            pathname !== "/dashboard" ? (
+              <button className="nav-btn" onClick={startSession}>Start Session</button>
+            ) : null
           ) : pathname !== "/" ? (
             <Link href="/" className="nav-btn nav-btn-signin">Sign Up</Link>
           ) : null}
