@@ -20,7 +20,24 @@ const COMMITS_URL = "https://github.com/jpwilson/nerdy-live-v1/commits/main";
 const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-03-15",
-    label: "Today",
+    label: "Evening",
+    entries: [
+      { category: "FEATURE", title: "Langfuse tracing on /api/analyze — LLM cost, latency, and token tracking" },
+      { category: "FEATURE", title: "AI eval framework — 5 scenario tests validating summary relevance (5/5 pass, 100% schema compliance)" },
+      { category: "FEATURE", title: "Talk balance nudge — fires when tutor talks > 80% of session" },
+      { category: "FEATURE", title: "Dismissable coaching nudges — \u00d7 button on floating pill overlay" },
+      { category: "FEATURE", title: "Engagement badge labeled — now shows 'Engagement: High/Medium/Low' on video overlay" },
+      { category: "FIX", title: "Session count stuck at 20 — now shows real total from Supabase count query" },
+      { category: "FIX", title: "Coaching nudges not firing — engagement threshold 40\u219250, added absolute checks for talk balance/eye contact/participation" },
+      { category: "FIX", title: "OpenRouter model ID corrected — Haiku calls now work" },
+      { category: "IMPROVEMENT", title: "Docs updated — 7 new metric definitions, eval results, AI costs, honest validation methodology" },
+      { category: "IMPROVEMENT", title: "AI Observability section in cost docs with Langfuse tracking details" },
+      { category: "IMPROVEMENT", title: "Nudge engine docs — demo mode, 6 nudge types, configurable timing" },
+    ],
+  },
+  {
+    date: "2026-03-15",
+    label: "Afternoon",
     entries: [
       { category: "FEATURE", title: "MediaPipe Pose body tracking — shoulder tilt, slouch detection, body posture overlays" },
       { category: "FEATURE", title: "Coaching nudges overhaul — absolute thresholds, multi-metric nudges, demo mode timing" },
@@ -41,7 +58,7 @@ const CHANGELOG: ChangelogDay[] = [
   },
   {
     date: "2026-03-15",
-    label: "Morning",
+    label: "Morning (Mar 15)",
     entries: [
       { category: "FEATURE", title: "Real-time speech transcription and subject auto-detection" },
       { category: "FEATURE", title: "AI-powered post-session summaries via OpenRouter (Claude Sonnet)" },

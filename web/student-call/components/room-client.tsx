@@ -188,7 +188,7 @@ function drawFaceMesh(
     if (engagementLevel) {
       const cfg = { high: { color: "#22c55e", label: "High" }, medium: { color: "#eab308", label: "Medium" }, low: { color: "#ef4444", label: "Low" } } as const;
       const c = cfg[engagementLevel];
-      drawPill(ctx, w - 12, 12, `${c.label} \u25CF`, 13, "rgba(0,0,0,0.6)", c.color, "right");
+      drawPill(ctx, w - 12, 12, `Engagement: ${c.label} \u25CF`, 13, "rgba(0,0,0,0.6)", c.color, "right");
     }
 
     // Head yaw/pitch — above forehead
@@ -865,6 +865,7 @@ function RoomClient({
               }}
               onPointerUp={() => { nudgeDragRef.current = null; }}
             >
+              <span className="stage-nudge-close" onPointerUp={(e) => { e.stopPropagation(); setActiveNudge(null); }}>&times;</span>
               <span className="stage-nudge-label">COACHING NUDGE</span>
               <span className="stage-nudge-msg">{activeNudge.message}</span>
             </div>

@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Langfuse } from "langfuse";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
+// Langfuse — graceful fallback if keys not set
+let langfuse: Langfuse | null = null;
+try {
+  if (process.env.LANGFUSE_SECRET_KEY && process.env.LANGFUSE_PUBLIC_KEY) {
+    langfuse = new Langfuse({
+      secretKey: process.env.LANGFUSE_SECRET_KEY,
+      publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+      baseUrl: process.env.LANGFUSE_BASE_URL || "https://cloud.langfuse.com",
+    });
+  }
+} catch (e) {
+  console.warn("[analyze] Langfuse init failed, tracing disabled:", e);
+}
+
 const MODEL_MAP: Record<string, string> = {
-  haiku: "anthropic/claude-haiku-4-5-20251001",
+  haiku: "anthropic/claude-3.5-haiku",
   sonnet: "anthropic/claude-sonnet-4-6",
   opus: "anthropic/claude-opus-4-6",
 };
@@ -22,6 +37,12 @@ export async function POST(req: NextRequest) {
     }
 
     const modelId = MODEL_MAP[model] || MODEL_MAP.sonnet;
+
+    // Start Langfuse trace (non-blocking — errors won't break the endpoint)
+    const trace = langfuse?.trace({
+      name: "analyze-session",
+      metadata: { task, model: modelId },
+    });
 
     let prompt = "";
 
@@ -75,6 +96,16 @@ Provide a JSON response:
 Respond with ONLY the JSON, no markdown formatting.`;
     }
 
+    // Create Langfuse generation span before the API call
+    const generation = trace?.generation({
+      name: "openrouter-completion",
+      model: modelId,
+      input: [{ role: "user", content: prompt }],
+      modelParameters: { max_tokens: 1024, temperature: 0.3 },
+    });
+
+    const startTime = Date.now();
+
     const response = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: {
@@ -91,18 +122,38 @@ Respond with ONLY the JSON, no markdown formatting.`;
       }),
     });
 
+    const latencyMs = Date.now() - startTime;
+
     if (!response.ok) {
       const errText = await response.text();
       console.error("[analyze] OpenRouter error:", response.status, errText);
+      try {
+        generation?.end({ output: errText, level: "ERROR", statusMessage: `HTTP ${response.status}` });
+        await langfuse?.flushAsync();
+      } catch { /* tracing must not break the endpoint */ }
       return NextResponse.json({ error: "Model API error" }, { status: 502 });
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
 
+    // Complete Langfuse generation with response data
+    try {
+      generation?.end({
+        output: content,
+        usage: {
+          input: data.usage?.prompt_tokens,
+          output: data.usage?.completion_tokens,
+          total: data.usage?.total_tokens,
+        },
+        metadata: { latencyMs },
+      });
+    } catch { /* tracing must not break the endpoint */ }
+
     // Try to parse as JSON
     try {
       const parsed = JSON.parse(content);
+      try { await langfuse?.flushAsync(); } catch { /* non-blocking */ }
       return NextResponse.json({
         result: parsed,
         model: modelId,
@@ -110,6 +161,7 @@ Respond with ONLY the JSON, no markdown formatting.`;
       });
     } catch {
       // Return raw text if not valid JSON
+      try { await langfuse?.flushAsync(); } catch { /* non-blocking */ }
       return NextResponse.json({
         result: { summary: content },
         model: modelId,
@@ -118,6 +170,7 @@ Respond with ONLY the JSON, no markdown formatting.`;
     }
   } catch (err) {
     console.error("[analyze] error:", err);
+    try { await langfuse?.flushAsync(); } catch { /* non-blocking */ }
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

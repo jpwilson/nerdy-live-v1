@@ -249,6 +249,7 @@ export function TutorDashboard() {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [enrichedSessions, setEnrichedSessions] = useState<EnrichedSession[]>([]);
   const [summaries, setSummaries] = useState<Record<string, SummaryRow>>({});
+  const [totalSessionCount, setTotalSessionCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"date" | "student" | "score" | "duration" | "eyeContact">("date");
@@ -300,11 +301,17 @@ export function TutorDashboard() {
   useEffect(() => {
     const load = async () => {
       const supabase = getSupabaseBrowserClient();
+      // Get total session count (no limit)
+      const { count } = await supabase
+        .from("sessions")
+        .select("id", { count: "exact", head: true });
+      setTotalSessionCount(count ?? 0);
+
       const { data: sessionData } = await supabase
         .from("sessions")
         .select("id, subject, student_level, started_at, ended_at, engagement_score")
         .order("started_at", { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (sessionData && sessionData.length > 0) {
         setSessions(sessionData);
@@ -674,7 +681,7 @@ export function TutorDashboard() {
       <div className="dash-grid">
         <div className="dash-card" onClick={() => setExpandedStat(expandedStat === "sessions" ? null : "sessions")} style={{ cursor: "pointer" }}>
           <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-          <span className="dash-card-value">{enrichedSessions.length}</span>
+          <span className="dash-card-value">{totalSessionCount ?? enrichedSessions.length}</span>
           <span className="dash-card-label">Sessions</span>
         </div>
         <div className="dash-card" onClick={() => setExpandedStat(expandedStat === "score" ? null : "score")} style={{ cursor: "pointer" }}>

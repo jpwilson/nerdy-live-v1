@@ -941,7 +941,7 @@ function AnalysisPanelInner({
           lastWindowAssessRef.current = now;
           const recentSamples = windowSamplesRef.current.filter(s => now - s.ts < WINDOW_LENGTH);
 
-          if (recentSamples.length > 5) {
+          if (recentSamples.length > 3) {
             const windowAvg = {
               engagement: recentSamples.reduce((a, s2) => a + s2.engagement, 0) / recentSamples.length,
               eyeContact: recentSamples.reduce((a, s2) => a + s2.eyeContact, 0) / recentSamples.length,
@@ -971,6 +971,11 @@ function AnalysisPanelInner({
               postNudgeEngRef.current = null;
               fireNudge("Student engagement is recovering — nice work!", "low", "positive");
             }
+            // Talk balance: tutor talking > 80% of the time
+            else if (canNudge && windowAvg.speaking < 20) {
+              const tutorPct = Math.round(100 - windowAvg.speaking);
+              fireNudge(`You're talking ${tutorPct}% of the time. Try pausing to ask the student a question.`, "medium", "talk_balance");
+            }
             // Engagement significantly below baseline → escalate
             else if (canNudge && engDelta < -10) {
               nudgeLevelRef.current = Math.min(3, nudgeLevelRef.current + 1);
@@ -984,7 +989,7 @@ function AnalysisPanelInner({
               fireNudge(msg, priority, "engagement");
             }
             // Absolute low engagement (regardless of baseline)
-            else if (canNudge && windowAvg.engagement < 40) {
+            else if (canNudge && windowAvg.engagement < 50) {
               fireNudge("Student engagement is low. Try a more interactive approach — ask them to explain or solve something.", "medium", "engagement");
             }
             // Low eye contact
@@ -992,7 +997,7 @@ function AnalysisPanelInner({
               fireNudge("Low eye contact detected. The student may be distracted — try calling their name or asking a direct question.", "medium", "attention");
             }
             // Student not speaking enough
-            else if (canNudge && windowAvg.speaking < 10 && elapsed > GRACE_PERIOD + WINDOW_LENGTH * 2) {
+            else if (canNudge && windowAvg.speaking < 10) {
               fireNudge("The student has barely spoken. Try the Socratic method — ask them to explain the concept back to you.", "low", "participation");
             }
             // Everything looks good — occasional positive reinforcement

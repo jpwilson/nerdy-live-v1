@@ -1935,6 +1935,19 @@ h3 {
   line-height: 1.35;
 }
 
+.stage-nudge-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.stage-nudge-close:hover {
+  color: #fff;
+}
+
 /* ── Collapsible details card ────────────── */
 .details-card {
   cursor: default;

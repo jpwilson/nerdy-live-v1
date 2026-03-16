@@ -1,0 +1,158 @@
+{
+  "model": "anthropic/claude-3.5-haiku",
+  "timestamp": "2026-03-16T02:35:18.060Z",
+  "scenarios": 5,
+  "passed": 5,
+  "schemaCompliance": "5/5",
+  "avgLatencyMs": 859,
+  "totalCostUsd": 0.0054,
+  "results": [
+    {
+      "scenario": "Tutor-dominated session",
+      "passed": true,
+      "schemaValid": true,
+      "latencyMs": 1130,
+      "tokens": {
+        "input": 273,
+        "output": 222,
+        "total": 495
+      },
+      "costUsd": 0.0011,
+      "improvements": 4,
+      "strengths": 3,
+      "mustMention": [
+        {
+          "keyword": "question",
+          "found": true
+        },
+        {
+          "keyword": "talk|speak|lecture|domin|one-sided|monopol",
+          "found": true
+        }
+      ],
+      "mustNotMention": [
+        {
+          "keyword": "great balance",
+          "found": false
+        },
+        {
+          "keyword": "excellent participation",
+          "found": false
+        }
+      ]
+    },
+    {
+      "scenario": "Distracted student — low eye contact",
+      "passed": true,
+      "schemaValid": true,
+      "latencyMs": 822,
+      "tokens": {
+        "input": 266,
+        "output": 192,
+        "total": 458
+      },
+      "costUsd": 0.001,
+      "improvements": 4,
+      "strengths": 2,
+      "mustMention": [
+        {
+          "keyword": "eye contact|attention|looking away|gaze|visual",
+          "found": true
+        },
+        {
+          "keyword": "distract|phone|disengag|unfocus",
+          "found": true
+        }
+      ],
+      "mustNotMention": []
+    },
+    {
+      "scenario": "Excellent session — high engagement",
+      "passed": true,
+      "schemaValid": true,
+      "latencyMs": 953,
+      "tokens": {
+        "input": 283,
+        "output": 233,
+        "total": 516
+      },
+      "costUsd": 0.0012,
+      "improvements": 4,
+      "strengths": 4,
+      "mustMention": [
+        {
+          "keyword": "engag|participat|interact|active",
+          "found": true
+        },
+        {
+          "keyword": "question|socratic|guided|discussion",
+          "found": true
+        }
+      ],
+      "mustNotMention": [
+        {
+          "keyword": "distract",
+          "found": false
+        },
+        {
+          "keyword": "low engagement",
+          "found": false
+        },
+        {
+          "keyword": "barely spoke",
+          "found": false
+        }
+      ]
+    },
+    {
+      "scenario": "Energy drop mid-session",
+      "passed": true,
+      "schemaValid": true,
+      "latencyMs": 615,
+      "tokens": {
+        "input": 272,
+        "output": 236,
+        "total": 508
+      },
+      "costUsd": 0.0012,
+      "improvements": 4,
+      "strengths": 3,
+      "mustMention": [
+        {
+          "keyword": "break|shorter|pacing|length|fatigue|duration",
+          "found": true
+        },
+        {
+          "keyword": "energy|declin|drop|fade|quiet|disengage",
+          "found": true
+        }
+      ],
+      "mustNotMention": []
+    },
+    {
+      "scenario": "High interruption session",
+      "passed": true,
+      "schemaValid": true,
+      "latencyMs": 776,
+      "tokens": {
+        "input": 271,
+        "output": 191,
+        "total": 462
+      },
+      "costUsd": 0.001,
+      "improvements": 4,
+      "strengths": 3,
+      "mustMention": [
+        {
+          "keyword": "interrupt|overlap|cut|talk over",
+          "found": true
+        },
+        {
+          "keyword": "wait|turn|paus|listen|space",
+          "found": true
+        }
+      ],
+      "mustNotMention": []
+    }
+  ]
+}

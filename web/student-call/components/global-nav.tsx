@@ -9,19 +9,20 @@ export function GlobalNav() {
   const pathname = usePathname();
   const router = useRouter();
   // Check localStorage (demo login) OR Supabase session (real auth)
-  const [signedIn, setSignedIn] = useState(() =>
-    typeof window !== "undefined" ? !!localStorage.getItem("livesesh_displayName") : false
-  );
+  const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
-    // If already signed in via demo login (localStorage), keep it
-    if (signedIn) return;
-    // Otherwise check Supabase for real auth session
+    // Check demo login first
+    if (localStorage.getItem("livesesh_displayName")) {
+      setSignedIn(true);
+      return;
+    }
+    // Then check Supabase for real auth session
     const supabase = getSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setSignedIn(true);
     });
-  }, [signedIn]);
+  }, []);
 
   // Don't show nav on the room/call page
   if (pathname.startsWith("/room/")) return null;
