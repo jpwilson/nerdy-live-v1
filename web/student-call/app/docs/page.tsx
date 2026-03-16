@@ -310,6 +310,46 @@ export default function DocsPage() {
           <h3>Facial Responsiveness</h3>
           <p>Rate of expression changes per minute, indicating emotional engagement with content.</p>
         </div>
+
+        <details className="docs-card" style={{ cursor: "pointer" }}>
+          <summary style={{ fontWeight: 700, fontSize: "1rem", marginBottom: 8 }}>Overlay Modes Reference</summary>
+          <p style={{ fontSize: "0.84rem", color: "var(--muted)", marginBottom: 12 }}>
+            The tutor can select an overlay mode during the call to control what is displayed on the student&apos;s video feed.
+            Data collection runs independently regardless of which overlay is selected.
+          </p>
+          <table style={{ width: "100%", fontSize: "0.82rem", borderCollapse: "collapse", textAlign: "center" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #e0d8d0" }}>
+                <th style={{ textAlign: "left", padding: "6px 8px" }}>Mode</th>
+                <th style={{ padding: "6px 8px" }}>Face Mesh</th>
+                <th style={{ padding: "6px 8px" }}>Expression Label</th>
+                <th style={{ padding: "6px 8px" }}>Engagement / Posture / Blink</th>
+                <th style={{ padding: "6px 8px" }}>Gaze Arrows</th>
+                <th style={{ padding: "6px 8px" }}>Shoulders</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["All overlays", "Yes", "Yes", "Yes", "Yes", "Yes"],
+                ["Expressions", "No", "Yes", "No", "No", "No"],
+                ["Engagement", "No", "No", "Yes", "Yes", "Yes"],
+                ["No overlay", "No", "No", "No", "No", "No"],
+              ].map(([mode, ...cols], i) => (
+                <tr key={i} style={{ borderBottom: "1px solid #e8e0d8" }}>
+                  <td style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>{mode}</td>
+                  {cols.map((c, j) => (
+                    <td key={j} style={{ padding: "6px 8px", color: c === "Yes" ? "var(--success)" : "var(--muted)" }}>{c}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p style={{ marginTop: 12, fontSize: "0.82rem", color: "var(--muted)" }}>
+            <strong>Body tracking:</strong> MediaPipe Pose Landmarker (lite model) runs alongside the Face Landmarker every 3rd frame.
+            It tracks shoulder landmarks (11/12) and hip landmarks (23/24) to compute shoulder tilt angle and slouch ratio.
+            Shoulder overlays appear as orange lines/points in &quot;All overlays&quot; and &quot;Engagement&quot; modes.
+          </p>
+        </details>
       </section>
 
       <footer className="docs-footer">
