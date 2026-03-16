@@ -102,54 +102,58 @@ function drawFaceMesh(
   engagementLevel: "high" | "medium" | "low" | null,
 ) {
   ctx.clearRect(0, 0, w, h);
+  if (overlayMode === "none") return;
 
   const lm = landmarks;
   const toX = (i: number) => lm[i].x * w;
   const toY = (i: number) => lm[i].y * h;
+  const showMesh = overlayMode === "all";
+  const showExpressions = overlayMode === "all" || overlayMode === "expressions";
+  const showEngagement = overlayMode === "all" || overlayMode === "engagement";
 
-  // 1. Draw full tessellation wireframe
-  ctx.strokeStyle = "rgba(0, 212, 170, 0.3)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (const [a, b] of FACEMESH_TESSELATION) {
-    if (a < lm.length && b < lm.length) {
-      ctx.moveTo(lm[a].x * w, lm[a].y * h);
-      ctx.lineTo(lm[b].x * w, lm[b].y * h);
-    }
-  }
-  ctx.stroke();
-
-  // 2. Draw all landmark dots
-  ctx.fillStyle = "rgba(0, 212, 170, 0.35)";
-  for (let i = 0; i < Math.min(lm.length, 468); i++) {
+  // ── Face mesh wireframe + dots (only in "all" mode) ──
+  if (showMesh) {
+    ctx.strokeStyle = "rgba(0, 212, 170, 0.3)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(lm[i].x * w, lm[i].y * h, 1.2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // 3. Draw feature paths on top with higher visibility
-  const drawPath = (indices: number[], color: string, lineWidth: number) => {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(toX(indices[0]), toY(indices[0]));
-    for (let i = 1; i < indices.length; i++) {
-      ctx.lineTo(toX(indices[i]), toY(indices[i]));
+    for (const [a, b] of FACEMESH_TESSELATION) {
+      if (a < lm.length && b < lm.length) {
+        ctx.moveTo(lm[a].x * w, lm[a].y * h);
+        ctx.lineTo(lm[b].x * w, lm[b].y * h);
+      }
     }
     ctx.stroke();
-  };
 
-  drawPath(FACE_OVAL, "rgba(0, 212, 170, 0.6)", 1.7);
-  drawPath(LEFT_EYE, "rgba(0, 212, 170, 0.8)", 1.8);
-  drawPath(RIGHT_EYE, "rgba(0, 212, 170, 0.8)", 1.8);
-  drawPath(LEFT_EYEBROW, "rgba(0, 212, 170, 0.55)", 1.5);
-  drawPath(RIGHT_EYEBROW, "rgba(0, 212, 170, 0.55)", 1.5);
-  drawPath(LIPS_OUTER, "rgba(0, 212, 170, 0.65)", 1.7);
-  drawPath(LIPS_INNER, "rgba(0, 212, 170, 0.55)", 1.5);
-  drawPath(NOSE_BRIDGE, "rgba(0, 212, 170, 0.5)", 1.3);
+    ctx.fillStyle = "rgba(0, 212, 170, 0.35)";
+    for (let i = 0; i < Math.min(lm.length, 468); i++) {
+      ctx.beginPath();
+      ctx.arc(lm[i].x * w, lm[i].y * h, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-  // 4. Iris centers + gaze arrows
-  if (lm.length > 473) {
+    const drawPath = (indices: number[], color: string, lineWidth: number) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      ctx.moveTo(toX(indices[0]), toY(indices[0]));
+      for (let i = 1; i < indices.length; i++) {
+        ctx.lineTo(toX(indices[i]), toY(indices[i]));
+      }
+      ctx.stroke();
+    };
+
+    drawPath(FACE_OVAL, "rgba(0, 212, 170, 0.6)", 1.7);
+    drawPath(LEFT_EYE, "rgba(0, 212, 170, 0.8)", 1.8);
+    drawPath(RIGHT_EYE, "rgba(0, 212, 170, 0.8)", 1.8);
+    drawPath(LEFT_EYEBROW, "rgba(0, 212, 170, 0.55)", 1.5);
+    drawPath(RIGHT_EYEBROW, "rgba(0, 212, 170, 0.55)", 1.5);
+    drawPath(LIPS_OUTER, "rgba(0, 212, 170, 0.65)", 1.7);
+    drawPath(LIPS_INNER, "rgba(0, 212, 170, 0.55)", 1.5);
+    drawPath(NOSE_BRIDGE, "rgba(0, 212, 170, 0.5)", 1.3);
+  }
+
+  // ── Iris centers + gaze arrows (all + engagement) ──
+  if ((showMesh || showEngagement) && lm.length > 473) {
     ctx.fillStyle = "rgba(0, 212, 170, 1)";
     for (const idx of [468, 473]) {
       ctx.beginPath();
@@ -158,113 +162,54 @@ function drawFaceMesh(
     }
 
     if (blendshapes) {
-      const gazeX =
-        -(blendshapes.eyeLookInLeft ?? 0) +
-        (blendshapes.eyeLookOutLeft ?? 0);
-      const gazeY =
-        -(blendshapes.eyeLookUpLeft ?? 0) +
-        (blendshapes.eyeLookDownLeft ?? 0);
-
+      const gazeX = -(blendshapes.eyeLookInLeft ?? 0) + (blendshapes.eyeLookOutLeft ?? 0);
+      const gazeY = -(blendshapes.eyeLookUpLeft ?? 0) + (blendshapes.eyeLookDownLeft ?? 0);
       const arrowLen = 30;
       ctx.strokeStyle = "rgba(0, 212, 170, 0.95)";
       ctx.lineWidth = 2;
-
       for (const irisIdx of [468, 473]) {
-        const ix = toX(irisIdx);
-        const iy = toY(irisIdx);
-        const dx = gazeX * arrowLen;
-        const dy = gazeY * arrowLen;
-        const ex = ix + dx;
-        const ey = iy + dy;
-
-        ctx.beginPath();
-        ctx.moveTo(ix, iy);
-        ctx.lineTo(ex, ey);
-        ctx.stroke();
-
+        const ix = toX(irisIdx), iy = toY(irisIdx);
+        const dx = gazeX * arrowLen, dy = gazeY * arrowLen;
+        const ex = ix + dx, ey = iy + dy;
+        ctx.beginPath(); ctx.moveTo(ix, iy); ctx.lineTo(ex, ey); ctx.stroke();
         const angle = Math.atan2(dy, dx);
-        const headLen = 7;
         ctx.beginPath();
-        ctx.moveTo(ex, ey);
-        ctx.lineTo(
-          ex - headLen * Math.cos(angle - 0.5),
-          ey - headLen * Math.sin(angle - 0.5),
-        );
-        ctx.moveTo(ex, ey);
-        ctx.lineTo(
-          ex - headLen * Math.cos(angle + 0.5),
-          ey - headLen * Math.sin(angle + 0.5),
-        );
+        ctx.moveTo(ex, ey); ctx.lineTo(ex - 7 * Math.cos(angle - 0.5), ey - 7 * Math.sin(angle - 0.5));
+        ctx.moveTo(ex, ey); ctx.lineTo(ex - 7 * Math.cos(angle + 0.5), ey - 7 * Math.sin(angle + 0.5));
         ctx.stroke();
       }
     }
   }
 
-  // 5. Text overlay labels (shown in "all" or "expressions" modes)
-  if (overlayMode === "all" || overlayMode === "expressions") {
-    // Top-right: engagement level (avoid top-left — "All overlays" dropdown lives there)
+  // ── Engagement labels (all + engagement modes) ──
+  if (showEngagement) {
+    // Top-right: engagement level
     if (engagementLevel) {
-      const engagementConfig = {
-        high:   { color: "#22c55e", label: "High" },
-        medium: { color: "#eab308", label: "Medium" },
-        low:    { color: "#ef4444", label: "Low" },
-      } as const;
-      const cfg = engagementConfig[engagementLevel];
-      drawPill(ctx, w - 12, 12, `${cfg.label} \u25CF`, 13, "rgba(0,0,0,0.6)", cfg.color, "right");
+      const cfg = { high: { color: "#22c55e", label: "High" }, medium: { color: "#eab308", label: "Medium" }, low: { color: "#ef4444", label: "Low" } } as const;
+      const c = cfg[engagementLevel];
+      drawPill(ctx, w - 12, 12, `${c.label} \u25CF`, 13, "rgba(0,0,0,0.6)", c.color, "right");
     }
 
     // Head yaw/pitch — above forehead
     if (lm.length > 10) {
-      const foreheadX = toX(10);
-      const foreheadY = toY(10) - 24;
-      const yawDeg = Math.round(headPose.yaw);
-      const pitchDeg = Math.round(headPose.pitch);
+      const foreheadX = toX(10), foreheadY = toY(10) - 24;
+      const yawDeg = Math.round(headPose.yaw), pitchDeg = Math.round(headPose.pitch);
       const tiltLabel = Math.abs(yawDeg) > 15 ? " (tilted)" : "";
       const poseText = `Yaw: ${yawDeg}\u00B0  Pitch: ${pitchDeg}\u00B0${tiltLabel}`;
       ctx.font = "500 11px -apple-system, BlinkMacSystemFont, sans-serif";
       const tw = ctx.measureText(poseText).width;
       const px = Math.max(4, Math.min(w - tw - 12, foreheadX - tw / 2));
-      const py = Math.max(40, foreheadY); // min 40px from top to avoid dropdown
+      const py = Math.max(40, foreheadY);
       ctx.fillStyle = "rgba(0,0,0,0.5)";
-      ctx.beginPath();
-      ctx.roundRect(px - 6, py - 10, tw + 12, 18, 4);
-      ctx.fill();
+      ctx.beginPath(); ctx.roundRect(px - 6, py - 10, tw + 12, 18, 4); ctx.fill();
       ctx.fillStyle = "rgba(0, 212, 170, 0.9)";
-      ctx.textBaseline = "middle";
-      ctx.textAlign = "left";
+      ctx.textBaseline = "middle"; ctx.textAlign = "left";
       ctx.fillText(poseText, px, py - 1);
     }
 
-    // Expression label — below chin, centered
-    if (blendshapes && lm.length > 152) {
-      const expr = getDominantExpression(blendshapes);
-      if (expr) {
-        const pct = Math.round(expr.confidence * 100);
-        const chinX = toX(152); // chin center landmark
-        const chinY = toY(152) + 16;
-        const text = `${expr.label} ${pct}%`;
-        ctx.font = "600 13px -apple-system, BlinkMacSystemFont, sans-serif";
-        const tw = ctx.measureText(text).width;
-        const px = Math.max(4, Math.min(w - tw - 16, chinX - tw / 2));
-        const py = Math.min(h - 24, chinY);
-        ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.beginPath();
-        ctx.roundRect(px - 8, py - 10, tw + 16, 22, 6);
-        ctx.fill();
-        ctx.fillStyle = "#fff";
-        ctx.textBaseline = "middle";
-        ctx.textAlign = "left";
-        ctx.fillText(text, px, py);
-      }
-    }
-
-    // Posture indicator — bottom-left of canvas
-    // Use chin (landmark 152) Y position — more sensitive to slouching than forehead
+    // Posture indicator — bottom-left
     if (lm.length > 152) {
-      const chinY = lm[152].y; // normalized Y (0=top, 1=bottom)
-      const foreheadY = lm[10].y;
-      const faceHeight = chinY - foreheadY; // how much vertical space the face takes
-      // If chin is very low in frame OR face takes up too much vertical space → slouching
+      const chinY = lm[152].y, foreheadY = lm[10].y;
       const isSlouching = chinY > 0.75 || foreheadY > 0.35;
       const posture = isSlouching ? "Slouching \u2193" : "Upright \u2191";
       const postureColor = isSlouching ? "#ef4444" : "#22c55e";
@@ -272,20 +217,38 @@ function drawFaceMesh(
     }
 
     // Blink indicator — between eyes
-    if (blendshapes) {
-      const blinkL = blendshapes.eyeBlinkLeft ?? 0;
-      const blinkR = blendshapes.eyeBlinkRight ?? 0;
+    if (blendshapes && lm.length > 159) {
+      const blinkL = blendshapes.eyeBlinkLeft ?? 0, blinkR = blendshapes.eyeBlinkRight ?? 0;
       const now = Date.now();
-      if (blinkL > 0.5 || blinkR > 0.5) {
-        _blinkFlashUntil = now + 400;
-      }
-      if (now < _blinkFlashUntil && lm.length > 159) {
-        // Position between the two eyes (landmarks 159 = right eye top, 386 = left eye top)
-        const eyeMidX = (toX(159) + toX(386)) / 2;
-        const eyeY = Math.min(toY(159), toY(386)) - 16;
-        drawPill(ctx, eyeMidX - 28, Math.max(4, eyeY), "BLINK", 11, "rgba(239, 68, 68, 0.7)", "#fff", "left");
+      if (blinkL > 0.5 || blinkR > 0.5) _blinkFlashUntil = now + 400;
+      if (now < _blinkFlashUntil) {
+        const midX = (toX(159) + toX(386)) / 2, midY = (toY(159) + toY(386)) / 2;
+        drawPill(ctx, midX - 22, midY - 10, "BLINK", 11, "rgba(200,40,40,0.75)", "#fff", "left");
       }
     }
+  }
+
+  // ── Expression labels (all + expressions modes) ──
+  if (showExpressions) {
+    // Dominant expression — below chin
+    if (blendshapes && lm.length > 152) {
+      const expr = getDominantExpression(blendshapes);
+      if (expr) {
+        const pct = Math.round(expr.confidence * 100);
+        const chinX = toX(152), chinY = toY(152) + 16;
+        const text = `${expr.label} ${pct}%`;
+        ctx.font = "600 13px -apple-system, BlinkMacSystemFont, sans-serif";
+        const tw = ctx.measureText(text).width;
+        const px = Math.max(4, Math.min(w - tw - 16, chinX - tw / 2));
+        const py = Math.min(h - 24, chinY);
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.beginPath(); ctx.roundRect(px - 8, py - 10, tw + 16, 22, 6); ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.textBaseline = "middle"; ctx.textAlign = "left";
+        ctx.fillText(text, px, py);
+      }
+    }
+
   }
 }
 
