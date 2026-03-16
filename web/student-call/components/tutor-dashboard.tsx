@@ -369,6 +369,19 @@ export function TutorDashboard() {
   const engBg = (s: number | null) =>
     s == null ? "rgba(139,140,160,0.15)" : s >= 70 ? "rgba(0,212,170,0.15)" : s >= 40 ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)";
   const trendColor = trend === "Improving" ? "var(--success)" : trend === "Declining" ? "var(--danger)" : "var(--muted)";
+  const [expandedStat, setExpandedStat] = useState<string | null>(null);
+
+  // Per-student trend breakdown
+  const studentNames = [...new Set(enrichedSessions.map(s => s.studentName))];
+  const studentTrends = studentNames.map(name => {
+    const sSessions = enrichedSessions.filter(s => s.studentName === name);
+    const scores = sSessions.map(s => s.engagement_score ?? s.demoMetrics.eyeContact);
+    const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+    const first = scores[scores.length - 1] ?? 0;
+    const last = scores[0] ?? 0;
+    const delta = last - first;
+    return { name, count: sSessions.length, avg, delta };
+  });
 
   if (selectedId) {
     const enriched = enrichedSessions.find(s => s.id === selectedId);
@@ -612,29 +625,84 @@ export function TutorDashboard() {
     <div className="dashboard">
       {/* Stat row */}
       <div className="dash-grid">
-        <div className="dash-card">
+        <div className="dash-card" onClick={() => setExpandedStat(expandedStat === "sessions" ? null : "sessions")} style={{ cursor: "pointer" }}>
           <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-          <span className="dash-card-value">{sessions.length}</span>
+          <span className="dash-card-value">{enrichedSessions.length}</span>
           <span className="dash-card-label">Sessions</span>
         </div>
-        <div className="dash-card">
+        <div className="dash-card" onClick={() => setExpandedStat(expandedStat === "score" ? null : "score")} style={{ cursor: "pointer" }}>
           <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span className="dash-card-value" style={{ color: engColor(avgEng) }}>
             {avgEng != null ? `${avgEng}%` : "\u2014"}
           </span>
           <span className="dash-card-label">Avg. Score</span>
         </div>
-        <div className="dash-card">
+        <div className="dash-card" onClick={() => setExpandedStat(expandedStat === "time" ? null : "time")} style={{ cursor: "pointer" }}>
           <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           <span className="dash-card-value">{totalMin > 0 ? `${totalMin}m` : "\u2014"}</span>
           <span className="dash-card-label">Total Time</span>
         </div>
-        <div className="dash-card">
+        <div className="dash-card" onClick={() => setExpandedStat(expandedStat === "trend" ? null : "trend")} style={{ cursor: "pointer" }}>
           <svg className="dash-card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={trendColor} strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
           <span className="dash-card-value" style={{ color: trendColor }}>{trend}</span>
           <span className="dash-card-label">Trend</span>
         </div>
       </div>
+
+      {/* Expanded stat description */}
+      {expandedStat && (
+        <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: "0.82rem", lineHeight: 1.6 }}>
+          {expandedStat === "sessions" && (
+            <div>
+              <strong>Total sessions</strong> across all students.
+              {studentTrends.map(st => (
+                <div key={st.name} style={{ marginTop: 4 }}>
+                  <span style={{ fontWeight: 600 }}>{st.name}:</span> {st.count} session{st.count !== 1 ? "s" : ""}
+                </div>
+              ))}
+            </div>
+          )}
+          {expandedStat === "score" && (
+            <div>
+              <strong>Average engagement score</strong> across all sessions (eye contact, participation, responsiveness).
+              {studentTrends.map(st => (
+                <div key={st.name} style={{ marginTop: 4 }}>
+                  <span style={{ fontWeight: 600 }}>{st.name}:</span>{" "}
+                  <span style={{ color: engColor(st.avg) }}>{st.avg}% avg</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {expandedStat === "time" && (
+            <div>
+              <strong>Total tutoring time</strong> across all sessions ({Math.round(totalMin / 60 * 10) / 10} hours).
+              {studentTrends.map(st => {
+                const mins = enrichedSessions.filter(s => s.studentName === st.name).reduce((sum, s) => sum + s.demoMetrics.duration, 0);
+                return (
+                  <div key={st.name} style={{ marginTop: 4 }}>
+                    <span style={{ fontWeight: 600 }}>{st.name}:</span> {mins}m ({st.count} sessions)
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {expandedStat === "trend" && (
+            <div>
+              <strong>Overall trend</strong> — compares recent sessions vs. earlier sessions across all students.
+              {studentTrends.map(st => (
+                <div key={st.name} style={{ marginTop: 4 }}>
+                  <span style={{ fontWeight: 600 }}>{st.name}:</span>{" "}
+                  <span style={{ color: st.delta > 3 ? "var(--success)" : st.delta < -3 ? "var(--danger)" : "var(--muted)" }}>
+                    {st.delta > 0 ? "+" : ""}{st.delta}%
+                    {st.delta > 3 ? " improving" : st.delta < -3 ? " declining" : " stable"}
+                  </span>
+                  {" "}(first: {enrichedSessions.filter(s => s.studentName === st.name).at(-1)?.engagement_score ?? "—"}% → latest: {enrichedSessions.filter(s => s.studentName === st.name).at(0)?.engagement_score ?? "—"}%)
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Recent sessions */}
       <h2 className="dash-section-title">Recent Sessions</h2>
