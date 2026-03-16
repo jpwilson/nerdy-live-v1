@@ -90,6 +90,7 @@ export default function SessionSummaryPage() {
   const [summary, setSummary] = useState<any>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [sessionTooShort, setSessionTooShort] = useState(false);
   const [noStudentJoined, setNoStudentJoined] = useState(false);
@@ -101,7 +102,7 @@ export default function SessionSummaryPage() {
       router.push("/dashboard");
       return;
     }
-    if (!confirm("Delete this session? This will permanently remove all session data.")) return;
+    if (!showDeleteConfirm) { setShowDeleteConfirm(true); return; }
     setDeleting(true);
     try {
       const sb = getSupabaseBrowserClient();
@@ -437,6 +438,50 @@ export default function SessionSummaryPage() {
             {deleting ? "Deleting..." : "Delete Session"}
           </button>
         </div>
+
+        {/* Delete confirmation dialog */}
+        {showDeleteConfirm && (
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.4)", display: "flex",
+            alignItems: "center", justifyContent: "center",
+            backdropFilter: "blur(4px)",
+          }} onClick={() => setShowDeleteConfirm(false)}>
+            <div style={{
+              background: "#fff", borderRadius: 16, padding: "28px 32px",
+              maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+              textAlign: "center",
+            }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>🗑️</div>
+              <h3 style={{ margin: "0 0 8px", fontSize: "1.1rem" }}>Delete this session?</h3>
+              <p style={{ margin: "0 0 20px", fontSize: "0.85rem", color: "var(--muted)", lineHeight: 1.5 }}>
+                This will permanently remove the session and all associated data.
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                <button
+                  style={{
+                    padding: "10px 24px", borderRadius: 10, border: "1px solid #ddd",
+                    background: "#fff", fontSize: "0.85rem", fontWeight: 600,
+                    cursor: "pointer", color: "var(--ink)",
+                  }}
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  style={{
+                    padding: "10px 24px", borderRadius: 10, border: "none",
+                    background: "var(--danger)", color: "#fff", fontSize: "0.85rem",
+                    fontWeight: 600, cursor: "pointer",
+                  }}
+                  onClick={() => { setShowDeleteConfirm(false); void deleteSession(); }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

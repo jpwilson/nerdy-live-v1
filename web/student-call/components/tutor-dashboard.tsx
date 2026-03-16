@@ -255,9 +255,9 @@ export function TutorDashboard() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expandedTile, setExpandedTile] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const deleteSession = async (sessionId: string) => {
-    if (!confirm("Delete this session? This will permanently remove all session data including metrics and coaching nudges.")) return;
     setDeleting(sessionId);
     try {
       const supabase = getSupabaseBrowserClient();
@@ -399,7 +399,7 @@ export function TutorDashboard() {
           <button
             className="ghost-button"
             style={{ color: "var(--danger)", fontSize: "0.82rem", padding: "6px 14px" }}
-            onClick={(e) => { e.stopPropagation(); void deleteSession(enriched.id); }}
+            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(enriched.id); }}
             disabled={deleting === enriched.id}
           >
             {deleting === enriched.id ? "Deleting..." : "Delete Session"}
@@ -623,6 +623,53 @@ export function TutorDashboard() {
 
   return (
     <div className="dashboard">
+      {/* Delete confirmation dialog */}
+      {confirmDeleteId && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(0,0,0,0.4)", display: "flex",
+          alignItems: "center", justifyContent: "center",
+          backdropFilter: "blur(4px)",
+        }} onClick={() => setConfirmDeleteId(null)}>
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: "28px 32px",
+            maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+            textAlign: "center",
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🗑️</div>
+            <h3 style={{ margin: "0 0 8px", fontSize: "1.1rem" }}>Delete this session?</h3>
+            <p style={{ margin: "0 0 20px", fontSize: "0.85rem", color: "var(--muted)", lineHeight: 1.5 }}>
+              This will permanently remove the session and all associated metrics, coaching nudges, and summaries.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                style={{
+                  padding: "10px 24px", borderRadius: 10, border: "1px solid #ddd",
+                  background: "#fff", fontSize: "0.85rem", fontWeight: 600,
+                  cursor: "pointer", color: "var(--ink)",
+                }}
+                onClick={() => setConfirmDeleteId(null)}
+              >
+                Cancel
+              </button>
+              <button
+                style={{
+                  padding: "10px 24px", borderRadius: 10, border: "none",
+                  background: "var(--danger)", color: "#fff", fontSize: "0.85rem",
+                  fontWeight: 600, cursor: "pointer",
+                }}
+                onClick={() => {
+                  void deleteSession(confirmDeleteId);
+                  setConfirmDeleteId(null);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stat row */}
       <div className="dash-grid">
         <div className="dash-card" onClick={() => setExpandedStat(expandedStat === "sessions" ? null : "sessions")} style={{ cursor: "pointer" }}>
@@ -747,7 +794,7 @@ export function TutorDashboard() {
                       <button
                         className="ghost-button"
                         style={{ color: "var(--danger)", fontSize: "0.75rem", padding: "4px 8px", minWidth: "auto" }}
-                        onClick={(e) => { e.stopPropagation(); void deleteSession(s.id); }}
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(s.id); }}
                         disabled={deleting === s.id}
                         title="Delete session"
                       >

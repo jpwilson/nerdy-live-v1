@@ -35,7 +35,7 @@ interface StudentMetrics {
 export interface CoachingNudge {
   id: string;
   priority: "high" | "medium" | "low";
-  category: "engagement" | "talk_balance" | "positive" | "technique" | "attention";
+  category: "engagement" | "talk_balance" | "positive" | "technique" | "attention" | "participation";
   message: string;
   timestamp: number;
 }
@@ -950,51 +950,54 @@ function AnalysisPanelInner({
 
             const baseline = baselineRef.current;
             const engDelta = windowAvg.engagement - baseline.engagement;
+            const canNudge = now - lastNudgeTimeRef.current > WINDOW_LENGTH;
+
+            // Helper to fire a nudge
+            const fireNudge = (msg: string, priority: "low" | "medium" | "high", category: CoachingNudge["category"]) => {
+              const n: CoachingNudge = { id: `nudge-${now}`, priority, category, message: msg, timestamp: now };
+              coachingNudge = n.message;
+              setNudges(prev => [...prev.slice(-9), n]);
+              setToastNudge(n);
+              onNudge?.(n);
+              setTimeout(() => { setToastNudge(prev => prev?.id === n.id ? null : prev); onNudge?.(null); }, 10000);
+              lastNudgeTimeRef.current = now;
+              nudgeCountRef.current++;
+              postNudgeEngRef.current = windowAvg.engagement;
+            };
 
             // Check if engagement improved after last nudge (de-escalation)
             if (postNudgeEngRef.current !== null && windowAvg.engagement > postNudgeEngRef.current + 5) {
               nudgeLevelRef.current = Math.max(0, nudgeLevelRef.current - 1);
               postNudgeEngRef.current = null;
-              // Positive reinforcement
-              const positiveNudge: CoachingNudge = {
-                id: `nudge-${now}`, priority: "low" as const, category: "positive",
-                message: "Student engagement is recovering — nice work!", timestamp: now
-              };
-              coachingNudge = positiveNudge.message;
-              setNudges(prev => [...prev.slice(-9), positiveNudge]);
-              setToastNudge(positiveNudge);
-              onNudge?.(positiveNudge);
-              setTimeout(() => {
-                setToastNudge(prev => prev?.id === positiveNudge.id ? null : prev);
-                onNudge?.(null);
-              }, 8000);
-              lastNudgeTimeRef.current = now;
+              fireNudge("Student engagement is recovering — nice work!", "low", "positive");
             }
             // Engagement significantly below baseline → escalate
-            else if (engDelta < -15 && now - lastNudgeTimeRef.current > WINDOW_LENGTH) {
+            else if (canNudge && engDelta < -10) {
               nudgeLevelRef.current = Math.min(3, nudgeLevelRef.current + 1);
               const level = nudgeLevelRef.current;
-
               const messages: Record<number, { msg: string; priority: "low" | "medium" | "high" }> = {
-                1: { msg: "You might try asking an open-ended question to re-engage.", priority: "low" },
-                2: { msg: "Consider pausing to check understanding — engagement has dropped.", priority: "medium" },
-                3: { msg: "Engagement is significantly below baseline. Try changing the activity or taking a break.", priority: "high" },
+                1: { msg: "Try asking an open-ended question to re-engage the student.", priority: "low" },
+                2: { msg: "Engagement has dropped. Consider pausing to check understanding.", priority: "medium" },
+                3: { msg: "Engagement is very low. Try changing the activity or taking a short break.", priority: "high" },
               };
-
               const { msg, priority } = messages[level] || messages[1];
-              const pendingNudge: CoachingNudge = { id: `nudge-${now}`, priority, category: "engagement", message: msg, timestamp: now };
-
-              coachingNudge = pendingNudge.message;
-              setNudges(prev => [...prev.slice(-9), pendingNudge]);
-              setToastNudge(pendingNudge);
-              onNudge?.(pendingNudge);
-              setTimeout(() => {
-                setToastNudge(prev => prev?.id === pendingNudge.id ? null : prev);
-                onNudge?.(null);
-              }, 8000);
-              lastNudgeTimeRef.current = now;
-              nudgeCountRef.current++;
-              postNudgeEngRef.current = windowAvg.engagement;
+              fireNudge(msg, priority, "engagement");
+            }
+            // Absolute low engagement (regardless of baseline)
+            else if (canNudge && windowAvg.engagement < 40) {
+              fireNudge("Student engagement is low. Try a more interactive approach — ask them to explain or solve something.", "medium", "engagement");
+            }
+            // Low eye contact
+            else if (canNudge && windowAvg.eyeContact < 30) {
+              fireNudge("Low eye contact detected. The student may be distracted — try calling their name or asking a direct question.", "medium", "attention");
+            }
+            // Student not speaking enough
+            else if (canNudge && windowAvg.speaking < 10 && elapsed > GRACE_PERIOD + WINDOW_LENGTH * 2) {
+              fireNudge("The student has barely spoken. Try the Socratic method — ask them to explain the concept back to you.", "low", "participation");
+            }
+            // Everything looks good — occasional positive reinforcement
+            else if (canNudge && windowAvg.engagement > 70 && windowAvg.eyeContact > 60 && nudgeCountRef.current > 0 && Math.random() < 0.3) {
+              fireNudge("Great session momentum! The student is engaged and attentive.", "low", "positive");
             }
           }
         }
