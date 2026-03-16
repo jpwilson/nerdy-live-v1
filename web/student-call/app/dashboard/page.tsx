@@ -294,22 +294,56 @@ export default function DashboardPage() {
 
             {/* Coaching Engine & Demo Mode */}
             <div className="settings-card">
-              <h2 className="settings-card-title">Coaching Engine & Demo Mode</h2>
+              <h2 className="settings-card-title">Coaching Engine</h2>
               <div className="settings-row">
+                <span className="settings-label">Demo mode</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !demoMode;
+                    setDemoMode(next);
+                    localStorage.setItem("livesesh_demo_mode", String(next));
+                    if (next) {
+                      setGracePeriod("30"); localStorage.setItem("livesesh_grace_period", "30");
+                      setAssessmentWindow("15"); localStorage.setItem("livesesh_assessment_window", "15");
+                    } else {
+                      setGracePeriod("300"); localStorage.setItem("livesesh_grace_period", "300");
+                      setAssessmentWindow("180"); localStorage.setItem("livesesh_assessment_window", "180");
+                    }
+                  }}
+                  style={{
+                    background: demoMode ? "var(--accent)" : "rgba(0,0,0,0.08)",
+                    color: demoMode ? "#fff" : "var(--muted)",
+                    border: "none", borderRadius: 20, padding: "6px 18px",
+                    fontSize: "0.82rem", fontWeight: 600, cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {demoMode ? "On — fast nudges" : "Off"}
+                </button>
+              </div>
+              {demoMode && (
+                <div style={{ background: "rgba(196,64,47,0.06)", borderRadius: 8, padding: "8px 14px", marginTop: 4, fontSize: "0.78rem", color: "var(--accent)" }}>
+                  Demo mode active: timing compressed for quick testing. Nudges will appear within seconds.
+                </div>
+              )}
+              <div className="settings-row" style={{ marginTop: 8 }}>
                 <span className="settings-label">Grace period</span>
                 <select className="settings-select" value={gracePeriod} onChange={e => { setGracePeriod(e.target.value); localStorage.setItem("livesesh_grace_period", e.target.value); }}>
-                  <option value="30">30 seconds (demo)</option>
+                  <option value="30">30 seconds</option>
+                  <option value="60">1 minute</option>
                   <option value="120">2 minutes</option>
-                  <option value="300">5 minutes (default)</option>
+                  <option value="300">5 minutes</option>
                   <option value="600">10 minutes</option>
                 </select>
               </div>
               <div className="settings-row">
                 <span className="settings-label">Assessment window</span>
                 <select className="settings-select" value={assessmentWindow} onChange={e => { setAssessmentWindow(e.target.value); localStorage.setItem("livesesh_assessment_window", e.target.value); }}>
-                  <option value="15">15 seconds (demo)</option>
+                  <option value="15">15 seconds</option>
+                  <option value="30">30 seconds</option>
                   <option value="60">1 minute</option>
-                  <option value="180">3 minutes (default)</option>
+                  <option value="180">3 minutes</option>
                   <option value="300">5 minutes</option>
                 </select>
               </div>
@@ -320,23 +354,6 @@ export default function DashboardPage() {
               <div className="settings-row">
                 <span className="settings-label">De-escalation on improvement</span>
                 <span className="settings-value" style={{ color: "var(--success)" }}>Enabled</span>
-              </div>
-              <div className="settings-row">
-                <span className="settings-label">Demo mode</span>
-                <button
-                  className="settings-toggle"
-                  type="button"
-                  onClick={() => { const next = !demoMode; setDemoMode(next); localStorage.setItem("livesesh_demo_mode", String(next)); }}
-                  style={{
-                    background: demoMode ? "var(--success)" : "rgba(0,0,0,0.1)",
-                    color: demoMode ? "#fff" : "var(--muted)",
-                    border: "none", borderRadius: 20, padding: "5px 16px",
-                    fontSize: "0.8rem", fontWeight: 600, cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {demoMode ? "On — compressed timing" : "Off"}
-                </button>
               </div>
               <div className="settings-row">
                 <span className="settings-label">Face mesh overlay</span>
