@@ -46,6 +46,26 @@ const ALL_EXPRESSIONS = [
   "Lip pressing", "Mouth puckered", "Frustrated", "Focused",
 ] as const;
 
+/** Pose/body data from MediaPipe PoseLandmarker */
+export interface PoseData {
+  /** Left shoulder (landmark 11) normalized coords */
+  leftShoulder: { x: number; y: number; z: number } | null;
+  /** Right shoulder (landmark 12) normalized coords */
+  rightShoulder: { x: number; y: number; z: number } | null;
+  /** Left hip (landmark 23) normalized coords */
+  leftHip: { x: number; y: number; z: number } | null;
+  /** Right hip (landmark 24) normalized coords */
+  rightHip: { x: number; y: number; z: number } | null;
+  /** Angle between shoulders in degrees (0 = level) */
+  shoulderTilt: number;
+  /** Shoulder-to-hip distance ratio (lower = more slouched) */
+  slouchRatio: number;
+  /** Human-readable shoulder status */
+  shoulderStatus: "level" | "tilted";
+  /** Human-readable posture from body landmarks */
+  bodyPosture: "upright" | "slouching" | "unknown";
+}
+
 /** Face position data exposed to parent for centering + overlay */
 export interface FacePositionData {
   /** Is a face currently detected? */
@@ -60,6 +80,8 @@ export interface FacePositionData {
   blendshapes: Record<string, number> | null;
   /** Head pose */
   headPose: { yaw: number; pitch: number };
+  /** Body/pose data from PoseLandmarker */
+  pose: PoseData | null;
 }
 
 const INITIAL_METRICS: StudentMetrics = {
@@ -332,6 +354,9 @@ function AnalysisPanelInner({
   const postNudgeEngRef = useRef<number | null>(null); // engagement when last nudge was sent
 
   const landmarkerRef = useRef<any>(null);
+  const poseLandmarkerRef = useRef<any>(null);
+  const poseFrameCountRef = useRef(0);
+  const poseDataRef = useRef<PoseData | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -356,14 +381,14 @@ function AnalysisPanelInner({
     startTime: Date.now(),
   });
 
-  // Load MediaPipe FaceLandmarker
+  // Load MediaPipe FaceLandmarker + PoseLandmarker
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
         setStatus("Loading face model…");
-        const { FaceLandmarker, FilesetResolver } = await import(
+        const { FaceLandmarker, PoseLandmarker, FilesetResolver } = await import(
           "@mediapipe/tasks-vision"
         );
         const resolver = await FilesetResolver.forVisionTasks(
@@ -383,6 +408,25 @@ function AnalysisPanelInner({
           landmarkerRef.current = lm;
           setStatus("ready");
         }
+
+        // Load PoseLandmarker (lite model, non-blocking)
+        try {
+          const pl = await PoseLandmarker.createFromOptions(resolver, {
+            baseOptions: {
+              modelAssetPath:
+                "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+              delegate: "GPU",
+            },
+            runningMode: "VIDEO",
+            numPoses: 1,
+            outputSegmentationMasks: false,
+          });
+          if (!cancelled) {
+            poseLandmarkerRef.current = pl;
+          }
+        } catch (poseErr) {
+          console.warn("[analysis] PoseLandmarker init failed (non-critical):", poseErr);
+        }
       } catch (err) {
         console.error("[analysis] FaceLandmarker init failed:", err);
         if (!cancelled)
@@ -396,6 +440,8 @@ function AnalysisPanelInner({
       cancelled = true;
       landmarkerRef.current?.close();
       landmarkerRef.current = null;
+      poseLandmarkerRef.current?.close();
+      poseLandmarkerRef.current = null;
     };
   }, []);
 
@@ -633,6 +679,59 @@ function AnalysisPanelInner({
           }
         } catch {
           /* frame timing errors */
+        }
+      }
+
+      // Pose detection — every 3rd frame for performance
+      poseFrameCountRef.current++;
+      const pl = poseLandmarkerRef.current;
+      if (pl && video && video.readyState >= 2 && poseFrameCountRef.current % 3 === 0) {
+        try {
+          const poseResult = pl.detectForVideo(video, performance.now());
+          if (poseResult.landmarks?.length > 0) {
+            const poseLm = poseResult.landmarks[0];
+            // Landmark indices: 11=left shoulder, 12=right shoulder, 23=left hip, 24=right hip
+            const ls = poseLm[11] ? { x: poseLm[11].x, y: poseLm[11].y, z: poseLm[11].z } : null;
+            const rs = poseLm[12] ? { x: poseLm[12].x, y: poseLm[12].y, z: poseLm[12].z } : null;
+            const lh = poseLm[23] ? { x: poseLm[23].x, y: poseLm[23].y, z: poseLm[23].z } : null;
+            const rh = poseLm[24] ? { x: poseLm[24].x, y: poseLm[24].y, z: poseLm[24].z } : null;
+
+            // Calculate shoulder tilt (degrees)
+            let shoulderTilt = 0;
+            if (ls && rs) {
+              const dy = rs.y - ls.y;
+              const dx = rs.x - ls.x;
+              shoulderTilt = Math.atan2(dy, dx) * (180 / Math.PI);
+            }
+
+            // Calculate slouch ratio: avg shoulder-to-hip vertical distance
+            // Higher = more upright, lower = more slouched
+            let slouchRatio = 1;
+            if (ls && rs && lh && rh) {
+              const leftDist = Math.abs(lh.y - ls.y);
+              const rightDist = Math.abs(rh.y - rs.y);
+              const shoulderWidth = Math.abs(rs.x - ls.x);
+              // Ratio of torso height to shoulder width; upright ~1.2-1.5, slouched <0.8
+              slouchRatio = shoulderWidth > 0.01 ? ((leftDist + rightDist) / 2) / shoulderWidth : 1;
+            }
+
+            const shoulderStatus: "level" | "tilted" = Math.abs(shoulderTilt) > 8 ? "tilted" : "level";
+            const bodyPosture: "upright" | "slouching" | "unknown" =
+              (ls && rs && lh && rh) ? (slouchRatio < 0.7 ? "slouching" : "upright") : "unknown";
+
+            poseDataRef.current = {
+              leftShoulder: ls,
+              rightShoulder: rs,
+              leftHip: lh,
+              rightHip: rh,
+              shoulderTilt,
+              slouchRatio,
+              shoulderStatus,
+              bodyPosture,
+            };
+          }
+        } catch {
+          /* pose frame timing errors */
         }
       }
 
@@ -988,6 +1087,7 @@ function AnalysisPanelInner({
         landmarks: rawLandmarks,
         blendshapes: blendshapeScores,
         headPose: { yaw, pitch },
+        pose: poseDataRef.current,
       });
     }, 350);
 
@@ -1213,6 +1313,23 @@ function AnalysisPanelInner({
                     <span>Face position</span>
                     <span className="live-metric-val">{postureOk ? "\u2195 normal" : "\u2193 low"}</span>
                   </div>
+                  {poseDataRef.current && (
+                    <>
+                      <div className="live-metric-row">
+                        <span>Shoulders</span>
+                        <span className="live-metric-val" style={{ color: poseDataRef.current.shoulderStatus === "level" ? "var(--success)" : "var(--warn)" }}>
+                          {poseDataRef.current.shoulderStatus === "level" ? "\u2194 level" : "\u2921 tilted"}{" "}
+                          ({Math.abs(Math.round(poseDataRef.current.shoulderTilt))}&deg;)
+                        </span>
+                      </div>
+                      <div className="live-metric-row">
+                        <span>Body posture</span>
+                        <span className="live-metric-val" style={{ color: poseDataRef.current.bodyPosture === "upright" ? "var(--success)" : poseDataRef.current.bodyPosture === "slouching" ? "var(--warn)" : "var(--muted)" }}>
+                          {poseDataRef.current.bodyPosture === "upright" ? "\u2191 upright" : poseDataRef.current.bodyPosture === "slouching" ? "\u2193 slouching" : "unknown"}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1342,6 +1459,16 @@ function AnalysisPanelInner({
                     {postureInterp}
                   </span>
                 </div>
+                {poseDataRef.current && (
+                  <>
+                    <div className="trend-sub">
+                      Shoulders: {poseDataRef.current.shoulderStatus} ({Math.abs(Math.round(poseDataRef.current.shoulderTilt))}&deg; tilt)
+                    </div>
+                    <div className="trend-sub">
+                      Body: {poseDataRef.current.bodyPosture} (slouch ratio: {poseDataRef.current.slouchRatio.toFixed(2)})
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Latest coaching nudge — always visible */}

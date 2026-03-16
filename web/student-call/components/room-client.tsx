@@ -14,7 +14,7 @@ import {
 } from "@/lib/room-utils";
 import { useLiveKitRoom } from "@/lib/use-livekit-room";
 import { useTranscript } from "@/lib/use-transcript";
-import { StudentAnalysisCard, type CoachingNudge, type FacePositionData, type OverlayMode } from "@/components/analysis-panel";
+import { StudentAnalysisCard, type CoachingNudge, type FacePositionData, type OverlayMode, type PoseData } from "@/components/analysis-panel";
 import {
   FACEMESH_TESSELATION,
   FACE_OVAL,
@@ -100,6 +100,7 @@ function drawFaceMesh(
   headPose: { yaw: number; pitch: number },
   overlayMode: OverlayMode,
   engagementLevel: "high" | "medium" | "low" | null,
+  poseData?: PoseData | null,
 ) {
   ctx.clearRect(0, 0, w, h);
   if (overlayMode === "none") return;
@@ -207,8 +208,77 @@ function drawFaceMesh(
       ctx.fillText(poseText, px, py - 1);
     }
 
-    // Posture indicator — bottom-left
-    if (lm.length > 152) {
+    // Pose overlay — shoulder points, connecting line, and label
+    if (poseData && poseData.leftShoulder && poseData.rightShoulder) {
+      const lsX = poseData.leftShoulder.x * w;
+      const lsY = poseData.leftShoulder.y * h;
+      const rsX = poseData.rightShoulder.x * w;
+      const rsY = poseData.rightShoulder.y * h;
+
+      // Draw shoulder line
+      ctx.strokeStyle = "rgba(255, 170, 0, 0.85)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(lsX, lsY);
+      ctx.lineTo(rsX, rsY);
+      ctx.stroke();
+
+      // Draw shoulder points
+      ctx.fillStyle = "rgba(255, 170, 0, 1)";
+      for (const [sx, sy] of [[lsX, lsY], [rsX, rsY]]) {
+        ctx.beginPath();
+        ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw hip points if available
+      if (poseData.leftHip && poseData.rightHip) {
+        const lhX = poseData.leftHip.x * w;
+        const lhY = poseData.leftHip.y * h;
+        const rhX = poseData.rightHip.x * w;
+        const rhY = poseData.rightHip.y * h;
+
+        ctx.strokeStyle = "rgba(255, 170, 0, 0.5)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(lhX, lhY);
+        ctx.lineTo(rhX, rhY);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255, 170, 0, 0.7)";
+        for (const [hx, hy] of [[lhX, lhY], [rhX, rhY]]) {
+          ctx.beginPath();
+          ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Vertical lines connecting shoulders to hips
+        ctx.strokeStyle = "rgba(255, 170, 0, 0.3)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(lsX, lsY); ctx.lineTo(lhX, lhY);
+        ctx.moveTo(rsX, rsY); ctx.lineTo(rhX, rhY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Shoulder status label — above shoulder line
+      const midX = (lsX + rsX) / 2;
+      const midY = Math.min(lsY, rsY) - 14;
+      const shoulderLabel = `Shoulders: ${poseData.shoulderStatus}`;
+      const shoulderColor = poseData.shoulderStatus === "level" ? "#22c55e" : "#eab308";
+      drawPill(ctx, midX - 50, Math.max(4, midY), shoulderLabel, 11, "rgba(0,0,0,0.6)", shoulderColor, "left");
+    }
+
+    // Posture indicator — bottom-left (use body data when available)
+    if (poseData && poseData.bodyPosture !== "unknown") {
+      const isSlouching = poseData.bodyPosture === "slouching";
+      const posture = isSlouching ? "Slouching \u2193" : "Upright \u2191";
+      const postureColor = isSlouching ? "#ef4444" : "#22c55e";
+      drawPill(ctx, 12, h - 30, `Posture: ${posture}`, 11, "rgba(0,0,0,0.5)", postureColor, "left");
+    } else if (lm.length > 152) {
+      // Fallback: face-Y-based posture
       const chinY = lm[152].y, foreheadY = lm[10].y;
       const isSlouching = chinY > 0.75 || foreheadY > 0.35;
       const posture = isSlouching ? "Slouching \u2193" : "Upright \u2191";
@@ -529,6 +599,26 @@ function RoomClient({
       z: lm.z,
     }));
 
+    // Transform pose landmarks to canvas coords (same mapping as face)
+    let transformedPose: PoseData | null = null;
+    if (facePosition.pose) {
+      const transformPt = (pt: { x: number; y: number; z: number } | null) => {
+        if (!pt) return null;
+        return {
+          x: (pt.x * scaledW - offsetX) / containerW,
+          y: (pt.y * scaledH - offsetY) / containerH,
+          z: pt.z,
+        };
+      };
+      transformedPose = {
+        ...facePosition.pose,
+        leftShoulder: transformPt(facePosition.pose.leftShoulder),
+        rightShoulder: transformPt(facePosition.pose.rightShoulder),
+        leftHip: transformPt(facePosition.pose.leftHip),
+        rightHip: transformPt(facePosition.pose.rightHip),
+      };
+    }
+
     drawFaceMesh(
       ctx,
       canvas.width,
@@ -538,6 +628,7 @@ function RoomClient({
       facePosition.headPose,
       overlayMode,
       engagementLevel,
+      transformedPose,
     );
   }, [overlayMode, facePosition, engagementLevel]);
 
