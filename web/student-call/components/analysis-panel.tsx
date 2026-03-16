@@ -893,8 +893,11 @@ function AnalysisPanelInner({
 
       // ── Window-based coaching assessment ──────────────────────
       const now = Date.now();
-      const GRACE_PERIOD = 300_000; // 5 min observation phase
-      const WINDOW_LENGTH = 180_000; // 3 min assessment windows (medium sensitivity)
+      // Read timing from localStorage (set by Settings page / demo mode toggle)
+      const graceSec = parseInt(localStorage.getItem("livesesh_grace_period") || "300", 10);
+      const windowSec = parseInt(localStorage.getItem("livesesh_assessment_window") || "180", 10);
+      const GRACE_PERIOD = graceSec * 1000;
+      const WINDOW_LENGTH = windowSec * 1000;
       const elapsed = now - sessionStartRef.current;
 
       let coachingNudge: string | null = null;

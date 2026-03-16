@@ -686,6 +686,15 @@ function RoomClient({
               {isVideoRecording ? "Recording" : "Metrics only"}
             </button>
           )}
+          {typeof window !== "undefined" && localStorage.getItem("livesesh_demo_mode") === "true" && (
+            <span style={{
+              fontSize: "0.68rem", fontWeight: 700, color: "#fff",
+              background: "var(--accent)", padding: "3px 10px",
+              borderRadius: 12, letterSpacing: "0.5px",
+            }}>
+              DEMO MODE
+            </span>
+          )}
           <span className={`status-chip ${connectionState}`}>
             {connectionLabel(connectionState)}
           </span>
