@@ -184,7 +184,7 @@ final class LiveCaptureController: ObservableObject {
         }
 
         let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
-            ?? AVCaptureDevice.default(for: .video)
+            ?? AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
 
         guard let device else {
             throw LiveCaptureError.cameraUnavailable
