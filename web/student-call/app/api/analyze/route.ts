@@ -46,10 +46,11 @@ export async function POST(req: NextRequest) {
 
     let prompt = "";
 
-    const isShortDemo = demoMode && (metrics?.duration ?? 0) <= 5;
+    const isShortSession = (metrics?.duration ?? 0) <= 5;
+    const isShortRealSession = isShortSession && !demoMode;
 
-    if (task === "summary" && isShortDemo) {
-      prompt = `You are an AI tutoring analyst for LiveSesh AI. This was a short DEMO session (${metrics?.duration ?? "N/A"} minutes) — not a real tutoring session.
+    if (task === "summary" && isShortRealSession) {
+      prompt = `You are an AI tutoring analyst for LiveSesh AI. This session was only ${metrics?.duration ?? "N/A"} minute(s) long — too short for a full analysis.
 
 Session transcript:
 ${transcript || "(No transcript available)"}
@@ -61,16 +62,16 @@ Session metrics:
 - Tutor talk time: ${metrics?.tutorTalk ?? "N/A"}%
 - Duration: ${metrics?.duration ?? "N/A"} minutes
 
-Keep the analysis very brief. Highlight only the 1-2 most notable metrics. Do not critique session length or suggest extending duration.
+This session was too brief for meaningful analysis. Just note the key metrics observed and keep it short. Do not give detailed coaching advice — there isn't enough data.
 
 Provide a JSON response with:
 {
-  "subject": "Demo",
-  "summary": "1 short sentence noting this was a demo and the key metric highlights",
-  "strengths": ["1 brief item max"],
-  "improvements": ["1 brief item max"],
-  "studentInsight": "1 short sentence or empty string if not applicable",
-  "nextSessionSuggestion": "1 short sentence"
+  "subject": "detected subject or 'Brief Session'",
+  "summary": "1 sentence acknowledging the short duration and noting the key metrics",
+  "strengths": ["1 brief observation max, or empty array"],
+  "improvements": ["1 brief observation max, or empty array"],
+  "studentInsight": "",
+  "nextSessionSuggestion": "Run a longer session for a full analysis"
 }
 
 Respond with ONLY the JSON, no markdown formatting.`;

@@ -359,6 +359,28 @@ export default function SessionSummaryPage() {
             </p>
           )}
 
+          {/* Context note for demo mode or short sessions */}
+          {!analyzing && aiAnalysis && (() => {
+            const demoOn = typeof window !== "undefined" && localStorage.getItem("livesesh_demo_mode") === "true";
+            const duration = realMetrics?.duration ?? 0;
+            const isShort = duration <= 5;
+            if (demoOn && isShort) {
+              return (
+                <div style={{ background: "var(--surface, #FFF7ED)", border: "1px solid var(--warn, #F59E0B)", borderRadius: 8, padding: "10px 14px", margin: "10px 0", fontSize: "0.82rem", color: "#92400E" }}>
+                  <strong>Demo Mode</strong> — This session was only {duration} minute{duration !== 1 ? "s" : ""} long. In normal use, sessions this short would receive a brief summary. Full analysis is shown here to demonstrate the platform&apos;s capabilities.
+                </div>
+              );
+            }
+            if (!demoOn && isShort) {
+              return (
+                <div style={{ background: "var(--surface, #F0F4FF)", border: "1px solid var(--info, #6B7FD7)", borderRadius: 8, padding: "10px 14px", margin: "10px 0", fontSize: "0.82rem", color: "#3B4C8A" }}>
+                  This session was only {duration} minute{duration !== 1 ? "s" : ""} — too short for in-depth analysis. As your tutoring sessions get longer, the feedback will become more detailed and actionable.
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {/* AI-generated summary */}
           {analyzing && (
             <p className="summary-text" style={{ color: "var(--muted)", fontStyle: "italic" }}>
