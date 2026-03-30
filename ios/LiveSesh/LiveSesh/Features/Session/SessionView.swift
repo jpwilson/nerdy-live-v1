@@ -427,19 +427,7 @@ struct SessionView: View {
                                 )
                         }
 
-                        // Switch camera button
-                        Button(action: { viewModel.liveKitService.switchCamera() }) {
-                            Image(systemName: "camera.rotate.fill")
-                                .font(.title3)
-                                .foregroundColor(.white)
-                                .frame(width: 48, height: 48)
-                                .background(
-                                    Circle().fill(Color.white.opacity(0.15))
-                                )
-                                .overlay(
-                                    Circle().stroke(Color.white.opacity(0.2), lineWidth: 1)
-                                )
-                        }
+                        // Camera swap button removed — locked to front camera
                         #endif
 
                         // End call button (red circle like FaceTime)

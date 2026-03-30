@@ -91,7 +91,7 @@ final class LiveKitService: NSObject, ObservableObject {
         let next = !isCameraEnabled
         isCameraEnabled = next
         Task {
-            try? await room?.localParticipant.setCamera(enabled: next, captureOptions: CameraCaptureOptions(position: cameraPosition))
+            try? await room?.localParticipant.setCamera(enabled: next, captureOptions: CameraCaptureOptions(position: .front))
             if next {
                 if let pub = room?.localParticipant.localVideoTracks.first,
                    let track = pub.track as? VideoTrack {
@@ -102,15 +102,7 @@ final class LiveKitService: NSObject, ObservableObject {
     }
 
     func switchCamera() {
-        let next: AVCaptureDevice.Position = cameraPosition == .front ? .back : .front
-        cameraPosition = next
-        Task {
-            try? await room?.localParticipant.setCamera(enabled: true, captureOptions: CameraCaptureOptions(position: next))
-            if let pub = room?.localParticipant.localVideoTracks.first,
-               let track = pub.track as? VideoTrack {
-                localVideoTrack = track
-            }
-        }
+        // Disabled — locked to front camera only
     }
 
     func disconnect() {
