@@ -46,8 +46,10 @@ final class LiveKitService: NSObject, ObservableObject {
             return
         }
 
+        let frontCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+        let cameraOptions = CameraCaptureOptions(device: frontCamera, position: .front)
         let roomOptions = RoomOptions(
-            defaultCameraCaptureOptions: CameraCaptureOptions(position: .front)
+            defaultCameraCaptureOptions: cameraOptions
         )
         let room = Room(delegate: self, roomOptions: roomOptions)
         self.room = room
@@ -56,7 +58,7 @@ final class LiveKitService: NSObject, ObservableObject {
             try await room.connect(url: LiveKitConfig.url, token: token)
 
             // Enable camera (front-facing) and microphone
-            try await room.localParticipant.setCamera(enabled: true, captureOptions: CameraCaptureOptions(position: .front))
+            try await room.localParticipant.setCamera(enabled: true, captureOptions: cameraOptions)
             try await room.localParticipant.setMicrophone(enabled: true)
 
             // Grab local video track
@@ -91,7 +93,8 @@ final class LiveKitService: NSObject, ObservableObject {
         let next = !isCameraEnabled
         isCameraEnabled = next
         Task {
-            try? await room?.localParticipant.setCamera(enabled: next, captureOptions: CameraCaptureOptions(position: .front))
+            let frontCam = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+            try? await room?.localParticipant.setCamera(enabled: next, captureOptions: CameraCaptureOptions(device: frontCam, position: .front))
             if next {
                 if let pub = room?.localParticipant.localVideoTracks.first,
                    let track = pub.track as? VideoTrack {
