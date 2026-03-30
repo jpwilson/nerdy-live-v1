@@ -249,6 +249,7 @@ export default function SessionSummaryPage() {
                 : `Based on ${resolvedMetrics?.snapshotCount ?? "unknown"} real-time metric snapshots collected during the session. Based on real-time analysis data.`,
               model: localStorage.getItem("livesesh_model_summary") || "sonnet",
               task: "summary",
+              demoMode: localStorage.getItem("livesesh_demo_mode") === "true",
             }),
           });
           if (res.ok) {

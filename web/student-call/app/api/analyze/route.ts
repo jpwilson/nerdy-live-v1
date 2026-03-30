@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { transcript, metrics, model = "sonnet", task = "summary" } = await req.json();
+    const { transcript, metrics, model = "sonnet", task = "summary", demoMode = false } = await req.json();
 
     if (!transcript && !metrics) {
       return NextResponse.json({ error: "No data provided" }, { status: 400 });
@@ -46,7 +46,35 @@ export async function POST(req: NextRequest) {
 
     let prompt = "";
 
-    if (task === "summary") {
+    const isShortDemo = demoMode && (metrics?.duration ?? 0) <= 5;
+
+    if (task === "summary" && isShortDemo) {
+      prompt = `You are an AI tutoring analyst for LiveSesh AI. This was a short DEMO session (${metrics?.duration ?? "N/A"} minutes) — not a real tutoring session.
+
+Session transcript:
+${transcript || "(No transcript available)"}
+
+Session metrics:
+- Engagement score: ${metrics?.engagement ?? "N/A"}%
+- Eye contact: ${metrics?.eyeContact ?? "N/A"}%
+- Student talk time: ${metrics?.studentTalk ?? "N/A"}%
+- Tutor talk time: ${metrics?.tutorTalk ?? "N/A"}%
+- Duration: ${metrics?.duration ?? "N/A"} minutes
+
+Keep the analysis very brief. Highlight only the 1-2 most notable metrics. Do not critique session length or suggest extending duration.
+
+Provide a JSON response with:
+{
+  "subject": "Demo",
+  "summary": "1 short sentence noting this was a demo and the key metric highlights",
+  "strengths": ["1 brief item max"],
+  "improvements": ["1 brief item max"],
+  "studentInsight": "1 short sentence or empty string if not applicable",
+  "nextSessionSuggestion": "1 short sentence"
+}
+
+Respond with ONLY the JSON, no markdown formatting.`;
+    } else if (task === "summary") {
       prompt = `You are an AI tutoring analyst for LiveSesh AI. Analyze this tutoring session and provide a structured summary.
 
 Session transcript:
