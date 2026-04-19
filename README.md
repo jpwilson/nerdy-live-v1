@@ -2,14 +2,16 @@
 
 Real-time engagement analysis for live tutoring sessions. Built for the Nerdy/Varsity Tutors technical assessment.
 
-**Live demo:** [student-call.vercel.app](https://student-call.vercel.app)
+**Live demo:** [nerdy-live.46-225-235-124.sslip.io](https://nerdy-live.46-225-235-124.sslip.io)
+
+> _Hosted on [Hetzner Cloud](https://www.hetzner.com/cloud) (ARM CAX21, Nuremberg) via [Coolify](https://coolify.io), with self-hosted Supabase on the same box. Migrated off Vercel + Supabase Cloud (prior URL: `student-call.vercel.app`) to cut demo hosting costs._
 
 ---
 
 ## Evaluator Quick Start
 
 ### 1. Sign in
-Visit [student-call.vercel.app](https://student-call.vercel.app) and use a **demo account**:
+Visit [nerdy-live.46-225-235-124.sslip.io](https://nerdy-live.46-225-235-124.sslip.io) and use a **demo account**:
 - **Tutor**: Choose "Kim (Tutor)" or "Nick (Tutor)" from the dropdown
 - **Student**: Choose any student name
 
