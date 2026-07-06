@@ -20,27 +20,15 @@ export default function DashboardPage() {
   const [demoMode, setDemoMode] = useState(false);
 
   useEffect(() => {
-    // Check demo login first, then Supabase
-    const demoEmail = localStorage.getItem("livesesh_email");
-    if (demoEmail) {
-      setEmail(demoEmail);
-      setLoading(false);
-      return;
-    }
+    // Require a real Supabase session — no localStorage impersonation fallbacks.
     const supabase = getSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user?.email) {
-        // Check if demo user is signed in via displayName
-        const name = localStorage.getItem("livesesh_displayName");
-        if (name) {
-          setEmail("demo@livesesh.app");
-        } else {
-          router.push("/");
-        }
+        router.replace("/");
       } else {
         setEmail(session.user.email);
+        setLoading(false);
       }
-      setLoading(false);
     });
   }, [router]);
 
@@ -287,7 +275,9 @@ export default function DashboardPage() {
                 </div>
                 <div className="settings-row">
                   <span className="settings-label">Student Link</span>
-                  <span className="settings-value" style={{ fontSize: "0.72rem" }}>student-call.vercel.app/room/demo-room</span>
+                  <span className="settings-value" style={{ fontSize: "0.72rem" }}>
+                    {typeof window !== "undefined" ? `${window.location.host}/room/${localStorage.getItem("livesesh_roomId") || "demo-room"}` : ""}
+                  </span>
                 </div>
               </div>
             </div>

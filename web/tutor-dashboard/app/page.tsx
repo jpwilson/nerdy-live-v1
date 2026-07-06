@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? "";
+
 const DEMO_ACCOUNTS = [
-  { label: "Kim", email: "demo@livesesh.app", password: "DemoPass123!" },
-  { label: "Nick", email: "tutor2@livesesh.app", password: "DemoPass123!" },
+  { label: "Kim", email: "demo@livesesh.app" },
+  { label: "Nick", email: "tutor2@livesesh.app" },
 ];
 
 export default function LoginPage() {
@@ -47,12 +49,16 @@ export default function LoginPage() {
   }
 
   async function handleDemoLogin(account: (typeof DEMO_ACCOUNTS)[number]) {
+    if (!DEMO_PASSWORD) {
+      setError("Demo accounts are not configured on this deployment.");
+      return;
+    }
     setLoading(true);
     setError(null);
 
     const { error: err } = await supabase.auth.signInWithPassword({
       email: account.email,
-      password: account.password,
+      password: DEMO_PASSWORD,
     });
 
     if (err) {

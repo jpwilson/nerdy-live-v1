@@ -10,17 +10,19 @@ import {
 } from "@/lib/room-utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? "";
+
 const DEMO_STUDENTS = [
-  { label: "Sarah Chen", email: "demo-student@livesesh.app", password: "DemoPass123!" },
-  { label: "Alex Rivera", email: "student-alex@livesesh.app", password: "DemoPass123!" },
-  { label: "Jordan Patel", email: "student-jordan@livesesh.app", password: "DemoPass123!" },
-  { label: "Casey Kim", email: "student-casey@livesesh.app", password: "DemoPass123!" },
-  { label: "Morgan Davis", email: "student-morgan@livesesh.app", password: "DemoPass123!" },
+  { label: "Sarah Chen", email: "demo-student@livesesh.app" },
+  { label: "Alex Rivera", email: "student-alex@livesesh.app" },
+  { label: "Jordan Patel", email: "student-jordan@livesesh.app" },
+  { label: "Casey Kim", email: "student-casey@livesesh.app" },
+  { label: "Morgan Davis", email: "student-morgan@livesesh.app" },
 ] as const;
 
 const DEMO_TUTORS = [
-  { label: "Kim (Tutor)", email: "demo@livesesh.app", password: "DemoPass123!" },
-  { label: "Nick (Tutor)", email: "tutor2@livesesh.app", password: "DemoPass123!" },
+  { label: "Kim (Tutor)", email: "demo@livesesh.app" },
+  { label: "Nick (Tutor)", email: "tutor2@livesesh.app" },
 ] as const;
 
 const DEMO_ROOM = "demo-room";
@@ -79,10 +81,8 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
     localStorage.setItem("livesesh_role", role);
   }, [role]);
 
-  // Notify parent of auth changes
-  useEffect(() => {
-    onAuthChange?.(authState === "signed_in");
-  }, [authState, onAuthChange]);
+  // Note: onAuthChange fires only on explicit sign-in/sign-out actions,
+  // never on restored sessions — restoring must not yank users off the landing page.
 
   const inferredName = useMemo(() => {
     return displayName.trim() || signedInEmail?.split("@")[0] || defaultDisplayName(role);
@@ -134,6 +134,7 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
       const isStudent = email.toLowerCase().includes("student");
       setRole(isStudent ? "student" : "tutor_preview");
       setAuthState("signed_in");
+      onAuthChange?.(true);
     } catch (err: unknown) {
       setAuthError(err instanceof Error ? err.message : "Invalid code");
     } finally {
@@ -141,14 +142,18 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
     }
   };
 
-  const demoSignIn = async (account: { label: string; email: string; password: string }, asRole: RoomRole) => {
+  const demoSignIn = async (account: { label: string; email: string }, asRole: RoomRole) => {
+    if (!DEMO_PASSWORD) {
+      setAuthError("Demo accounts are not configured on this deployment.");
+      return;
+    }
     setAuthLoading(true);
     setAuthError(null);
     try {
       const supabase = getSupabaseBrowserClient();
       const { error } = await supabase.auth.signInWithPassword({
         email: account.email,
-        password: account.password,
+        password: DEMO_PASSWORD,
       });
       if (error) throw error;
       setSignedInEmail(account.email);
@@ -156,6 +161,7 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
       setDisplayName(account.label);
       setRoomId(DEMO_ROOM);
       setAuthState("signed_in");
+      onAuthChange?.(true);
     } catch (err: unknown) {
       setAuthError(err instanceof Error ? err.message : "Demo sign-in failed");
     } finally {
@@ -175,6 +181,7 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
     setOtpCode("");
     setDisplayName("");
     setRoomId(DEMO_ROOM);
+    onAuthChange?.(false);
   };
 
   // --- Auth screen ---
@@ -243,46 +250,43 @@ export function JoinForm({ onAuthChange }: { onAuthChange?: (signedIn: boolean) 
         <fieldset className="fieldset">
           <legend>Quick demo login</legend>
           <p className="field-hint">
-            Select a name to sign in instantly with the correct role.
+            One click signs you in with the right role — no password needed.
           </p>
-          <div className="demo-dropdowns">
-            <div className="demo-select-group">
-              <label htmlFor="demo-student">Student</label>
-              <select
-                id="demo-student"
-                disabled={authLoading}
-                defaultValue=""
-                onChange={(e) => {
-                  const account = DEMO_STUDENTS.find((a) => a.email === e.target.value);
-                  if (account) void demoSignIn(account, "student");
-                  e.target.value = "";
-                }}
-              >
-                <option value="" disabled>Choose student...</option>
-                {DEMO_STUDENTS.map((account) => (
-                  <option key={account.email} value={account.email}>{account.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="demo-select-group">
-              <label htmlFor="demo-tutor">Tutor</label>
-              <select
-                id="demo-tutor"
-                disabled={authLoading}
-                defaultValue=""
-                onChange={(e) => {
-                  const account = DEMO_TUTORS.find((a) => a.email === e.target.value);
-                  if (account) void demoSignIn(account, "tutor_preview");
-                  e.target.value = "";
-                }}
-              >
-                <option value="" disabled>Choose tutor...</option>
-                {DEMO_TUTORS.map((account) => (
-                  <option key={account.email} value={account.email}>{account.label}</option>
-                ))}
-              </select>
+          <div className="field" style={{ gap: 6 }}>
+            <label>Join as a student</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {DEMO_STUDENTS.map((account) => (
+                <button
+                  key={account.email}
+                  className="ghost-button"
+                  type="button"
+                  disabled={authLoading}
+                  style={{ padding: "8px 14px", fontSize: "0.85rem" }}
+                  onClick={() => void demoSignIn(account, "student")}
+                >
+                  {account.label}
+                </button>
+              ))}
             </div>
           </div>
+          <div className="field" style={{ gap: 6, marginTop: 10 }}>
+            <label>Join as a tutor</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {DEMO_TUTORS.map((account) => (
+                <button
+                  key={account.email}
+                  className="ghost-button"
+                  type="button"
+                  disabled={authLoading}
+                  style={{ padding: "8px 14px", fontSize: "0.85rem" }}
+                  onClick={() => void demoSignIn(account, "tutor_preview")}
+                >
+                  {account.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {authLoading && <p className="field-hint">Signing in…</p>}
         </fieldset>
 
         {authError && <div className="message error">{authError}</div>}
