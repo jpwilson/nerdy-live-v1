@@ -506,6 +506,7 @@ function AnalysisPanelInner({
   const energyHistRef = useRef<number[]>([]);
   const blinkHistRef = useRef<number[]>([]);
   const noFaceCountRef = useRef(0);
+  const debugTickRef = useRef(0);
 
   // Local audio analyser for interruption detection
   const localAnalyserRef = useRef<AnalyserNode | null>(null);
@@ -552,6 +553,16 @@ function AnalysisPanelInner({
       let blendshapeScores: Record<string, number> | null = null;
       let expressions: FacialExpression[] = [];
       let faceCenterY = 0.5;
+
+      // Throttled pipeline diagnostics (~every 5s at 350ms ticks)
+      if (debugTickRef.current++ % 15 === 0) {
+        console.log("[analysis] pipeline:", {
+          modelLoaded: !!lm,
+          hasVideo: !!video,
+          videoReadyState: video?.readyState ?? -1,
+          videoSize: video ? `${video.videoWidth}x${video.videoHeight}` : "n/a",
+        });
+      }
 
       // Face analysis (if model loaded and video ready)
       if (lm && video && video.readyState >= 2) {

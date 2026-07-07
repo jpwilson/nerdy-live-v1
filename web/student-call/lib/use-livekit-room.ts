@@ -90,16 +90,26 @@ export function useLiveKitRoom({
   );
 
   const rebuildRemoteStream = useCallback((room: Room) => {
+    // Use tracks from ONE participant — the most recently joined student.
+    // Mixing tracks from every remote (e.g. a stale window still connected)
+    // can hand the analyser a dead video track while the UI renders the live one.
+    const remotes = [...room.remoteParticipants.values()];
+    const students = remotes.filter((p) => !p.identity.includes("tutor"));
+    const candidates = (students.length > 0 ? students : remotes).sort(
+      (a, b) => Number(b.joinedAt ?? 0) - Number(a.joinedAt ?? 0),
+    );
+
     const stream = new MediaStream();
     let hasTrack = false;
 
-    for (const [, remote] of room.remoteParticipants) {
+    for (const remote of candidates) {
       for (const [, pub] of remote.trackPublications) {
         if (pub.track?.mediaStreamTrack) {
           stream.addTrack(pub.track.mediaStreamTrack);
           hasTrack = true;
         }
       }
+      if (hasTrack) break;
     }
 
     if (hasTrack) {

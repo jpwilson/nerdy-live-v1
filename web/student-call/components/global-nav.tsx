@@ -8,20 +8,18 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 export function GlobalNav() {
   const pathname = usePathname();
   const router = useRouter();
-  // Check localStorage (demo login) OR Supabase session (real auth)
+  // Auth state comes from Supabase only — localStorage is not an identity.
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
-    // Check demo login first
-    if (localStorage.getItem("livesesh_displayName")) {
-      setSignedIn(true);
-      return;
-    }
-    // Then check Supabase for real auth session
     const supabase = getSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setSignedIn(true);
+      setSignedIn(!!session);
     });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(!!session);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   // Don't show nav on the room/call page
@@ -63,7 +61,7 @@ export function GlobalNav() {
               <button className="nav-btn" onClick={startSession}>Start Session</button>
             ) : null
           ) : pathname !== "/" ? (
-            <Link href="/" className="nav-btn nav-btn-signin">Sign Up</Link>
+            <Link href="/" className="nav-btn nav-btn-signin">Sign In</Link>
           ) : null}
         </div>
       </div>
